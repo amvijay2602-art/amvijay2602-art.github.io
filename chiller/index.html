@@ -1,0 +1,3299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#1565c0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Chiller Check">
+  <title>Birkhill Chiller Check</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <style>
+    :root {
+      --blue: #1565c0;
+      --blue-dark: #0d47a1;
+      --bg: #f4f6fa;
+      --text: #1a1a1a;
+      --muted: #5f6b7a;
+      --card: #ffffff;
+      --danger: #c62828;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100%;
+    }
+    body {
+      padding: 20px 16px 32px;
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(32px, env(safe-area-inset-bottom));
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 16px;
+      text-align: center;
+    }
+    .modes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 0 0 16px;
+    }
+    .mode-btn {
+      flex: 1 1 calc(50% - 5px);
+      background: #fff;
+      color: var(--blue-dark);
+      border: 2px solid var(--blue);
+      font-size: 1.05rem;
+      font-weight: 700;
+      padding: 16px 10px;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    .mode-btn.active {
+      background: var(--blue);
+      color: #fff;
+    }
+    #modeStockIn {
+      color: #00695c;
+      border-color: #00897b;
+    }
+    #modeStockIn.active {
+      background: #00897b;
+      color: #fff;
+    }
+    .example-banner {
+      display: none;
+      background: #fff3cd;
+      color: #7a4f01;
+      border: 2px solid #f0c36d;
+      border-radius: 12px;
+      font-weight: 700;
+      text-align: center;
+      padding: 10px 12px;
+      margin: 0 0 14px;
+    }
+    body.example .example-banner { display: block; }
+    .mode-btn:active { opacity: 0.85; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .take-photo {
+      display: block;
+      width: 100%;
+      background: var(--blue);
+      color: #fff;
+      font-size: 1.35rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 22px 16px;
+      border-radius: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .take-photo:active { background: var(--blue-dark); }
+    .take-photo input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+    }
+    #previewWrap {
+      display: none;
+      margin: 16px 0 0;
+      text-align: center;
+    }
+    #preview {
+      max-width: 100%;
+      max-height: 280px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: #eee;
+    }
+    label.field {
+      display: block;
+      margin-top: 16px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    input[type="text"], input[type="date"], input[type="number"], select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 14px 12px;
+      font-size: 1.05rem;
+      border: 1px solid #c5d0dc;
+      border-radius: 10px;
+      background: #fff;
+    }
+    select { appearance: auto; }
+    .lines-label {
+      display: block;
+      margin-top: 18px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .line {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      align-items: stretch;
+    }
+    .line input[type="date"] {
+      flex: 1 1 auto;
+      width: auto;
+      min-width: 0;
+      margin-top: 0;
+      padding: 16px 12px;
+      font-size: 1.15rem;
+    }
+    .line input[type="number"] {
+      flex: 0 0 7.2rem;
+      width: 7.2rem;
+      margin-top: 0;
+      padding: 16px 8px;
+      font-size: 1.15rem;
+      text-align: center;
+    }
+    .save-btn {
+      display: block;
+      width: 100%;
+      margin-top: 22px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 1.25rem;
+      font-weight: 700;
+      padding: 18px 16px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    .save-btn:active { background: var(--blue-dark); }
+    .save-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #saveNext {
+      margin-top: 12px;
+    }
+    #status {
+      margin-top: 14px;
+      text-align: center;
+      font-weight: 600;
+      min-height: 1.4em;
+    }
+    #status.error { color: var(--danger); }
+    #status.ok { color: var(--blue-dark); }
+    .hint {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .hidden { display: none !important; }
+
+    #wastePanel .waste-load {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0 0 12px;
+    }
+    #wastePanel .btn {
+      display: block;
+      width: 100%;
+      background: var(--blue);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 16px 14px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    #wastePanel .btn:active { background: var(--blue-dark); }
+    #wastePanel .btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #wastePanel .btn.secondary {
+      background: #fff;
+      color: var(--blue-dark);
+      border: 2px solid var(--blue);
+    }
+    #wastePanel .btn.secondary:active { background: #eaf1fb; }
+    #wastePanel .scan-wrap {
+      position: relative;
+      margin-top: 12px;
+      background: #10151a;
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 180px;
+    }
+    #wastePanel #wasteVideo {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      background: #10151a;
+    }
+    #wastePanel .scan-frame {
+      pointer-events: none;
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 28%;
+      bottom: 28%;
+      border: 3px solid rgba(255,255,255,0.9);
+      border-radius: 10px;
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.25);
+    }
+    #wasteScanCanvas { display: none; }
+    #wastePanel .manual-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    #wastePanel .manual-row input { flex: 1 1 auto; margin-top: 0; }
+    #wastePanel .manual-row button {
+      flex: 0 0 auto;
+      margin-top: 0;
+      width: auto;
+      padding: 12px 14px;
+      font-size: 1rem;
+    }
+    #wasteFoundPanel {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid #d7e0ea;
+    }
+    #wastePanel .barcode-readout {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    #wastePanel .price-line {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    #wastePanel .qty-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    #wastePanel .qty-btn {
+      flex: 0 0 52px;
+      width: 52px;
+      height: 52px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--blue);
+      color: #fff;
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+    #wastePanel .qty-btn:active { background: var(--blue-dark); }
+    #wasteFoundQty {
+      flex: 1 1 auto;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-top: 0;
+    }
+    #wasteItemList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #wasteItemList li {
+      padding: 12px 0;
+      border-bottom: 1px solid #d7e0ea;
+    }
+    #wasteItemList li:last-child { border-bottom: 0; }
+    #wastePanel .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    #wastePanel .item-name { font-weight: 700; }
+    #wastePanel .item-value { font-weight: 700; white-space: nowrap; }
+    #wastePanel .item-meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 2px;
+    }
+    #wastePanel .item-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    }
+    #wastePanel .item-qty {
+      min-width: 2rem;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    #wastePanel .remove-btn {
+      margin-left: auto;
+      background: none;
+      border: 0;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 8px 6px;
+      cursor: pointer;
+    }
+    #wastePanel .totals {
+      margin-top: 12px;
+      font-size: 1.2rem;
+      font-weight: 700;
+      text-align: right;
+    }
+    #wastePanel .waste-photo {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      background: #fff;
+      color: var(--blue-dark);
+      border: 2px solid var(--blue);
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 14px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    #wastePanel .waste-photo:active { background: #eaf1fb; }
+    #wastePanel .waste-photo input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+    }
+    #wastePreviewWrap {
+      display: none;
+      margin: 12px 0 0;
+      text-align: center;
+    }
+    #wastePreview {
+      max-width: 100%;
+      max-height: 180px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: #eee;
+    }
+    #wasteSaveItem { margin-top: 14px; }
+    #wasteTodayLabel {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin: 0 0 12px;
+    }
+    #wasteListCard {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-top: 14px;
+    }
+    #wasteListCard h2 {
+      font-size: 1.05rem;
+      margin: 0 0 10px;
+    }
+
+    .name-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      align-items: stretch;
+    }
+    .name-row input {
+      flex: 1 1 auto;
+      margin-top: 0;
+      min-width: 0;
+    }
+    .scan-name-btn {
+      flex: 0 0 auto;
+      background: var(--blue);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 12px 12px;
+      border: 0;
+      border-radius: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .scan-name-btn:active { background: var(--blue-dark); }
+    .scan-name-btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .scan-name-btn.secondary {
+      background: #fff;
+      color: var(--blue-dark);
+      border: 2px solid var(--blue);
+    }
+    .check-barcode {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    .check-barcode button {
+      margin-left: 8px;
+      background: none;
+      border: 0;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0;
+      cursor: pointer;
+    }
+    .check-scan-wrap {
+      position: relative;
+      margin-top: 12px;
+      background: #10151a;
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 180px;
+    }
+    #checkVideo {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      background: #10151a;
+    }
+    .check-scan-wrap .scan-frame {
+      pointer-events: none;
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 28%;
+      bottom: 28%;
+      border: 3px solid rgba(255,255,255,0.9);
+      border-radius: 10px;
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.25);
+    }
+
+    #checkListCard {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-top: 14px;
+    }
+    #checkListCard h2 {
+      font-size: 1.05rem;
+      margin: 0 0 6px;
+    }
+    #checkListCount {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0 0 10px;
+    }
+    #checkItemList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #checkItemList li {
+      padding: 12px 0;
+      border-bottom: 1px solid #d7e0ea;
+    }
+    #checkItemList li:last-child { border-bottom: 0; }
+    #checkListCard .item-name { font-weight: 700; }
+    #checkListCard .item-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 2px;
+    }
+    #checkListCard .item-time {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+    #checkListCard .item-actions {
+      display: flex;
+      margin-top: 8px;
+      align-items: center;
+    }
+    #checkListCard .remove-btn {
+      margin-left: auto;
+      background: none;
+      border: 0;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 8px 6px;
+      cursor: pointer;
+    }
+
+    #stockInPanel .stockin-load {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0 0 12px;
+    }
+    #stockInPanel .btn {
+      display: block;
+      width: 100%;
+      background: #00897b;
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 16px 14px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    #stockInPanel .btn:active { background: #00695c; }
+    #stockInPanel .btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #stockInPanel .btn.secondary {
+      background: #fff;
+      color: #00695c;
+      border: 2px solid #00897b;
+    }
+    #stockInPanel .btn.secondary:active { background: #e0f2f1; }
+    #stockInPanel .scan-wrap {
+      position: relative;
+      margin-top: 12px;
+      background: #10151a;
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 180px;
+    }
+    #stockInVideo {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      background: #10151a;
+    }
+    #stockInPanel .scan-frame {
+      pointer-events: none;
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 28%;
+      bottom: 28%;
+      border: 3px solid rgba(255,255,255,0.9);
+      border-radius: 10px;
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.25);
+    }
+    #stockInPanel .manual-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    #stockInPanel .manual-row input { flex: 1 1 auto; margin-top: 0; }
+    #stockInPanel .manual-row button {
+      flex: 0 0 auto;
+      margin-top: 0;
+      width: auto;
+      padding: 12px 14px;
+      font-size: 1rem;
+    }
+    #stockInPanel .barcode-readout {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    #stockInPanel .stock-line {
+      margin: 8px 0 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    #stockInPanel .stock-line.negative { color: var(--danger); }
+    #stockInPanel .snapshot {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    #stockInPanel .date-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    #stockInPanel .date-quick button {
+      flex: 1 1 calc(20% - 7px);
+      min-width: 3.4rem;
+      background: #fff;
+      color: #00695c;
+      border: 2px solid #00897b;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 10px 6px;
+      cursor: pointer;
+    }
+    #stockInPanel .date-quick button:active { background: #e0f2f1; }
+    #stockInSave { margin-top: 18px; }
+    #stockInListCard {
+      background: #e0f2f1;
+      border: 2px solid #00897b;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-top: 14px;
+    }
+    #stockInListCard h2 {
+      font-size: 1.05rem;
+      margin: 0 0 6px;
+      color: #00695c;
+    }
+    #stockInListCount {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0 0 10px;
+      color: #00695c;
+    }
+    #stockInTodayHead {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 0 0 8px;
+      border-bottom: 1px solid #80cbc4;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #00695c;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    #stockInTodayHead .col-name { flex: 1 1 auto; min-width: 0; }
+    #stockInTodayHead .col-supplier { flex: 0 0 5.4rem; width: 5.4rem; }
+    #stockInTodayHead .col-qty { flex: 0 0 2.6rem; width: 2.6rem; text-align: right; }
+    #stockInTodayHead .col-useby { flex: 0 0 4.6rem; width: 4.6rem; text-align: right; }
+    #stockInItemList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #stockInItemList li {
+      padding: 12px 0;
+      border-bottom: 1px solid #80cbc4;
+    }
+    #stockInItemList li:last-child { border-bottom: 0; }
+    #stockInItemList .item-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    #stockInItemList .item-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-weight: 700;
+    }
+    #stockInItemList .item-supplier {
+      flex: 0 0 5.4rem;
+      width: 5.4rem;
+      font-weight: 700;
+      color: #00695c;
+    }
+    #stockInItemList .item-qty {
+      flex: 0 0 2.6rem;
+      width: 2.6rem;
+      text-align: right;
+      font-weight: 700;
+    }
+    #stockInItemList .item-useby {
+      flex: 0 0 4.6rem;
+      width: 4.6rem;
+      text-align: right;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    #stockInItemList .item-time {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+    #stockInItemList .item-actions {
+      display: flex;
+      margin-top: 8px;
+      align-items: center;
+    }
+    #stockInItemList .remove-btn {
+      margin-left: auto;
+      background: none;
+      border: 0;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 8px 6px;
+      cursor: pointer;
+    }
+
+    #modeWastage {
+      color: #b71c1c;
+      border-color: #b71c1c;
+    }
+    #modeWastage.active {
+      background: #b71c1c;
+      color: #fff;
+    }
+    .supplier-chip {
+      margin-top: 10px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 1.05rem;
+      text-align: center;
+    }
+    #stockInPanel .supplier-chip {
+      background: #00897b;
+      color: #fff;
+    }
+    #stockInPanel .supplier-chip.empty {
+      background: #e0f2f1;
+      color: #00695c;
+      font-weight: 700;
+    }
+    #wastagePanel .wastage-load {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0 0 12px;
+    }
+    #wastagePanel .btn {
+      display: block;
+      width: 100%;
+      background: #b71c1c;
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 16px 14px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    #wastagePanel .btn:active { background: #7f0000; }
+    #wastagePanel .btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #wastagePanel .btn.secondary {
+      background: #fff;
+      color: #b71c1c;
+      border: 2px solid #b71c1c;
+    }
+    #wastagePanel .btn.secondary:active { background: #fdecea; }
+    #wastagePanel .scan-wrap {
+      position: relative;
+      margin-top: 12px;
+      background: #10151a;
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 180px;
+    }
+    #wastageVideo {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      background: #10151a;
+    }
+    #wastagePanel .scan-frame {
+      pointer-events: none;
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 28%;
+      bottom: 28%;
+      border: 3px solid rgba(255,255,255,0.9);
+      border-radius: 10px;
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.25);
+    }
+    #wastagePanel .manual-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    #wastagePanel .manual-row input { flex: 1 1 auto; margin-top: 0; }
+    #wastagePanel .manual-row button {
+      flex: 0 0 auto;
+      margin-top: 0;
+      width: auto;
+      padding: 12px 14px;
+      font-size: 1rem;
+    }
+    #wastagePanel .barcode-readout {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    #wastagePanel .stock-line {
+      margin: 8px 0 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    #wastagePanel .stock-line.negative { color: var(--danger); }
+    #wastagePanel .price-line,
+    #wastagePanel .value-line {
+      margin: 6px 0 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    #wastagePanel .value-line { color: #b71c1c; }
+    #wastagePanel .snapshot {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    #wastagePanel .supplier-chip {
+      background: #b71c1c;
+      color: #fff;
+    }
+    #wastagePanel .supplier-chip.empty {
+      background: #fdecea;
+      color: #b71c1c;
+      font-weight: 700;
+    }
+    #wastagePanel .date-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    #wastagePanel .date-quick button {
+      flex: 1 1 calc(20% - 7px);
+      min-width: 3.4rem;
+      background: #fff;
+      color: #b71c1c;
+      border: 2px solid #b71c1c;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 10px 6px;
+      cursor: pointer;
+    }
+    #wastagePanel .date-quick button:active { background: #fdecea; }
+    #wastageSave { margin-top: 18px; }
+    #wastageListCard {
+      background: #fdecea;
+      border: 2px solid #b71c1c;
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-top: 14px;
+    }
+    #wastageListCard h2 {
+      font-size: 1.05rem;
+      margin: 0 0 6px;
+      color: #7f0000;
+    }
+    #wastageListCount {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin: 0 0 10px;
+      color: #7f0000;
+    }
+    #wastageTodayHead {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      padding: 0 0 8px;
+      border-bottom: 1px solid #e57373;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #7f0000;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    #wastageTodayHead .col-name { flex: 1 1 auto; min-width: 0; }
+    #wastageTodayHead .col-qty { flex: 0 0 2.6rem; width: 2.6rem; text-align: right; }
+    #wastageTodayHead .col-reason { flex: 0 0 6.4rem; width: 6.4rem; }
+    #wastageTodayHead .col-value { flex: 0 0 4.4rem; width: 4.4rem; text-align: right; }
+    #wastageItemList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #wastageItemList li {
+      padding: 12px 0;
+      border-bottom: 1px solid #e57373;
+    }
+    #wastageItemList li:last-child { border-bottom: 0; }
+    #wastageItemList .item-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    #wastageItemList .item-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      font-weight: 700;
+    }
+    #wastageItemList .item-qty {
+      flex: 0 0 2.6rem;
+      width: 2.6rem;
+      text-align: right;
+      font-weight: 700;
+    }
+    #wastageItemList .item-reason {
+      flex: 0 0 6.4rem;
+      width: 6.4rem;
+      font-weight: 700;
+      color: #7f0000;
+    }
+    #wastageItemList .item-value {
+      flex: 0 0 4.4rem;
+      width: 4.4rem;
+      text-align: right;
+      font-weight: 700;
+      color: #b71c1c;
+      white-space: nowrap;
+    }
+    #wastageItemList .item-time {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+    #wastageItemList .item-actions {
+      display: flex;
+      margin-top: 8px;
+      align-items: center;
+    }
+    #wastageItemList .remove-btn {
+      margin-left: auto;
+      background: none;
+      border: 0;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 8px 6px;
+      cursor: pointer;
+    }
+    #wastageTotals {
+      margin-top: 12px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      text-align: right;
+      color: #7f0000;
+    }
+  </style>
+</head>
+<body>
+  <div class="example-banner">Example data</div>
+  <h1>Birkhill Chiller Check</h1>
+  <div class="modes" role="tablist" aria-label="Check type">
+    <button type="button" id="modeDate" class="mode-btn active" role="tab" aria-selected="true">Date Check</button>
+    <button type="button" id="modeGap" class="mode-btn" role="tab" aria-selected="false">Gap Check</button>
+    <button type="button" id="modeWaste" class="mode-btn" role="tab" aria-selected="false">P&amp;P Waste</button>
+    <button type="button" id="modeStockIn" class="mode-btn" role="tab" aria-selected="false">Stock In</button>
+    <button type="button" id="modeWastage" class="mode-btn" role="tab" aria-selected="false">Waste</button>
+  </div>
+  <div class="card">
+    <div id="checkFields">
+    <label class="take-photo" id="photoLabel">
+      <span id="photoLabelText">📷 Take Photo</span>
+      <input id="photoInput" type="file" accept="image/*" capture="environment">
+    </label>
+    <div id="previewWrap">
+      <img id="preview" alt="Photo preview">
+    </div>
+    <label class="field" for="name">Product name</label>
+    <div class="name-row">
+      <input id="name" type="text" autocomplete="off" autocapitalize="words" placeholder="e.g. Semi Skimmed Milk">
+      <button id="checkScanBtn" class="scan-name-btn" type="button">Scan barcode</button>
+    </div>
+    <p id="checkBarcodeReadout" class="check-barcode hidden"></p>
+    <div id="checkScanWrap" class="check-scan-wrap hidden">
+      <video id="checkVideo" playsinline muted autoplay></video>
+      <div class="scan-frame" aria-hidden="true"></div>
+    </div>
+    <div id="datePanel">
+      <div class="lines-label">Use By / Best Before</div>
+      <div class="line">
+        <input class="line-date" type="date" aria-label="Use by or best before date 1">
+        <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 1">
+      </div>
+      <div class="line">
+        <input class="line-date" type="date" aria-label="Use by or best before date 2">
+        <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 2">
+      </div>
+      <div class="line">
+        <input class="line-date" type="date" aria-label="Use by or best before date 3">
+        <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 3">
+      </div>
+      <button id="save" class="save-btn" type="button">Save</button>
+    </div>
+    <div id="gapPanel" class="hidden">
+      <label class="field">
+        How many left on shelf
+        <input id="shelfQty" type="number" inputmode="numeric" min="0" step="1" value="0" aria-label="How many left on shelf">
+      </label>
+      <label class="field">
+        Note (optional)
+        <input id="note" type="text" autocomplete="off" placeholder="e.g. empty space on the middle shelf">
+      </label>
+      <button id="saveGap" class="save-btn" type="button">Save</button>
+      <button id="saveNext" class="save-btn" type="button">Save and next gap</button>
+    </div>
+    </div>
+    <div id="wastePanel" class="hidden">
+      <p id="wasteTodayLabel"></p>
+      <p id="wasteLoadState" class="waste-load">Loading products...</p>
+      <label class="field">
+        Checked by
+        <input id="wasteCheckedBy" type="text" autocomplete="name" autocapitalize="words" placeholder="Your name">
+      </label>
+      <button id="wasteCameraBtn" class="btn" type="button" style="margin-top:14px">Start camera</button>
+      <div id="wasteScanWrap" class="scan-wrap hidden">
+        <video id="wasteVideo" playsinline muted autoplay></video>
+        <div class="scan-frame" aria-hidden="true"></div>
+      </div>
+      <canvas id="wasteScanCanvas"></canvas>
+      <label class="field">
+        Or type the barcode
+        <div class="manual-row">
+          <input id="wasteBarcodeInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Scan or type barcode">
+          <button id="wasteLookupBtn" class="btn" type="button">Look up</button>
+        </div>
+      </label>
+      <div id="wasteFoundPanel" class="hidden">
+        <label class="field">
+          Product name
+          <input id="wasteFoundName" type="text" autocomplete="off" autocapitalize="words" placeholder="Unknown, type name">
+        </label>
+        <p id="wasteFoundBarcode" class="barcode-readout"></p>
+        <p id="wasteFoundPrice" class="price-line"></p>
+        <div class="qty-row">
+          <button id="wasteQtyMinus" class="qty-btn" type="button" aria-label="Decrease quantity">-</button>
+          <input id="wasteFoundQty" type="number" inputmode="numeric" min="1" step="1" value="1" aria-label="Quantity">
+          <button id="wasteQtyPlus" class="qty-btn" type="button" aria-label="Increase quantity">+</button>
+        </div>
+        <label class="waste-photo" id="wastePhotoLabel">
+          <span id="wastePhotoLabelText">Optional: photo of the waste</span>
+          <input id="wastePhotoInput" type="file" accept="image/*" capture="environment">
+        </label>
+        <div id="wastePreviewWrap">
+          <img id="wastePreview" alt="Waste photo preview">
+        </div>
+        <button id="wasteSaveItem" class="btn" type="button">Save item</button>
+      </div>
+    </div>
+    <div id="stockInPanel" class="hidden">
+      <p id="stockInLoadState" class="stockin-load">Loading products...</p>
+      <label class="field">
+        Checked by
+        <input id="stockInCheckedBy" type="text" autocomplete="name" autocapitalize="words" placeholder="Your name">
+      </label>
+      <label class="field" for="stockInSupplier">Supplier</label>
+      <select id="stockInSupplier" aria-label="Supplier">
+        <option value="">Choose supplier</option>
+        <option>Eden</option>
+        <option>P&amp;P</option>
+        <option>Milk</option>
+        <option>Parfetts</option>
+        <option>Galaxy</option>
+        <option>Country Choice</option>
+        <option>Dhamecha</option>
+        <option>Booker</option>
+        <option>Other</option>
+      </select>
+      <div id="stockInSupplierChip" class="supplier-chip empty">Choose a supplier, then scan</div>
+      <button id="stockInCameraBtn" class="btn" type="button" style="margin-top:14px">Start camera</button>
+      <div id="stockInScanWrap" class="scan-wrap hidden">
+        <video id="stockInVideo" playsinline muted autoplay></video>
+        <div class="scan-frame" aria-hidden="true"></div>
+      </div>
+      <label class="field">
+        Or type the barcode
+        <div class="manual-row">
+          <input id="stockInBarcodeInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Scan or type barcode">
+          <button id="stockInLookupBtn" class="btn" type="button">Look up</button>
+        </div>
+      </label>
+      <label class="field" for="stockInName">Product name</label>
+      <input id="stockInName" type="text" autocomplete="off" autocapitalize="words" placeholder="Name fills in when you scan">
+      <p id="stockInBarcodeReadout" class="barcode-readout hidden"></p>
+      <p id="stockInTillStock" class="stock-line"></p>
+      <p id="stockInSnapshot" class="snapshot"></p>
+      <label class="field" for="stockInQty">Qty received</label>
+      <input id="stockInQty" type="number" inputmode="numeric" min="1" step="1" value="1" aria-label="Quantity received">
+      <label class="field" for="stockInDate">Use by / Best before</label>
+      <input id="stockInDate" type="date" aria-label="Use by or best before date">
+      <div class="date-quick" role="group" aria-label="Quick use-by dates">
+        <button type="button" data-days="1">+1 day</button>
+        <button type="button" data-days="2">+2 days</button>
+        <button type="button" data-days="3">+3 days</button>
+        <button type="button" data-days="5">+5 days</button>
+        <button type="button" data-days="7">+7 days</button>
+      </div>
+      <button id="stockInSave" class="btn" type="button">Save</button>
+    </div>
+    <div id="wastagePanel" class="hidden">
+      <p id="wastageLoadState" class="wastage-load">Loading products...</p>
+      <label class="field">
+        Checked by
+        <input id="wastageCheckedBy" type="text" autocomplete="name" autocapitalize="words" placeholder="Your name">
+      </label>
+      <label class="field" for="wastageSupplier">Supplier</label>
+      <select id="wastageSupplier" aria-label="Supplier">
+        <option value="">Choose supplier</option>
+        <option>Eden</option>
+        <option>P&amp;P</option>
+        <option>Milk</option>
+        <option>Parfetts</option>
+        <option>Galaxy</option>
+        <option>Country Choice</option>
+        <option>Dhamecha</option>
+        <option>Booker</option>
+        <option>Other</option>
+      </select>
+      <div id="wastageSupplierChip" class="supplier-chip empty">Choose a supplier, then scan</div>
+      <button id="wastageCameraBtn" class="btn" type="button" style="margin-top:14px">Start camera</button>
+      <div id="wastageScanWrap" class="scan-wrap hidden">
+        <video id="wastageVideo" playsinline muted autoplay></video>
+        <div class="scan-frame" aria-hidden="true"></div>
+      </div>
+      <label class="field">
+        Or type the barcode
+        <div class="manual-row">
+          <input id="wastageBarcodeInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Scan or type barcode">
+          <button id="wastageLookupBtn" class="btn" type="button">Look up</button>
+        </div>
+      </label>
+      <label class="field" for="wastageName">Product name</label>
+      <input id="wastageName" type="text" autocomplete="off" autocapitalize="words" placeholder="Name fills in when you scan">
+      <p id="wastageBarcodeReadout" class="barcode-readout hidden"></p>
+      <p id="wastageTillPrice" class="price-line"></p>
+      <p id="wastageTillStock" class="stock-line"></p>
+      <p id="wastageValue" class="value-line"></p>
+      <p id="wastageSnapshot" class="snapshot"></p>
+      <label class="field" for="wastageQty">Qty wasted</label>
+      <input id="wastageQty" type="number" inputmode="numeric" min="1" step="1" value="1" aria-label="Quantity wasted">
+      <label class="field" for="wastageReason">Reason</label>
+      <select id="wastageReason" aria-label="Waste reason">
+        <option value="">Choose reason</option>
+        <option>Out of date</option>
+        <option>Damaged</option>
+        <option>Reduced not sold</option>
+        <option>P&amp;P return</option>
+        <option>Customer return</option>
+        <option>Other</option>
+      </select>
+      <label class="field" for="wastageDate">Use by / Best before (optional)</label>
+      <input id="wastageDate" type="date" aria-label="Use by or best before date, optional">
+      <div class="date-quick" role="group" aria-label="Quick use-by dates">
+        <button type="button" data-days="1">+1 day</button>
+        <button type="button" data-days="2">+2 days</button>
+        <button type="button" data-days="3">+3 days</button>
+        <button type="button" data-days="5">+5 days</button>
+        <button type="button" data-days="7">+7 days</button>
+      </div>
+      <button id="wastageSave" class="btn" type="button">Save</button>
+    </div>
+    <div id="status"></div>
+  </div>
+  <div id="checkListCard">
+    <h2 id="checkListTitle">Today's date check</h2>
+    <div id="checkListCount"></div>
+    <ul id="checkItemList"></ul>
+    <p id="checkEmptyList" class="hint">No items yet. Scan or enter a product, then save.</p>
+  </div>
+  <div id="wasteListCard" class="hidden">
+    <h2>Today's P&amp;P returns</h2>
+    <ul id="wasteItemList"></ul>
+    <p id="wasteEmptyList" class="hint">No items yet. Scan each out-of-date P&amp;P product, enter how many are going back, then save.</p>
+    <div id="wasteTotals" class="totals hidden"></div>
+    <p class="hint">Show this list to the P&amp;P driver.</p>
+  </div>
+  <div id="stockInListCard" class="hidden">
+    <h2>Today's stock in</h2>
+    <div id="stockInListCount"></div>
+    <div id="stockInTodayHead">
+      <span class="col-name">Name</span>
+      <span class="col-supplier">Supplier</span>
+      <span class="col-qty">Qty</span>
+      <span class="col-useby">Use by</span>
+    </div>
+    <ul id="stockInItemList"></ul>
+    <p id="stockInEmptyList" class="hint">No items yet. Choose the supplier, then scan products, enter the qty and use-by date, and save.</p>
+  </div>
+  <div id="wastageListCard" class="hidden">
+    <h2>Today's waste</h2>
+    <div id="wastageListCount"></div>
+    <div id="wastageTodayHead">
+      <span class="col-name">Name</span>
+      <span class="col-qty">Qty</span>
+      <span class="col-reason">Reason</span>
+      <span class="col-value">Value</span>
+    </div>
+    <ul id="wastageItemList"></ul>
+    <p id="wastageEmptyList" class="hint">No items yet. Choose the supplier, then scan products, enter the qty and reason, and save.</p>
+    <div id="wastageTotals" class="hidden"></div>
+  </div>
+  <p class="hint">Add this page to your home screen for one-tap access.</p>
+  <script src="../secure-data.js"></script>
+  <script>
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
+    const photoInput = document.getElementById("photoInput");
+    const photoLabel = document.getElementById("photoLabel");
+    const preview = document.getElementById("preview");
+    const previewWrap = document.getElementById("previewWrap");
+    const nameInput = document.getElementById("name");
+    const saveBtn = document.getElementById("save");
+    const saveGapBtn = document.getElementById("saveGap");
+    const saveNextBtn = document.getElementById("saveNext");
+    const statusEl = document.getElementById("status");
+    const datePanel = document.getElementById("datePanel");
+    const gapPanel = document.getElementById("gapPanel");
+    const modeDateBtn = document.getElementById("modeDate");
+    const modeGapBtn = document.getElementById("modeGap");
+    const modeWasteBtn = document.getElementById("modeWaste");
+    const modeStockInBtn = document.getElementById("modeStockIn");
+    const modeWastageBtn = document.getElementById("modeWastage");
+    const checkFields = document.getElementById("checkFields");
+    const wastePanel = document.getElementById("wastePanel");
+    const wasteListCard = document.getElementById("wasteListCard");
+    const stockInPanel = document.getElementById("stockInPanel");
+    const stockInListCard = document.getElementById("stockInListCard");
+    const wastagePanel = document.getElementById("wastagePanel");
+    const wastageListCard = document.getElementById("wastageListCard");
+    const shelfQtyInput = document.getElementById("shelfQty");
+    const noteInput = document.getElementById("note");
+    let photoDataUrl = "";
+    let mode = "date";
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg;
+      statusEl.className = kind || "";
+    }
+
+    function setMode(next) {
+      mode = next;
+      const isDate = next === "date";
+      const isGap = next === "gap";
+      const isWaste = next === "waste";
+      const isStockIn = next === "stockin";
+      const isWastage = next === "wastage";
+      modeDateBtn.classList.toggle("active", isDate);
+      modeGapBtn.classList.toggle("active", isGap);
+      modeWasteBtn.classList.toggle("active", isWaste);
+      modeStockInBtn.classList.toggle("active", isStockIn);
+      modeWastageBtn.classList.toggle("active", isWastage);
+      modeDateBtn.setAttribute("aria-selected", isDate ? "true" : "false");
+      modeGapBtn.setAttribute("aria-selected", isGap ? "true" : "false");
+      modeWasteBtn.setAttribute("aria-selected", isWaste ? "true" : "false");
+      modeStockInBtn.setAttribute("aria-selected", isStockIn ? "true" : "false");
+      modeWastageBtn.setAttribute("aria-selected", isWastage ? "true" : "false");
+      checkFields.classList.toggle("hidden", isWaste || isStockIn || isWastage);
+      wastePanel.classList.toggle("hidden", !isWaste);
+      wasteListCard.classList.toggle("hidden", !isWaste);
+      stockInPanel.classList.toggle("hidden", !isStockIn);
+      stockInListCard.classList.toggle("hidden", !isStockIn);
+      wastagePanel.classList.toggle("hidden", !isWastage);
+      wastageListCard.classList.toggle("hidden", !isWastage);
+      const checkListCard = document.getElementById("checkListCard");
+      if (checkListCard) checkListCard.classList.toggle("hidden", isWaste || isStockIn || isWastage);
+      datePanel.classList.toggle("hidden", !isDate);
+      gapPanel.classList.toggle("hidden", !isGap);
+      document.getElementById("photoLabelText").textContent = isGap ? "📷 Take Photo (optional)" : "📷 Take Photo";
+      setStatus("", "");
+      if (!isWaste && typeof stopWasteCamera === "function") stopWasteCamera();
+      if (!isWastage && typeof stopWastageCamera === "function") stopWastageCamera();
+      if ((isWaste || isStockIn || isWastage) && typeof stopCheckCamera === "function") stopCheckCamera();
+      if (!isStockIn && typeof stopStockInCamera === "function") stopStockInCamera();
+      if ((isDate || isGap) && typeof renderCheckList === "function") renderCheckList();
+      if (isStockIn && typeof renderStockInList === "function") renderStockInList();
+      if (isWastage && typeof renderWastageList === "function") renderWastageList();
+    }
+
+    modeDateBtn.addEventListener("click", function () { setMode("date"); });
+    modeGapBtn.addEventListener("click", function () { setMode("gap"); });
+    modeWasteBtn.addEventListener("click", function () { setMode("waste"); });
+    modeStockInBtn.addEventListener("click", function () { setMode("stockin"); });
+    modeWastageBtn.addEventListener("click", function () { setMode("wastage"); });
+
+    function todayLondon() {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/London",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(new Date());
+    }
+
+    function collectLines() {
+      const dates = document.querySelectorAll(".line-date");
+      const qtys = document.querySelectorAll(".line-qty");
+      const lines = [];
+      for (let i = 0; i < dates.length; i++) {
+        const date = dates[i].value.trim();
+        if (!date) continue;
+        lines.push({ date: date, qty: qtys[i].value.trim() });
+      }
+      return lines;
+    }
+
+    function downscale(file) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onerror = function () { reject(new Error("Could not read the photo")); };
+        reader.onload = function () {
+          const img = new Image();
+          img.onerror = function () { reject(new Error("Could not load the photo")); };
+          img.onload = function () {
+            let w = img.width;
+            let h = img.height;
+            const max = 1280;
+            if (w > max || h > max) {
+              if (w > h) {
+                h = Math.round(h * max / w);
+                w = max;
+              } else {
+                w = Math.round(w * max / h);
+                h = max;
+              }
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL("image/jpeg", 0.8));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    photoInput.addEventListener("change", function () {
+      const file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      setStatus("Preparing photo...", "");
+      downscale(file).then(function (dataUrl) {
+        photoDataUrl = dataUrl;
+        preview.src = dataUrl;
+        previewWrap.style.display = "block";
+        setStatus("", "");
+      }).catch(function () {
+        photoDataUrl = "";
+        setStatus("Could not use that photo. Please try again.", "error");
+      });
+    });
+
+    function clearForm() {
+      photoDataUrl = "";
+      photoInput.value = "";
+      preview.src = "";
+      previewWrap.style.display = "none";
+      nameInput.value = "";
+      document.querySelectorAll(".line-date, .line-qty").forEach(function (el) {
+        el.value = "";
+      });
+      shelfQtyInput.value = "0";
+      noteInput.value = "";
+      checkBarcode = "";
+      updateCheckBarcodeReadout();
+      if (typeof stopCheckCamera === "function") stopCheckCamera();
+    }
+
+    function postPayload(payload) {
+      return fetch(ENDPOINT, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    function setSaving(busy) {
+      saveBtn.disabled = busy;
+      saveGapBtn.disabled = busy;
+      saveNextBtn.disabled = busy;
+      const wasteSave = document.getElementById("wasteSaveItem");
+      if (wasteSave) wasteSave.disabled = busy;
+      const stockInSave = document.getElementById("stockInSave");
+      if (stockInSave) stockInSave.disabled = busy;
+      const wastageSave = document.getElementById("wastageSave");
+      if (wastageSave) wastageSave.disabled = busy;
+    }
+
+    saveBtn.addEventListener("click", function () {
+      const name = nameInput.value.trim();
+      const lines = collectLines();
+      if (!name || lines.length === 0) {
+        setStatus("Please enter the product name and at least one date.", "error");
+        return;
+      }
+      setSaving(true);
+      setStatus("Saving...", "");
+      let savedName = "CHILLER: " + name;
+      if (checkBarcode) savedName += " [" + checkBarcode + "]";
+      postPayload({ name: savedName, photo: photoDataUrl || "", lines: lines }).then(function () {
+        addDateListItem({
+          name: name,
+          barcode: checkBarcode || "",
+          lines: lines,
+          time: nowLondonTime(),
+          at: Date.now()
+        });
+        setStatus("Saved ✓", "ok");
+        clearForm();
+      }).catch(function () {
+        setStatus("Could not save. Check your connection and try again.", "error");
+      }).then(function () {
+        setSaving(false);
+      });
+    });
+
+    function saveGap(andNext) {
+      const product = nameInput.value.trim();
+      if (!product) {
+        setStatus("Please enter the product name.", "error");
+        return;
+      }
+      const note = noteInput.value.trim();
+      let name = "GAP: " + product;
+      if (checkBarcode) name += " [" + checkBarcode + "]";
+      if (note) name += " | " + note;
+      const qtyRaw = shelfQtyInput.value.trim();
+      const qty = qtyRaw === "" ? "0" : qtyRaw;
+      setSaving(true);
+      setStatus("Saving...", "");
+      postPayload({
+        name: name,
+        photo: photoDataUrl || "",
+        lines: [{ date: todayLondon(), qty: String(qty) }]
+      }).then(function () {
+        addGapListItem({
+          name: product,
+          barcode: checkBarcode || "",
+          note: note,
+          qty: String(qty),
+          time: nowLondonTime(),
+          at: Date.now()
+        });
+        setStatus(andNext ? "Saved. Ready for the next gap." : "Saved ✓", "ok");
+        clearForm();
+        if (andNext) nameInput.focus();
+      }).catch(function () {
+        setStatus("Could not save. Check your connection and try again.", "error");
+      }).then(function () {
+        setSaving(false);
+      });
+    }
+
+    saveGapBtn.addEventListener("click", function () { saveGap(false); });
+    saveNextBtn.addEventListener("click", function () { saveGap(true); });
+
+    const DATE_LIST_KEY = "birkhill-chiller-date-list-v1";
+    const GAP_LIST_KEY = "birkhill-chiller-gap-list-v1";
+    const checkListTitle = document.getElementById("checkListTitle");
+    const checkListCount = document.getElementById("checkListCount");
+    const checkItemList = document.getElementById("checkItemList");
+    const checkEmptyList = document.getElementById("checkEmptyList");
+    let dateItems = [];
+    let gapItems = [];
+
+    function nowLondonTime() {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/London",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+      }).format(new Date()).replace(" ", "").toLowerCase();
+    }
+
+    function formatUkDate(iso) {
+      if (!iso) return "";
+      const parts = String(iso).split("-");
+      if (parts.length !== 3) return String(iso);
+      return parts[2] + "/" + parts[1] + "/" + parts[0];
+    }
+
+    function persistCheckLists() {
+      try {
+        const today = todayLondon();
+        localStorage.setItem(DATE_LIST_KEY, JSON.stringify({ date: today, items: dateItems }));
+        localStorage.setItem(GAP_LIST_KEY, JSON.stringify({ date: today, items: gapItems }));
+      } catch (e) {}
+    }
+
+    function restoreCheckLists() {
+      const today = todayLondon();
+      try {
+        const raw = localStorage.getItem(DATE_LIST_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data && data.date === today && Array.isArray(data.items)) dateItems = data.items;
+        }
+      } catch (e) {}
+      try {
+        const raw = localStorage.getItem(GAP_LIST_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data && data.date === today && Array.isArray(data.items)) gapItems = data.items;
+        }
+      } catch (e) {}
+    }
+
+    function addDateListItem(item) {
+      dateItems.unshift(item);
+      persistCheckLists();
+      renderCheckList();
+    }
+
+    function addGapListItem(item) {
+      gapItems.unshift(item);
+      persistCheckLists();
+      renderCheckList();
+    }
+
+    function renderCheckList() {
+      if (!checkItemList) return;
+      const isGap = mode === "gap";
+      const items = isGap ? gapItems : dateItems;
+      if (checkListTitle) {
+        checkListTitle.textContent = isGap ? "Today's gap check" : "Today's date check";
+      }
+      const n = items.length;
+      checkListCount.textContent = n === 0 ? "" : (n + (n === 1 ? " item" : " items"));
+      checkItemList.innerHTML = "";
+      items.forEach(function (item, index) {
+        const li = document.createElement("li");
+        const nameEl = document.createElement("div");
+        nameEl.className = "item-name";
+        nameEl.textContent = item.name || "Unknown";
+        li.appendChild(nameEl);
+        if (item.barcode) {
+          const bar = document.createElement("div");
+          bar.className = "item-meta";
+          bar.textContent = "Barcode " + item.barcode;
+          li.appendChild(bar);
+        }
+        if (isGap) {
+          if (item.qty !== undefined && item.qty !== "") {
+            const q = document.createElement("div");
+            q.className = "item-meta";
+            q.textContent = item.qty + " left on shelf";
+            li.appendChild(q);
+          }
+          if (item.note) {
+            const note = document.createElement("div");
+            note.className = "item-meta";
+            note.textContent = item.note;
+            li.appendChild(note);
+          }
+        } else if (Array.isArray(item.lines)) {
+          item.lines.forEach(function (line) {
+            const row = document.createElement("div");
+            row.className = "item-meta";
+            const qty = (line.qty === undefined || line.qty === "") ? "" : String(line.qty);
+            row.textContent = formatUkDate(line.date) + (qty === "" ? "" : "  ×  " + qty);
+            li.appendChild(row);
+          });
+        }
+        const timeEl = document.createElement("div");
+        timeEl.className = "item-time";
+        timeEl.textContent = item.time || "";
+        li.appendChild(timeEl);
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+        const hideBtn = document.createElement("button");
+        hideBtn.type = "button";
+        hideBtn.className = "remove-btn";
+        hideBtn.textContent = "Hide";
+        hideBtn.addEventListener("click", function () {
+          if (isGap) gapItems.splice(index, 1);
+          else dateItems.splice(index, 1);
+          persistCheckLists();
+          renderCheckList();
+        });
+        actions.appendChild(hideBtn);
+        li.appendChild(actions);
+        checkItemList.appendChild(li);
+      });
+      checkEmptyList.classList.toggle("hidden", items.length > 0);
+    }
+
+    restoreCheckLists();
+    renderCheckList();
+
+    const checkScanBtn = document.getElementById("checkScanBtn");
+    const checkBarcodeReadout = document.getElementById("checkBarcodeReadout");
+    const checkScanWrap = document.getElementById("checkScanWrap");
+    const checkVideo = document.getElementById("checkVideo");
+    const CHECK_USE_NATIVE = "BarcodeDetector" in window;
+    let checkProducts = {};
+    let checkBy13 = {};
+    let checkBarcode = "";
+    let checkCameraOn = false;
+    let checkMediaStream = null;
+    let checkScanTimer = null;
+    let checkDetector = null;
+    let checkZxingReader = null;
+    let checkLastScanCode = "";
+    let checkLastScanAt = 0;
+    let checkAudioCtx = null;
+
+    function checkDigits(raw) {
+      return String(raw || "").replace(/\D/g, "");
+    }
+
+    function checkBuildIndexes() {
+      checkBy13 = {};
+      Object.keys(checkProducts).forEach(function (code) {
+        const rec = { code: code, name: checkProducts[code] };
+        if (code.length >= 13) {
+          const p13 = code.slice(0, 13);
+          if (!checkBy13[p13] || (code.length === 13 && checkBy13[p13].code.length !== 13)) {
+            checkBy13[p13] = rec;
+          }
+        } else if (code.length === 12) {
+          const p13 = "0" + code;
+          if (!checkBy13[p13]) checkBy13[p13] = rec;
+        }
+      });
+    }
+
+    function checkLookup(raw) {
+      const code = checkDigits(raw);
+      if (!code) return null;
+      if (checkProducts[code]) {
+        return { barcode: code, name: checkProducts[code], match: "exact" };
+      }
+      if (code.length > 13) {
+        const base = code.slice(0, 13);
+        if (checkProducts[base]) {
+          return { barcode: base, name: checkProducts[base], match: "base13" };
+        }
+        if (checkBy13[base]) {
+          return { barcode: checkBy13[base].code, name: checkBy13[base].name, match: "base13" };
+        }
+      }
+      if (checkBy13[code]) {
+        return { barcode: checkBy13[code].code, name: checkBy13[code].name, match: "base13" };
+      }
+      if (code.length === 12 && checkProducts["0" + code]) {
+        return { barcode: "0" + code, name: checkProducts["0" + code], match: "upc" };
+      }
+      if (code.length === 13 && code.charAt(0) === "0" && checkProducts[code.slice(1)]) {
+        return { barcode: code.slice(1), name: checkProducts[code.slice(1)], match: "upc" };
+      }
+      return { barcode: code, name: "", match: "none" };
+    }
+
+    function updateCheckBarcodeReadout() {
+      if (!checkBarcode) {
+        checkBarcodeReadout.textContent = "";
+        checkBarcodeReadout.classList.add("hidden");
+        return;
+      }
+      checkBarcodeReadout.textContent = "";
+      checkBarcodeReadout.appendChild(document.createTextNode("Barcode " + checkBarcode + " "));
+      const clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.textContent = "Clear";
+      clearBtn.addEventListener("click", function () {
+        checkBarcode = "";
+        updateCheckBarcodeReadout();
+      });
+      checkBarcodeReadout.appendChild(clearBtn);
+      checkBarcodeReadout.classList.remove("hidden");
+    }
+
+    function checkBeep() {
+      try {
+        if (!checkAudioCtx) {
+          checkAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (checkAudioCtx.state === "suspended") checkAudioCtx.resume();
+        const osc = checkAudioCtx.createOscillator();
+        const gain = checkAudioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        gain.gain.value = 0.12;
+        gain.gain.setValueAtTime(0.12, checkAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, checkAudioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(checkAudioCtx.destination);
+        osc.start();
+        osc.stop(checkAudioCtx.currentTime + 0.12);
+      } catch (e) {}
+      try {
+        if (navigator.vibrate) navigator.vibrate(120);
+      } catch (e) {}
+    }
+
+    function checkOnScan(raw) {
+      const rec = checkLookup(raw);
+      if (!rec) return;
+      const now = Date.now();
+      if (rec.barcode === checkLastScanCode && now - checkLastScanAt < 1500) return;
+      checkLastScanCode = rec.barcode;
+      checkLastScanAt = now;
+      checkBeep();
+      checkBarcode = rec.barcode;
+      updateCheckBarcodeReadout();
+      if (rec.match === "none") {
+        setStatus("Unknown barcode, type the name.", "error");
+      } else {
+        nameInput.value = rec.name;
+        setStatus("Found " + rec.name, "ok");
+      }
+      stopCheckCamera();
+    }
+
+    function loadCheckZXing() {
+      if (typeof loadZXing === "function") return loadZXing();
+      return new Promise(function (resolve, reject) {
+        if (window.ZXing) {
+          resolve(window.ZXing);
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "zxing.min.js";
+        script.onload = function () {
+          if (window.ZXing) resolve(window.ZXing);
+          else reject(new Error("Barcode library failed to load"));
+        };
+        script.onerror = function () {
+          reject(new Error("Could not load the barcode library"));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    function checkZxingCode(result) {
+      if (!result) return "";
+      let text = result.getText ? result.getText() : String(result);
+      try {
+        const meta = result.getResultMetadata && result.getResultMetadata();
+        if (meta && window.ZXing && ZXing.ResultMetadataType) {
+          const ext = meta.get(ZXing.ResultMetadataType.UPC_EAN_EXTENSION);
+          if (ext) text = String(text) + String(ext);
+        }
+      } catch (e) {}
+      return text;
+    }
+
+    async function startCheckCamera() {
+      setStatus("", "");
+      if (typeof stopWasteCamera === "function") stopWasteCamera();
+      if (typeof stopStockInCamera === "function") stopStockInCamera();
+      if (typeof stopWastageCamera === "function") stopWastageCamera();
+      if (checkAudioCtx && checkAudioCtx.state === "suspended") checkAudioCtx.resume();
+      checkAudioCtx = checkAudioCtx || (window.AudioContext || window.webkitAudioContext ? new (window.AudioContext || window.webkitAudioContext)() : null);
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      checkMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      checkVideo.srcObject = checkMediaStream;
+      await checkVideo.play();
+      checkScanWrap.classList.remove("hidden");
+      checkCameraOn = true;
+      checkScanBtn.textContent = "Stop scan";
+      checkScanBtn.classList.add("secondary");
+      if (CHECK_USE_NATIVE) {
+        checkDetector = new BarcodeDetector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "itf", "qr_code"]
+        });
+        const tick = async function () {
+          if (!checkCameraOn) return;
+          try {
+            if (checkVideo.readyState >= 2) {
+              const codes = await checkDetector.detect(checkVideo);
+              if (codes && codes.length) checkOnScan(codes[0].rawValue);
+            }
+          } catch (e) {}
+          checkScanTimer = setTimeout(tick, 200);
+        };
+        tick();
+      } else {
+        const Z = await loadCheckZXing();
+        const hints = new Map();
+        hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+          Z.BarcodeFormat.EAN_13,
+          Z.BarcodeFormat.EAN_8,
+          Z.BarcodeFormat.UPC_A,
+          Z.BarcodeFormat.UPC_E,
+          Z.BarcodeFormat.CODE_128,
+          Z.BarcodeFormat.ITF,
+          Z.BarcodeFormat.QR_CODE
+        ]);
+        hints.set(Z.DecodeHintType.TRY_HARDER, true);
+        try {
+          hints.set(Z.DecodeHintType.ALLOWED_EAN_EXTENSIONS, [2, 5]);
+        } catch (e) {}
+        checkZxingReader = new Z.BrowserMultiFormatReader(hints, 400);
+        await checkZxingReader.decodeFromStream(checkMediaStream, checkVideo, function (result) {
+          if (result) checkOnScan(checkZxingCode(result));
+        });
+      }
+    }
+
+    function stopCheckCamera() {
+      checkCameraOn = false;
+      if (checkScanTimer) {
+        clearTimeout(checkScanTimer);
+        checkScanTimer = null;
+      }
+      if (checkZxingReader) {
+        try { checkZxingReader.reset(); } catch (e) {}
+        try { checkZxingReader.stopContinuousDecode(); } catch (e) {}
+        checkZxingReader = null;
+      }
+      if (checkMediaStream) {
+        checkMediaStream.getTracks().forEach(function (t) { t.stop(); });
+        checkMediaStream = null;
+      }
+      if (checkVideo) checkVideo.srcObject = null;
+      if (checkScanWrap) checkScanWrap.classList.add("hidden");
+      if (checkScanBtn) {
+        checkScanBtn.textContent = "Scan barcode";
+        checkScanBtn.classList.remove("secondary");
+      }
+    }
+
+    checkScanBtn.addEventListener("click", function () {
+      if (checkCameraOn) {
+        stopCheckCamera();
+        return;
+      }
+      checkScanBtn.disabled = true;
+      startCheckCamera().catch(function () {
+        stopCheckCamera();
+        setStatus("Could not open the camera. You can type the name instead.", "error");
+      }).then(function () {
+        checkScanBtn.disabled = false;
+      });
+    });
+
+    fetch("products.json").then(function (res) {
+      if (!res.ok) throw new Error("products");
+      return res.json();
+    }).then(function (data) {
+      checkProducts = data || {};
+      checkBuildIndexes();
+      const stockLoad = document.getElementById("stockInLoadState");
+      if (stockLoad) stockLoad.textContent = "";
+      const wastageLoad = document.getElementById("wastageLoadState");
+      if (wastageLoad) wastageLoad.textContent = "";
+    }).catch(function () {
+      checkProducts = {};
+      const stockLoad = document.getElementById("stockInLoadState");
+      if (stockLoad) stockLoad.textContent = "Product list could not be loaded. You can still type the name.";
+      const wastageLoad = document.getElementById("wastageLoadState");
+      if (wastageLoad) wastageLoad.textContent = "Product list could not be loaded. You can still type the name.";
+    });
+
+    const wasteCheckedBy = document.getElementById("wasteCheckedBy");
+    const wastePhotoInput = document.getElementById("wastePhotoInput");
+    const wastePhotoLabelText = document.getElementById("wastePhotoLabelText");
+    const wastePreview = document.getElementById("wastePreview");
+    const wastePreviewWrap = document.getElementById("wastePreviewWrap");
+    const wasteCameraBtn = document.getElementById("wasteCameraBtn");
+    const wasteScanWrap = document.getElementById("wasteScanWrap");
+    const wasteVideo = document.getElementById("wasteVideo");
+    const wasteBarcodeInput = document.getElementById("wasteBarcodeInput");
+    const wasteLookupBtn = document.getElementById("wasteLookupBtn");
+    const wasteFoundPanel = document.getElementById("wasteFoundPanel");
+    const wasteFoundName = document.getElementById("wasteFoundName");
+    const wasteFoundBarcode = document.getElementById("wasteFoundBarcode");
+    const wasteFoundPrice = document.getElementById("wasteFoundPrice");
+    const wasteFoundQty = document.getElementById("wasteFoundQty");
+    const wasteSaveItemBtn = document.getElementById("wasteSaveItem");
+    const wasteItemList = document.getElementById("wasteItemList");
+    const wasteEmptyList = document.getElementById("wasteEmptyList");
+    const wasteTotals = document.getElementById("wasteTotals");
+    const wasteLoadState = document.getElementById("wasteLoadState");
+    const wasteTodayLabel = document.getElementById("wasteTodayLabel");
+    const WASTE_STORE_KEY = "birkhill-pp-waste-v1";
+    const WASTE_CHECKED_KEY = "birkhill-pp-waste-checked-by";
+    const WASTE_USE_NATIVE = "BarcodeDetector" in window;
+
+    let wasteTitles = {};
+    let wasteBy13 = {};
+    let wasteItems = [];
+    let wastePhotoDataUrl = "";
+    let wasteCurrent = null;
+    let wasteCameraOn = false;
+    let wasteMediaStream = null;
+    let wasteScanTimer = null;
+    let wasteDetector = null;
+    let wasteZxingReader = null;
+    let wasteLastScanCode = "";
+    let wasteLastScanAt = 0;
+    let wasteAudioCtx = null;
+    let wasteSaving = false;
+
+    function wastePrettyToday() {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/London",
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }).format(new Date());
+    }
+
+    function wasteMoney(n) {
+      const v = Number(n) || 0;
+      return "£" + v.toFixed(2);
+    }
+
+    function wasteDigits(raw) {
+      return String(raw || "").replace(/\D/g, "");
+    }
+
+    function wasteBuildIndexes() {
+      wasteBy13 = {};
+      Object.keys(wasteTitles).forEach(function (code) {
+        const rec = { code: code, name: wasteTitles[code][0], price: wasteTitles[code][1] };
+        if (code.length >= 13) {
+          const p13 = code.slice(0, 13);
+          if (!wasteBy13[p13] || (code.length === 13 && wasteBy13[p13].code.length !== 13)) {
+            wasteBy13[p13] = rec;
+          }
+        } else if (code.length === 12) {
+          const p13 = "0" + code;
+          if (!wasteBy13[p13]) wasteBy13[p13] = rec;
+        }
+      });
+    }
+
+    function wasteLookup(raw) {
+      const code = wasteDigits(raw);
+      if (!code) return null;
+      if (wasteTitles[code]) {
+        return { barcode: code, name: wasteTitles[code][0], price: wasteTitles[code][1], match: "exact" };
+      }
+      if (code.length > 13) {
+        const base = code.slice(0, 13);
+        if (wasteTitles[base]) {
+          return { barcode: base, name: wasteTitles[base][0], price: wasteTitles[base][1], match: "base13" };
+        }
+        if (wasteBy13[base]) {
+          return { barcode: wasteBy13[base].code, name: wasteBy13[base].name, price: wasteBy13[base].price, match: "base13" };
+        }
+      }
+      if (wasteBy13[code]) {
+        return { barcode: wasteBy13[code].code, name: wasteBy13[code].name, price: wasteBy13[code].price, match: "base13" };
+      }
+      if (code.length === 12 && wasteTitles["0" + code]) {
+        return { barcode: "0" + code, name: wasteTitles["0" + code][0], price: wasteTitles["0" + code][1], match: "upc" };
+      }
+      if (code.length === 13 && code.charAt(0) === "0" && wasteTitles[code.slice(1)]) {
+        return { barcode: code.slice(1), name: wasteTitles[code.slice(1)][0], price: wasteTitles[code.slice(1)][1], match: "upc" };
+      }
+      return { barcode: code, name: "", price: 0, match: "none" };
+    }
+
+    function wastePersist() {
+      try {
+        localStorage.setItem(WASTE_CHECKED_KEY, wasteCheckedBy.value.trim());
+        localStorage.setItem(WASTE_STORE_KEY, JSON.stringify({
+          date: todayLondon(),
+          items: wasteItems
+        }));
+      } catch (e) {}
+    }
+
+    function wasteRestore() {
+      wasteCheckedBy.value = localStorage.getItem(WASTE_CHECKED_KEY) || "";
+      try {
+        const raw = localStorage.getItem(WASTE_STORE_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && data.date === todayLondon() && Array.isArray(data.items)) {
+          wasteItems = data.items;
+        }
+      } catch (e) {}
+    }
+
+    function wasteRenderList() {
+      wasteItemList.innerHTML = "";
+      let totalQty = 0;
+      wasteItems.forEach(function (item, index) {
+        const qty = Number(item.qty) || 0;
+        totalQty += qty;
+        const li = document.createElement("li");
+        li.innerHTML =
+          '<div class="item-top">' +
+            '<div class="item-name"></div>' +
+            '<div class="item-value"></div>' +
+          "</div>" +
+          '<div class="item-meta"></div>' +
+          '<div class="item-actions">' +
+            '<span class="item-qty"></span>' +
+            '<button class="remove-btn" type="button">Hide</button>' +
+          "</div>";
+        li.querySelector(".item-name").textContent = item.name || "Unknown";
+        li.querySelector(".item-value").textContent = "× " + qty;
+        li.querySelector(".item-meta").textContent = item.barcode;
+        li.querySelector(".item-qty").textContent = qty + (qty === 1 ? " pack" : " packs");
+        li.querySelector(".remove-btn").addEventListener("click", function () {
+          wasteItems.splice(index, 1);
+          wastePersist();
+          wasteRenderList();
+        });
+        wasteItemList.appendChild(li);
+      });
+      wasteEmptyList.classList.toggle("hidden", wasteItems.length > 0);
+      wasteTotals.classList.toggle("hidden", wasteItems.length === 0);
+      const n = wasteItems.length;
+      wasteTotals.textContent = n + (n === 1 ? " line" : " lines") + "  ·  " +
+        totalQty + (totalQty === 1 ? " pack" : " packs") + " in total";
+    }
+
+    function wasteClearPhoto() {
+      wastePhotoDataUrl = "";
+      wastePhotoInput.value = "";
+      wastePreview.src = "";
+      wastePreviewWrap.style.display = "none";
+      wastePhotoLabelText.textContent = "Optional: photo of the waste";
+    }
+
+    function wasteShowFound(rec, qty) {
+      wasteCurrent = rec;
+      wasteFoundName.value = rec.name || "";
+      wasteFoundBarcode.textContent = "Barcode " + rec.barcode;
+      if (rec.match === "none") {
+        wasteFoundPrice.textContent = "Unknown, type name";
+      } else {
+        wasteFoundPrice.textContent = rec.price ? wasteMoney(rec.price) + " each" : "No price on the till";
+      }
+      wasteFoundQty.value = String(qty || 1);
+      wasteClearPhoto();
+      wasteFoundPanel.classList.remove("hidden");
+    }
+
+    function wasteHideFound() {
+      wasteCurrent = null;
+      wasteFoundPanel.classList.add("hidden");
+      wasteFoundName.value = "";
+      wasteFoundQty.value = "1";
+      wasteClearPhoto();
+    }
+
+    function wasteBeep() {
+      try {
+        if (!wasteAudioCtx) {
+          wasteAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (wasteAudioCtx.state === "suspended") wasteAudioCtx.resume();
+        const osc = wasteAudioCtx.createOscillator();
+        const gain = wasteAudioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        gain.gain.value = 0.12;
+        gain.gain.setValueAtTime(0.12, wasteAudioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, wasteAudioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(wasteAudioCtx.destination);
+        osc.start();
+        osc.stop(wasteAudioCtx.currentTime + 0.12);
+      } catch (e) {}
+      try {
+        if (navigator.vibrate) navigator.vibrate(120);
+      } catch (e) {}
+    }
+
+    function wasteOnScan(raw) {
+      const code = wasteDigits(raw);
+      if (!code) return;
+      const now = Date.now();
+      if (code === wasteLastScanCode && now - wasteLastScanAt < 1500) return;
+      wasteLastScanCode = code;
+      wasteLastScanAt = now;
+      const rec = wasteLookup(code);
+      if (!rec) return;
+      wasteBeep();
+      wasteBarcodeInput.value = rec.barcode;
+      if (wasteCurrent && wasteCurrent.barcode === rec.barcode) {
+        const q = (parseInt(wasteFoundQty.value, 10) || 1) + 1;
+        wasteFoundQty.value = String(q);
+        setStatus("Quantity " + q, "ok");
+        return;
+      }
+      wasteShowFound(rec, 1);
+      if (rec.match === "none") setStatus("Unknown, type name", "error");
+      else setStatus("", "");
+    }
+
+    function loadZXing() {
+      return new Promise(function (resolve, reject) {
+        if (window.ZXing) {
+          resolve(window.ZXing);
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "zxing.min.js";
+        script.onload = function () {
+          if (window.ZXing) resolve(window.ZXing);
+          else reject(new Error("Barcode library failed to load"));
+        };
+        script.onerror = function () {
+          reject(new Error("Could not load the barcode library"));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    function wasteZxingCode(result) {
+      if (!result) return "";
+      let text = result.getText ? result.getText() : String(result);
+      try {
+        const meta = result.getResultMetadata && result.getResultMetadata();
+        if (meta && window.ZXing && ZXing.ResultMetadataType) {
+          const ext = meta.get(ZXing.ResultMetadataType.UPC_EAN_EXTENSION);
+          if (ext) text = String(text) + String(ext);
+        }
+      } catch (e) {}
+      return text;
+    }
+
+    async function startWasteCamera() {
+      setStatus("", "");
+      if (typeof stopCheckCamera === "function") stopCheckCamera();
+      if (typeof stopStockInCamera === "function") stopStockInCamera();
+      if (typeof stopWastageCamera === "function") stopWastageCamera();
+      if (wasteAudioCtx && wasteAudioCtx.state === "suspended") wasteAudioCtx.resume();
+      wasteAudioCtx = wasteAudioCtx || (window.AudioContext || window.webkitAudioContext ? new (window.AudioContext || window.webkitAudioContext)() : null);
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      wasteMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      wasteVideo.srcObject = wasteMediaStream;
+      await wasteVideo.play();
+      wasteScanWrap.classList.remove("hidden");
+      wasteCameraOn = true;
+      wasteCameraBtn.textContent = "Stop camera";
+      wasteCameraBtn.classList.add("secondary");
+      if (WASTE_USE_NATIVE) {
+        wasteDetector = new BarcodeDetector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "itf", "qr_code"]
+        });
+        const tick = async function () {
+          if (!wasteCameraOn) return;
+          try {
+            if (wasteVideo.readyState >= 2) {
+              const codes = await wasteDetector.detect(wasteVideo);
+              if (codes && codes.length) wasteOnScan(codes[0].rawValue);
+            }
+          } catch (e) {}
+          wasteScanTimer = setTimeout(tick, 200);
+        };
+        tick();
+      } else {
+        const Z = await loadZXing();
+        const hints = new Map();
+        hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+          Z.BarcodeFormat.EAN_13,
+          Z.BarcodeFormat.EAN_8,
+          Z.BarcodeFormat.UPC_A,
+          Z.BarcodeFormat.UPC_E,
+          Z.BarcodeFormat.CODE_128,
+          Z.BarcodeFormat.ITF,
+          Z.BarcodeFormat.QR_CODE
+        ]);
+        hints.set(Z.DecodeHintType.TRY_HARDER, true);
+        try {
+          hints.set(Z.DecodeHintType.ALLOWED_EAN_EXTENSIONS, [2, 5]);
+        } catch (e) {}
+        wasteZxingReader = new Z.BrowserMultiFormatReader(hints, 400);
+        await wasteZxingReader.decodeFromStream(wasteMediaStream, wasteVideo, function (result) {
+          if (result) wasteOnScan(wasteZxingCode(result));
+        });
+      }
+    }
+
+    function stopWasteCamera() {
+      wasteCameraOn = false;
+      if (wasteScanTimer) {
+        clearTimeout(wasteScanTimer);
+        wasteScanTimer = null;
+      }
+      if (wasteZxingReader) {
+        try { wasteZxingReader.reset(); } catch (e) {}
+        try { wasteZxingReader.stopContinuousDecode(); } catch (e) {}
+        wasteZxingReader = null;
+      }
+      if (wasteMediaStream) {
+        wasteMediaStream.getTracks().forEach(function (t) { t.stop(); });
+        wasteMediaStream = null;
+      }
+      wasteVideo.srcObject = null;
+      wasteScanWrap.classList.add("hidden");
+      wasteCameraBtn.textContent = "Start camera";
+      wasteCameraBtn.classList.remove("secondary");
+    }
+
+    wasteCameraBtn.addEventListener("click", function () {
+      if (wasteCameraOn) {
+        stopWasteCamera();
+        return;
+      }
+      wasteCameraBtn.disabled = true;
+      startWasteCamera().catch(function () {
+        stopWasteCamera();
+        setStatus("Could not open the camera. You can type the barcode instead.", "error");
+      }).then(function () {
+        wasteCameraBtn.disabled = false;
+      });
+    });
+
+    function wasteRunLookup() {
+      const rec = wasteLookup(wasteBarcodeInput.value);
+      if (!rec) {
+        setStatus("Please enter a barcode.", "error");
+        return;
+      }
+      wasteShowFound(rec, parseInt(wasteFoundQty.value, 10) || 1);
+      if (rec.match === "none") setStatus("Unknown, type name", "error");
+      else setStatus("", "");
+    }
+
+    wasteLookupBtn.addEventListener("click", wasteRunLookup);
+    wasteBarcodeInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        wasteRunLookup();
+      }
+    });
+
+    document.getElementById("wasteQtyMinus").addEventListener("click", function () {
+      const q = parseInt(wasteFoundQty.value, 10) || 1;
+      wasteFoundQty.value = String(Math.max(1, q - 1));
+    });
+    document.getElementById("wasteQtyPlus").addEventListener("click", function () {
+      const q = parseInt(wasteFoundQty.value, 10) || 1;
+      wasteFoundQty.value = String(q + 1);
+    });
+
+    wasteCheckedBy.addEventListener("input", wastePersist);
+
+    wastePhotoInput.addEventListener("change", function () {
+      const file = wastePhotoInput.files && wastePhotoInput.files[0];
+      if (!file) return;
+      setStatus("Preparing photo...", "");
+      downscale(file).then(function (dataUrl) {
+        wastePhotoDataUrl = dataUrl;
+        wastePreview.src = dataUrl;
+        wastePreviewWrap.style.display = "block";
+        wastePhotoLabelText.textContent = "Change photo";
+        setStatus("", "");
+      }).catch(function () {
+        wastePhotoDataUrl = "";
+        setStatus("Could not use that photo. Please try again.", "error");
+      });
+    });
+
+    wasteSaveItemBtn.addEventListener("click", function () {
+      if (wasteSaving) return;
+      if (!wasteCurrent) {
+        setStatus("Scan or look up a barcode first.", "error");
+        return;
+      }
+      const who = wasteCheckedBy.value.trim();
+      const name = wasteFoundName.value.trim();
+      const qty = parseInt(wasteFoundQty.value, 10);
+      const date = todayLondon();
+      if (!who) {
+        setStatus("Please enter your name first.", "error");
+        wasteCheckedBy.focus();
+        return;
+      }
+      if (!name) {
+        setStatus("Unknown, type name", "error");
+        wasteFoundName.focus();
+        return;
+      }
+      if (!qty || qty < 1) {
+        setStatus("Please enter a quantity of 1 or more.", "error");
+        return;
+      }
+      const barcode = wasteCurrent.barcode;
+      const price = Number(wasteCurrent.price) || 0;
+      const photo = wastePhotoDataUrl || "";
+      wasteSaving = true;
+      setSaving(true);
+      setStatus("Saving...", "");
+      postPayload({
+        name: "PPWASTE: " + barcode + " | " + name + " | " + who,
+        photo: photo,
+        lines: [{ date: date, qty: String(qty) }]
+      }).then(function () {
+        const existing = wasteItems.find(function (it) {
+          return it.barcode === barcode && it.name === name;
+        });
+        if (existing) {
+          existing.qty += qty;
+        } else {
+          wasteItems.push({
+            barcode: barcode,
+            name: name,
+            qty: qty,
+            price: price
+          });
+        }
+        wastePersist();
+        wasteRenderList();
+        wasteHideFound();
+        wasteBarcodeInput.value = "";
+        setStatus("Saved " + name + " × " + qty + " ✓", "ok");
+      }).catch(function () {
+        setStatus("Could not save. Check your connection and try again.", "error");
+      }).then(function () {
+        wasteSaving = false;
+        setSaving(false);
+      });
+    });
+
+    wasteTodayLabel.textContent = wastePrettyToday();
+    wasteRestore();
+    wasteRenderList();
+
+    fetch("titles.json").then(function (res) {
+      if (!res.ok) throw new Error("titles");
+      return res.json();
+    }).then(function (data) {
+      wasteTitles = data || {};
+      wasteBuildIndexes();
+      const n = Object.keys(wasteTitles).length;
+      wasteLoadState.textContent = n.toLocaleString("en-GB") + " products loaded. " +
+        (WASTE_USE_NATIVE ? "This phone can scan with its built-in barcode reader." : "This phone will use the backup scanner.");
+    }).catch(function () {
+      wasteLoadState.textContent = "Could not load the product list. You can still type the name after a scan.";
+    });
+
+    const STOCKIN_LIST_KEY = "birkhill-chiller-stockin-list-v1";
+    const STOCKIN_CHECKED_KEY = "birkhill-chiller-stockin-checked-by";
+    const STOCKIN_SUPPLIER_KEY = "birkhill-chiller-stockin-supplier";
+    const stockInCheckedBy = document.getElementById("stockInCheckedBy");
+    const stockInCameraBtn = document.getElementById("stockInCameraBtn");
+    const stockInScanWrap = document.getElementById("stockInScanWrap");
+    const stockInVideo = document.getElementById("stockInVideo");
+    const stockInBarcodeInput = document.getElementById("stockInBarcodeInput");
+    const stockInLookupBtn = document.getElementById("stockInLookupBtn");
+    const stockInName = document.getElementById("stockInName");
+    const stockInBarcodeReadout = document.getElementById("stockInBarcodeReadout");
+    const stockInTillStock = document.getElementById("stockInTillStock");
+    const stockInSnapshot = document.getElementById("stockInSnapshot");
+    const stockInSupplier = document.getElementById("stockInSupplier");
+    const stockInQty = document.getElementById("stockInQty");
+    const stockInDate = document.getElementById("stockInDate");
+    const stockInSaveBtn = document.getElementById("stockInSave");
+    const stockInItemList = document.getElementById("stockInItemList");
+    const stockInEmptyList = document.getElementById("stockInEmptyList");
+    const stockInListCount = document.getElementById("stockInListCount");
+    const stockInLoadState = document.getElementById("stockInLoadState");
+    const STOCKIN_USE_NATIVE = "BarcodeDetector" in window;
+    let stockInItems = [];
+    let stockInBarcode = "";
+    let stockInCameraOn = false;
+    let stockInMediaStream = null;
+    let stockInScanTimer = null;
+    let stockInDetector = null;
+    let stockInZxingReader = null;
+    let stockInLastScanCode = "";
+    let stockInLastScanAt = 0;
+    let stockMap = null;
+    let priceMap = null;
+    let stockTakenDisplay = "";
+
+    function mapLookup(map, raw) {
+      if (!map) return null;
+      const code = checkDigits(raw);
+      if (!code) return null;
+      if (Object.prototype.hasOwnProperty.call(map, code)) return map[code];
+      if (code.length > 13) {
+        const base = code.slice(0, 13);
+        if (Object.prototype.hasOwnProperty.call(map, base)) return map[base];
+      }
+      if (code.length === 12 && Object.prototype.hasOwnProperty.call(map, "0" + code)) {
+        return map["0" + code];
+      }
+      if (code.length === 13 && code.charAt(0) === "0" && Object.prototype.hasOwnProperty.call(map, code.slice(1))) {
+        return map[code.slice(1)];
+      }
+      return null;
+    }
+
+    function tillStock(raw) {
+      return mapLookup(stockMap, raw);
+    }
+
+    function tillPrice(raw) {
+      return mapLookup(priceMap, raw);
+    }
+
+    function formatGBP(n) {
+      if (n === null || n === undefined || isNaN(Number(n))) return "-";
+      return "£" + Number(n).toFixed(2);
+    }
+
+    function wasteValueOf(qty, barcode) {
+      const price = tillPrice(barcode);
+      const q = Number(qty);
+      if (price === null || isNaN(q) || q < 1) return null;
+      return Math.round(q * Number(price) * 100) / 100;
+    }
+
+    function stockText(raw) {
+      const q = tillStock(raw);
+      return q === null ? "-" : String(q);
+    }
+
+    function updateStockInStockLine() {
+      if (!stockInBarcode) {
+        stockInTillStock.textContent = "";
+        stockInTillStock.classList.remove("negative");
+        return;
+      }
+      const q = tillStock(stockInBarcode);
+      stockInTillStock.textContent = "Till stock: " + (q === null ? "-" : String(q));
+      stockInTillStock.classList.toggle("negative", q !== null && q < 0);
+    }
+
+    function updateStockInSnapshot() {
+      if (stockTakenDisplay) {
+        stockInSnapshot.textContent = "Till stock as at " + stockTakenDisplay + " (Europe/London). A dash means this barcode is not in the chiller or fresh snapshot.";
+      } else if (stockMap === null) {
+        stockInSnapshot.textContent = "Till stock snapshot could not be loaded.";
+      } else {
+        stockInSnapshot.textContent = "";
+      }
+    }
+
+    function addDaysLondon(n) {
+      const parts = todayLondon().split("-").map(Number);
+      const dt = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + n));
+      return dt.toISOString().slice(0, 10);
+    }
+
+    function formatUkDateShort(iso) {
+      if (!iso) return "";
+      const parts = String(iso).split("-");
+      if (parts.length !== 3) return String(iso);
+      return parts[2] + "/" + parts[1];
+    }
+
+    function updateStockInSupplierChip() {
+      const chip = document.getElementById("stockInSupplierChip");
+      if (!chip) return;
+      const v = stockInSupplier.value.trim();
+      if (!v) {
+        chip.textContent = "Choose a supplier, then scan";
+        chip.classList.add("empty");
+      } else {
+        chip.textContent = "Supplier: " + v;
+        chip.classList.remove("empty");
+      }
+    }
+
+    function persistStockInSupplier() {
+      try {
+        localStorage.setItem(STOCKIN_SUPPLIER_KEY, stockInSupplier.value);
+      } catch (e) {}
+      updateStockInSupplierChip();
+    }
+
+    function persistStockInList() {
+      try {
+        localStorage.setItem(STOCKIN_CHECKED_KEY, stockInCheckedBy.value.trim());
+        localStorage.setItem(STOCKIN_SUPPLIER_KEY, stockInSupplier.value);
+        localStorage.setItem(STOCKIN_LIST_KEY, JSON.stringify({
+          date: todayLondon(),
+          items: stockInItems
+        }));
+      } catch (e) {}
+    }
+
+    function restoreStockInList() {
+      stockInCheckedBy.value = localStorage.getItem(STOCKIN_CHECKED_KEY) || "";
+      const savedSupplier = localStorage.getItem(STOCKIN_SUPPLIER_KEY) || "";
+      if (savedSupplier) stockInSupplier.value = savedSupplier;
+      updateStockInSupplierChip();
+      try {
+        const raw = localStorage.getItem(STOCKIN_LIST_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && data.date === todayLondon() && Array.isArray(data.items)) {
+          stockInItems = data.items;
+        }
+      } catch (e) {}
+    }
+
+    function stockInRequireSupplier() {
+      if (stockInSupplier.value.trim()) return true;
+      setStatus("Please choose the supplier first.", "error");
+      stockInSupplier.focus();
+      return false;
+    }
+
+    function renderStockInList() {
+      if (!stockInItemList) return;
+      const n = stockInItems.length;
+      stockInListCount.textContent = n === 0 ? "" : (n + (n === 1 ? " item" : " items"));
+      stockInItemList.innerHTML = "";
+      stockInItems.forEach(function (item, index) {
+        const li = document.createElement("li");
+        const top = document.createElement("div");
+        top.className = "item-top";
+        const nameEl = document.createElement("div");
+        nameEl.className = "item-name";
+        nameEl.textContent = item.name || "Unknown";
+        const supplierEl = document.createElement("div");
+        supplierEl.className = "item-supplier";
+        supplierEl.textContent = item.supplier || "";
+        const qtyEl = document.createElement("div");
+        qtyEl.className = "item-qty";
+        qtyEl.textContent = item.qty === undefined || item.qty === "" ? "" : String(item.qty);
+        const dateEl = document.createElement("div");
+        dateEl.className = "item-useby";
+        dateEl.textContent = formatUkDateShort(item.date);
+        top.appendChild(nameEl);
+        top.appendChild(supplierEl);
+        top.appendChild(qtyEl);
+        top.appendChild(dateEl);
+        li.appendChild(top);
+        const timeEl = document.createElement("div");
+        timeEl.className = "item-time";
+        timeEl.textContent = item.time || "";
+        li.appendChild(timeEl);
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+        const hideBtn = document.createElement("button");
+        hideBtn.type = "button";
+        hideBtn.className = "remove-btn";
+        hideBtn.textContent = "Hide";
+        hideBtn.addEventListener("click", function () {
+          stockInItems.splice(index, 1);
+          persistStockInList();
+          renderStockInList();
+        });
+        actions.appendChild(hideBtn);
+        li.appendChild(actions);
+        stockInItemList.appendChild(li);
+      });
+      stockInEmptyList.classList.toggle("hidden", stockInItems.length > 0);
+      const head = document.getElementById("stockInTodayHead");
+      if (head) head.classList.toggle("hidden", stockInItems.length === 0);
+    }
+
+    function updateStockInBarcodeReadout() {
+      if (!stockInBarcode) {
+        stockInBarcodeReadout.textContent = "";
+        stockInBarcodeReadout.classList.add("hidden");
+        return;
+      }
+      stockInBarcodeReadout.textContent = "Barcode " + stockInBarcode;
+      stockInBarcodeReadout.classList.remove("hidden");
+    }
+
+    function stockInClearProduct() {
+      stockInBarcode = "";
+      stockInName.value = "";
+      stockInBarcodeInput.value = "";
+      stockInQty.value = "1";
+      stockInDate.value = "";
+      updateStockInBarcodeReadout();
+      updateStockInStockLine();
+    }
+
+    function stockInApplyScan(raw, keepCamera) {
+      const rec = checkLookup(raw);
+      if (!rec) return false;
+      const now = Date.now();
+      if (rec.barcode === stockInLastScanCode && now - stockInLastScanAt < 1500) return true;
+      stockInLastScanCode = rec.barcode;
+      stockInLastScanAt = now;
+      checkBeep();
+      stockInBarcode = rec.barcode;
+      stockInBarcodeInput.value = rec.barcode;
+      updateStockInBarcodeReadout();
+      updateStockInStockLine();
+      if (rec.match === "none") {
+        stockInName.value = "";
+        setStatus("Unknown barcode, type the name.", "error");
+      } else {
+        stockInName.value = rec.name;
+        setStatus("Found " + rec.name, "ok");
+      }
+      if (!keepCamera && typeof stopStockInCamera === "function") stopStockInCamera();
+      return true;
+    }
+
+    function stopStockInCamera() {
+      stockInCameraOn = false;
+      if (stockInScanTimer) {
+        clearTimeout(stockInScanTimer);
+        stockInScanTimer = null;
+      }
+      if (stockInZxingReader) {
+        try { stockInZxingReader.reset(); } catch (e) {}
+        try { stockInZxingReader.stopContinuousDecode(); } catch (e) {}
+        stockInZxingReader = null;
+      }
+      if (stockInMediaStream) {
+        stockInMediaStream.getTracks().forEach(function (t) { t.stop(); });
+        stockInMediaStream = null;
+      }
+      if (stockInVideo) stockInVideo.srcObject = null;
+      if (stockInScanWrap) stockInScanWrap.classList.add("hidden");
+      if (stockInCameraBtn) {
+        stockInCameraBtn.textContent = "Start camera";
+        stockInCameraBtn.classList.remove("secondary");
+      }
+    }
+
+    async function startStockInCamera() {
+      setStatus("", "");
+      if (typeof stopCheckCamera === "function") stopCheckCamera();
+      if (typeof stopWasteCamera === "function") stopWasteCamera();
+      if (typeof stopWastageCamera === "function") stopWastageCamera();
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      stockInMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      stockInVideo.srcObject = stockInMediaStream;
+      await stockInVideo.play();
+      stockInScanWrap.classList.remove("hidden");
+      stockInCameraOn = true;
+      stockInCameraBtn.textContent = "Stop camera";
+      stockInCameraBtn.classList.add("secondary");
+      if (STOCKIN_USE_NATIVE) {
+        stockInDetector = new BarcodeDetector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "itf", "qr_code"]
+        });
+        const tick = async function () {
+          if (!stockInCameraOn) return;
+          try {
+            if (stockInVideo.readyState >= 2) {
+              const codes = await stockInDetector.detect(stockInVideo);
+              if (codes && codes.length) stockInApplyScan(codes[0].rawValue, true);
+            }
+          } catch (e) {}
+          stockInScanTimer = setTimeout(tick, 200);
+        };
+        tick();
+      } else {
+        const Z = await loadCheckZXing();
+        const hints = new Map();
+        hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+          Z.BarcodeFormat.EAN_13,
+          Z.BarcodeFormat.EAN_8,
+          Z.BarcodeFormat.UPC_A,
+          Z.BarcodeFormat.UPC_E,
+          Z.BarcodeFormat.CODE_128,
+          Z.BarcodeFormat.ITF,
+          Z.BarcodeFormat.QR_CODE
+        ]);
+        hints.set(Z.DecodeHintType.TRY_HARDER, true);
+        try {
+          hints.set(Z.DecodeHintType.ALLOWED_EAN_EXTENSIONS, [2, 5]);
+        } catch (e) {}
+        stockInZxingReader = new Z.BrowserMultiFormatReader(hints, 400);
+        await stockInZxingReader.decodeFromStream(stockInMediaStream, stockInVideo, function (result) {
+          if (result) stockInApplyScan(checkZxingCode(result), true);
+        });
+      }
+    }
+
+    stockInCameraBtn.addEventListener("click", function () {
+      if (stockInCameraOn) {
+        stopStockInCamera();
+        return;
+      }
+      if (!stockInRequireSupplier()) return;
+      stockInCameraBtn.disabled = true;
+      startStockInCamera().catch(function () {
+        stopStockInCamera();
+        setStatus("Could not open the camera. You can type the barcode instead.", "error");
+      }).then(function () {
+        stockInCameraBtn.disabled = false;
+      });
+    });
+
+    function stockInRunLookup() {
+      if (!stockInRequireSupplier()) return;
+      const raw = stockInBarcodeInput.value.trim();
+      if (!raw) {
+        setStatus("Please scan or type a barcode.", "error");
+        return;
+      }
+      stockInApplyScan(raw, stockInCameraOn);
+    }
+
+    stockInLookupBtn.addEventListener("click", stockInRunLookup);
+    stockInBarcodeInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        stockInRunLookup();
+      }
+    });
+
+    document.querySelectorAll("#stockInPanel .date-quick button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const days = parseInt(btn.getAttribute("data-days"), 10);
+        if (!days) return;
+        stockInDate.value = addDaysLondon(days);
+      });
+    });
+
+    stockInCheckedBy.addEventListener("input", persistStockInList);
+    stockInSupplier.addEventListener("change", persistStockInSupplier);
+
+    stockInSaveBtn.addEventListener("click", function () {
+      const name = stockInName.value.trim();
+      const supplier = stockInSupplier.value.trim();
+      const qty = stockInQty.value.trim();
+      const date = stockInDate.value.trim();
+      const who = stockInCheckedBy.value.trim();
+      const qtyNum = parseInt(qty, 10);
+      if (!name) {
+        setStatus("Please scan or enter the product name.", "error");
+        return;
+      }
+      if (!supplier) {
+        setStatus("Please choose the supplier.", "error");
+        stockInSupplier.focus();
+        return;
+      }
+      if (!qty || isNaN(qtyNum) || qtyNum < 1) {
+        setStatus("Please enter how many were received.", "error");
+        stockInQty.focus();
+        return;
+      }
+      if (!date) {
+        setStatus("Please enter the use-by or best-before date.", "error");
+        stockInDate.focus();
+        return;
+      }
+      if (!who) {
+        setStatus("Please enter who is checking this in.", "error");
+        stockInCheckedBy.focus();
+        return;
+      }
+      let savedName = "STOCKIN: " + name;
+      if (stockInBarcode) savedName += " [" + stockInBarcode + "]";
+      savedName += " | " + supplier + " | " + String(qtyNum) + " | use-by " + date + " | " + who;
+      const lines = [{ date: date, qty: String(qtyNum) }];
+      setSaving(true);
+      setStatus("Saving...", "");
+      postPayload({ name: savedName, photo: "", lines: lines }).then(function () {
+        stockInItems.unshift({
+          name: name,
+          barcode: stockInBarcode || "",
+          supplier: supplier,
+          qty: qtyNum,
+          date: date,
+          who: who,
+          time: nowLondonTime(),
+          at: Date.now()
+        });
+        persistStockInList();
+        renderStockInList();
+        setStatus("Saved " + name + ". Scan the next item.", "ok");
+        stockInClearProduct();
+      }).catch(function () {
+        setStatus("Could not save. Check your connection and try again.", "error");
+      }).then(function () {
+        setSaving(false);
+      });
+    });
+
+    restoreStockInList();
+    renderStockInList();
+
+    fetch("stock.json").then(function (res) {
+      if (!res.ok) throw new Error("stock");
+      return res.json();
+    }).then(function (data) {
+      stockMap = (data && data.stock) ? data.stock : {};
+      priceMap = (data && data.prices) ? data.prices : {};
+      stockTakenDisplay = (data && (data.taken_display || data.taken_at)) ? (data.taken_display || data.taken_at) : "";
+      updateStockInSnapshot();
+      updateStockInStockLine();
+      if (typeof updateWastageSnapshot === "function") updateWastageSnapshot();
+      if (typeof updateWastageInfoLines === "function") updateWastageInfoLines();
+    }).catch(function () {
+      stockMap = null;
+      priceMap = null;
+      stockTakenDisplay = "";
+      updateStockInSnapshot();
+      if (typeof updateWastageSnapshot === "function") updateWastageSnapshot();
+    });
+
+
+    const WASTAGE_LIST_KEY = "birkhill-chiller-wastage-list-v1";
+    const WASTAGE_CHECKED_KEY = "birkhill-chiller-wastage-checked-by";
+    const WASTAGE_SUPPLIER_KEY = "birkhill-chiller-wastage-supplier";
+    const wastageCheckedBy = document.getElementById("wastageCheckedBy");
+    const wastageCameraBtn = document.getElementById("wastageCameraBtn");
+    const wastageScanWrap = document.getElementById("wastageScanWrap");
+    const wastageVideo = document.getElementById("wastageVideo");
+    const wastageBarcodeInput = document.getElementById("wastageBarcodeInput");
+    const wastageLookupBtn = document.getElementById("wastageLookupBtn");
+    const wastageName = document.getElementById("wastageName");
+    const wastageBarcodeReadout = document.getElementById("wastageBarcodeReadout");
+    const wastageTillPrice = document.getElementById("wastageTillPrice");
+    const wastageTillStock = document.getElementById("wastageTillStock");
+    const wastageValue = document.getElementById("wastageValue");
+    const wastageSnapshot = document.getElementById("wastageSnapshot");
+    const wastageSupplier = document.getElementById("wastageSupplier");
+    const wastageQty = document.getElementById("wastageQty");
+    const wastageReason = document.getElementById("wastageReason");
+    const wastageDate = document.getElementById("wastageDate");
+    const wastageSaveBtn = document.getElementById("wastageSave");
+    const wastageItemList = document.getElementById("wastageItemList");
+    const wastageEmptyList = document.getElementById("wastageEmptyList");
+    const wastageListCount = document.getElementById("wastageListCount");
+    const wastageTotals = document.getElementById("wastageTotals");
+    const WASTAGE_USE_NATIVE = "BarcodeDetector" in window;
+    let wastageItems = [];
+    let wastageBarcode = "";
+    let wastageCameraOn = false;
+    let wastageMediaStream = null;
+    let wastageScanTimer = null;
+    let wastageDetector = null;
+    let wastageZxingReader = null;
+    let wastageLastScanCode = "";
+    let wastageLastScanAt = 0;
+
+    function updateWastageSupplierChip() {
+      const chip = document.getElementById("wastageSupplierChip");
+      if (!chip) return;
+      const v = wastageSupplier.value.trim();
+      if (!v) {
+        chip.textContent = "Choose a supplier, then scan";
+        chip.classList.add("empty");
+      } else {
+        chip.textContent = "Supplier: " + v;
+        chip.classList.remove("empty");
+      }
+    }
+
+    function persistWastageSupplier() {
+      try {
+        localStorage.setItem(WASTAGE_SUPPLIER_KEY, wastageSupplier.value);
+      } catch (e) {}
+      updateWastageSupplierChip();
+    }
+
+    function persistWastageList() {
+      try {
+        localStorage.setItem(WASTAGE_CHECKED_KEY, wastageCheckedBy.value.trim());
+        localStorage.setItem(WASTAGE_SUPPLIER_KEY, wastageSupplier.value);
+        localStorage.setItem(WASTAGE_LIST_KEY, JSON.stringify({
+          date: todayLondon(),
+          items: wastageItems
+        }));
+      } catch (e) {}
+    }
+
+    function restoreWastageList() {
+      wastageCheckedBy.value = localStorage.getItem(WASTAGE_CHECKED_KEY) || "";
+      const savedSupplier = localStorage.getItem(WASTAGE_SUPPLIER_KEY) || "";
+      if (savedSupplier) wastageSupplier.value = savedSupplier;
+      updateWastageSupplierChip();
+      try {
+        const raw = localStorage.getItem(WASTAGE_LIST_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && data.date === todayLondon() && Array.isArray(data.items)) {
+          wastageItems = data.items;
+        }
+      } catch (e) {}
+    }
+
+    function wastageRequireSupplier() {
+      if (wastageSupplier.value.trim()) return true;
+      setStatus("Please choose the supplier first.", "error");
+      wastageSupplier.focus();
+      return false;
+    }
+
+    function updateWastageSnapshot() {
+      if (!wastageSnapshot) return;
+      if (stockTakenDisplay) {
+        wastageSnapshot.textContent = "Till price and stock as at " + stockTakenDisplay + " (Europe/London). A dash means this barcode is not in the chiller or fresh snapshot.";
+      } else if (stockMap === null) {
+        wastageSnapshot.textContent = "Till stock snapshot could not be loaded.";
+      } else {
+        wastageSnapshot.textContent = "";
+      }
+    }
+
+    function updateWastageInfoLines() {
+      if (!wastageBarcode) {
+        wastageTillPrice.textContent = "";
+        wastageTillStock.textContent = "";
+        wastageTillStock.classList.remove("negative");
+        wastageValue.textContent = "";
+        return;
+      }
+      const price = tillPrice(wastageBarcode);
+      const stock = tillStock(wastageBarcode);
+      const qtyNum = parseInt(wastageQty.value, 10);
+      const value = wasteValueOf(qtyNum, wastageBarcode);
+      wastageTillPrice.textContent = "Till price: " + formatGBP(price);
+      wastageTillStock.textContent = "Till stock: " + (stock === null ? "-" : String(stock));
+      wastageTillStock.classList.toggle("negative", stock !== null && stock < 0);
+      wastageValue.textContent = "Waste value: " + (value === null ? "-" : formatGBP(value));
+    }
+
+    function renderWastageList() {
+      if (!wastageItemList) return;
+      const n = wastageItems.length;
+      wastageListCount.textContent = n === 0 ? "" : (n + (n === 1 ? " item" : " items"));
+      wastageItemList.innerHTML = "";
+      let total = 0;
+      let missing = 0;
+      wastageItems.forEach(function (item, index) {
+        const li = document.createElement("li");
+        const top = document.createElement("div");
+        top.className = "item-top";
+        const nameEl = document.createElement("div");
+        nameEl.className = "item-name";
+        nameEl.textContent = item.name || "Unknown";
+        const qtyEl = document.createElement("div");
+        qtyEl.className = "item-qty";
+        qtyEl.textContent = item.qty === undefined || item.qty === "" ? "" : String(item.qty);
+        const reasonEl = document.createElement("div");
+        reasonEl.className = "item-reason";
+        reasonEl.textContent = item.reason || "";
+        const valueEl = document.createElement("div");
+        valueEl.className = "item-value";
+        if (item.value === null || item.value === undefined || item.value === "") {
+          valueEl.textContent = "-";
+          missing += 1;
+        } else {
+          const nVal = Number(item.value);
+          valueEl.textContent = formatGBP(nVal);
+          if (!isNaN(nVal)) total += nVal;
+          else missing += 1;
+        }
+        top.appendChild(nameEl);
+        top.appendChild(qtyEl);
+        top.appendChild(reasonEl);
+        top.appendChild(valueEl);
+        li.appendChild(top);
+        const timeEl = document.createElement("div");
+        timeEl.className = "item-time";
+        timeEl.textContent = item.time || "";
+        li.appendChild(timeEl);
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+        const hideBtn = document.createElement("button");
+        hideBtn.type = "button";
+        hideBtn.className = "remove-btn";
+        hideBtn.textContent = "Hide";
+        hideBtn.addEventListener("click", function () {
+          wastageItems.splice(index, 1);
+          persistWastageList();
+          renderWastageList();
+        });
+        actions.appendChild(hideBtn);
+        li.appendChild(actions);
+        wastageItemList.appendChild(li);
+      });
+      wastageEmptyList.classList.toggle("hidden", wastageItems.length > 0);
+      const head = document.getElementById("wastageTodayHead");
+      if (head) head.classList.toggle("hidden", wastageItems.length === 0);
+      if (wastageItems.length === 0) {
+        wastageTotals.textContent = "";
+        wastageTotals.classList.add("hidden");
+      } else {
+        let text = "Today's waste: " + formatGBP(Math.round(total * 100) / 100);
+        if (missing) text += " (plus " + missing + (missing === 1 ? " item" : " items") + " with no till price)";
+        wastageTotals.textContent = text;
+        wastageTotals.classList.remove("hidden");
+      }
+    }
+
+    function updateWastageBarcodeReadout() {
+      if (!wastageBarcode) {
+        wastageBarcodeReadout.textContent = "";
+        wastageBarcodeReadout.classList.add("hidden");
+        return;
+      }
+      wastageBarcodeReadout.textContent = "Barcode " + wastageBarcode;
+      wastageBarcodeReadout.classList.remove("hidden");
+    }
+
+    function wastageClearProduct() {
+      wastageBarcode = "";
+      wastageName.value = "";
+      wastageBarcodeInput.value = "";
+      wastageQty.value = "1";
+      wastageReason.value = "";
+      wastageDate.value = "";
+      updateWastageBarcodeReadout();
+      updateWastageInfoLines();
+    }
+
+    function wastageApplyScan(raw, keepCamera) {
+      if (!wastageRequireSupplier()) return false;
+      const rec = checkLookup(raw);
+      if (!rec) return false;
+      const now = Date.now();
+      if (rec.barcode === wastageLastScanCode && now - wastageLastScanAt < 1500) return true;
+      wastageLastScanCode = rec.barcode;
+      wastageLastScanAt = now;
+      checkBeep();
+      wastageBarcode = rec.barcode;
+      wastageBarcodeInput.value = rec.barcode;
+      updateWastageBarcodeReadout();
+      if (rec.match === "none") {
+        wastageName.value = "";
+        setStatus("Unknown barcode, type the name.", "error");
+      } else {
+        wastageName.value = rec.name;
+        setStatus("Found " + rec.name, "ok");
+      }
+      updateWastageInfoLines();
+      if (!keepCamera && typeof stopWastageCamera === "function") stopWastageCamera();
+      return true;
+    }
+
+    function stopWastageCamera() {
+      wastageCameraOn = false;
+      if (wastageScanTimer) {
+        clearTimeout(wastageScanTimer);
+        wastageScanTimer = null;
+      }
+      if (wastageZxingReader) {
+        try { wastageZxingReader.reset(); } catch (e) {}
+        try { wastageZxingReader.stopContinuousDecode(); } catch (e) {}
+        wastageZxingReader = null;
+      }
+      if (wastageMediaStream) {
+        wastageMediaStream.getTracks().forEach(function (t) { t.stop(); });
+        wastageMediaStream = null;
+      }
+      if (wastageVideo) wastageVideo.srcObject = null;
+      if (wastageScanWrap) wastageScanWrap.classList.add("hidden");
+      if (wastageCameraBtn) {
+        wastageCameraBtn.textContent = "Start camera";
+        wastageCameraBtn.classList.remove("secondary");
+      }
+    }
+
+    async function startWastageCamera() {
+      setStatus("", "");
+      if (typeof stopCheckCamera === "function") stopCheckCamera();
+      if (typeof stopWasteCamera === "function") stopWasteCamera();
+      if (typeof stopStockInCamera === "function") stopStockInCamera();
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      wastageMediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      wastageVideo.srcObject = wastageMediaStream;
+      await wastageVideo.play();
+      wastageScanWrap.classList.remove("hidden");
+      wastageCameraOn = true;
+      wastageCameraBtn.textContent = "Stop camera";
+      wastageCameraBtn.classList.add("secondary");
+      if (WASTAGE_USE_NATIVE) {
+        wastageDetector = new BarcodeDetector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "itf", "qr_code"]
+        });
+        const tick = async function () {
+          if (!wastageCameraOn) return;
+          try {
+            if (wastageVideo.readyState >= 2) {
+              const codes = await wastageDetector.detect(wastageVideo);
+              if (codes && codes.length) wastageApplyScan(codes[0].rawValue, true);
+            }
+          } catch (e) {}
+          wastageScanTimer = setTimeout(tick, 200);
+        };
+        tick();
+      } else {
+        const Z = await loadCheckZXing();
+        const hints = new Map();
+        hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+          Z.BarcodeFormat.EAN_13,
+          Z.BarcodeFormat.EAN_8,
+          Z.BarcodeFormat.UPC_A,
+          Z.BarcodeFormat.UPC_E,
+          Z.BarcodeFormat.CODE_128,
+          Z.BarcodeFormat.ITF,
+          Z.BarcodeFormat.QR_CODE
+        ]);
+        hints.set(Z.DecodeHintType.TRY_HARDER, true);
+        try {
+          hints.set(Z.DecodeHintType.ALLOWED_EAN_EXTENSIONS, [2, 5]);
+        } catch (e) {}
+        wastageZxingReader = new Z.BrowserMultiFormatReader(hints, 400);
+        await wastageZxingReader.decodeFromStream(wastageMediaStream, wastageVideo, function (result) {
+          if (result) wastageApplyScan(checkZxingCode(result), true);
+        });
+      }
+    }
+
+    wastageCameraBtn.addEventListener("click", function () {
+      if (wastageCameraOn) {
+        stopWastageCamera();
+        return;
+      }
+      if (!wastageRequireSupplier()) return;
+      wastageCameraBtn.disabled = true;
+      startWastageCamera().catch(function () {
+        stopWastageCamera();
+        setStatus("Could not open the camera. You can type the barcode instead.", "error");
+      }).then(function () {
+        wastageCameraBtn.disabled = false;
+      });
+    });
+
+    function wastageRunLookup() {
+      if (!wastageRequireSupplier()) return;
+      const raw = wastageBarcodeInput.value.trim();
+      if (!raw) {
+        setStatus("Please scan or type a barcode.", "error");
+        return;
+      }
+      wastageApplyScan(raw, wastageCameraOn);
+    }
+
+    wastageLookupBtn.addEventListener("click", wastageRunLookup);
+    wastageBarcodeInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        wastageRunLookup();
+      }
+    });
+
+    document.querySelectorAll("#wastagePanel .date-quick button").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        const days = parseInt(btn.getAttribute("data-days"), 10);
+        if (!days) return;
+        wastageDate.value = addDaysLondon(days);
+      });
+    });
+
+    wastageCheckedBy.addEventListener("input", persistWastageList);
+    wastageSupplier.addEventListener("change", persistWastageSupplier);
+    wastageQty.addEventListener("input", updateWastageInfoLines);
+
+    wastageSaveBtn.addEventListener("click", function () {
+      const name = wastageName.value.trim();
+      const supplier = wastageSupplier.value.trim();
+      const qty = wastageQty.value.trim();
+      const reason = wastageReason.value.trim();
+      const date = wastageDate.value.trim();
+      const who = wastageCheckedBy.value.trim();
+      const qtyNum = parseInt(qty, 10);
+      if (!supplier) {
+        setStatus("Please choose the supplier first.", "error");
+        wastageSupplier.focus();
+        return;
+      }
+      if (!name) {
+        setStatus("Please scan or enter the product name.", "error");
+        return;
+      }
+      if (!qty || isNaN(qtyNum) || qtyNum < 1) {
+        setStatus("Please enter how many were wasted.", "error");
+        wastageQty.focus();
+        return;
+      }
+      if (!reason) {
+        setStatus("Please choose the reason.", "error");
+        wastageReason.focus();
+        return;
+      }
+      if (!who) {
+        setStatus("Please enter who is recording this waste.", "error");
+        wastageCheckedBy.focus();
+        return;
+      }
+      const valueNum = wasteValueOf(qtyNum, wastageBarcode);
+      const valueText = valueNum === null ? "-" : formatGBP(valueNum);
+      let savedName = "WASTE: " + name;
+      if (wastageBarcode) savedName += " [" + wastageBarcode + "]";
+      savedName += " | " + supplier + " | " + String(qtyNum) + " | " + reason + " | use-by" + (date ? " " + date : "") + " | " + valueText + " | " + who;
+      const lines = [{ date: date, qty: String(qtyNum) }];
+      setSaving(true);
+      setStatus("Saving...", "");
+      postPayload({ name: savedName, photo: "", lines: lines }).then(function () {
+        wastageItems.unshift({
+          name: name,
+          barcode: wastageBarcode || "",
+          supplier: supplier,
+          qty: qtyNum,
+          reason: reason,
+          date: date,
+          value: valueNum,
+          who: who,
+          time: nowLondonTime(),
+          at: Date.now()
+        });
+        persistWastageList();
+        renderWastageList();
+        setStatus("Saved " + name + ". Scan the next item.", "ok");
+        wastageClearProduct();
+      }).catch(function () {
+        setStatus("Could not save. Check your connection and try again.", "error");
+      }).then(function () {
+        setSaving(false);
+      });
+    });
+
+    restoreWastageList();
+    renderWastageList();
+    updateWastageSnapshot();
+    updateWastageInfoLines();
+
+  </script>
+</body>
+</html>

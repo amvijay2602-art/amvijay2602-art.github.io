@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#2e7d32">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Birkhill Camera">
+  <title>Birkhill Date Check</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <style>
+    :root {
+      --green: #2e7d32;
+      --green-dark: #1b5e20;
+      --bg: #f4f7f4;
+      --text: #1a1a1a;
+      --muted: #5f6b5f;
+      --card: #ffffff;
+      --danger: #c62828;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100%;
+    }
+    body {
+      padding: 20px 16px 32px;
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(32px, env(safe-area-inset-bottom));
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin: 0 0 20px;
+      text-align: center;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .take-photo {
+      display: block;
+      width: 100%;
+      background: var(--green);
+      color: #fff;
+      font-size: 1.35rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 22px 16px;
+      border-radius: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .take-photo:active { background: var(--green-dark); }
+    .take-photo input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+    }
+    #previewWrap {
+      display: none;
+      margin: 16px 0 0;
+      text-align: center;
+    }
+    #preview {
+      max-width: 100%;
+      max-height: 280px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: #eee;
+    }
+    label.field {
+      display: block;
+      margin-top: 16px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    input[type="text"], input[type="date"], input[type="number"] {
+      width: 100%;
+      margin-top: 6px;
+      padding: 14px 12px;
+      font-size: 1.05rem;
+      border: 1px solid #c5d0c5;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .lines-label {
+      display: block;
+      margin-top: 18px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .line {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      align-items: stretch;
+    }
+    .line input[type="date"] {
+      flex: 1 1 auto;
+      width: auto;
+      min-width: 0;
+      margin-top: 0;
+      padding: 16px 12px;
+      font-size: 1.15rem;
+    }
+    .line input[type="number"] {
+      flex: 0 0 7.2rem;
+      width: 7.2rem;
+      margin-top: 0;
+      padding: 16px 8px;
+      font-size: 1.15rem;
+      text-align: center;
+    }
+    #save {
+      display: block;
+      width: 100%;
+      margin-top: 22px;
+      background: var(--green);
+      color: #fff;
+      font-size: 1.25rem;
+      font-weight: 700;
+      padding: 18px 16px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    #save:active { background: var(--green-dark); }
+    #save:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    #status {
+      margin-top: 14px;
+      text-align: center;
+      font-weight: 600;
+      min-height: 1.4em;
+    }
+    #status.error { color: var(--danger); }
+    #status.ok { color: var(--green-dark); }
+    .hint {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Birkhill Date Check</h1>
+  <div class="card">
+    <label class="take-photo">
+      📷 Take Photo
+      <input id="photoInput" type="file" accept="image/*" capture="environment">
+    </label>
+    <div id="previewWrap">
+      <img id="preview" alt="Photo preview">
+    </div>
+    <label class="field">
+      Product name
+      <input id="name" type="text" autocomplete="off" autocapitalize="words" placeholder="e.g. Walkers Cheese and Onion">
+    </label>
+    <div class="lines-label">Best before dates</div>
+    <div class="line">
+      <input class="line-date" type="date" aria-label="Best before date 1">
+      <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 1">
+    </div>
+    <div class="line">
+      <input class="line-date" type="date" aria-label="Best before date 2">
+      <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 2">
+    </div>
+    <div class="line">
+      <input class="line-date" type="date" aria-label="Best before date 3">
+      <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 3">
+    </div>
+    <button id="save" type="button">Save</button>
+    <div id="status"></div>
+  </div>
+  <p class="hint">Add this page to your home screen for one-tap access.</p>
+  <script src="../secure-data.js"></script>
+  <script>
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
+    const photoInput = document.getElementById("photoInput");
+    const preview = document.getElementById("preview");
+    const previewWrap = document.getElementById("previewWrap");
+    const nameInput = document.getElementById("name");
+    const saveBtn = document.getElementById("save");
+    const statusEl = document.getElementById("status");
+    let photoDataUrl = "";
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg;
+      statusEl.className = kind || "";
+    }
+
+    function collectLines() {
+      const dates = document.querySelectorAll(".line-date");
+      const qtys = document.querySelectorAll(".line-qty");
+      const lines = [];
+      for (let i = 0; i < dates.length; i++) {
+        const date = dates[i].value.trim();
+        if (!date) continue;
+        lines.push({ date: date, qty: qtys[i].value.trim() });
+      }
+      return lines;
+    }
+
+    function downscale(file) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onerror = function () { reject(new Error("Could not read the photo")); };
+        reader.onload = function () {
+          const img = new Image();
+          img.onerror = function () { reject(new Error("Could not load the photo")); };
+          img.onload = function () {
+            let w = img.width;
+            let h = img.height;
+            const max = 1280;
+            if (w > max || h > max) {
+              if (w > h) {
+                h = Math.round(h * max / w);
+                w = max;
+              } else {
+                w = Math.round(w * max / h);
+                h = max;
+              }
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL("image/jpeg", 0.8));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    photoInput.addEventListener("change", function () {
+      const file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      setStatus("Preparing photo...", "");
+      downscale(file).then(function (dataUrl) {
+        photoDataUrl = dataUrl;
+        preview.src = dataUrl;
+        previewWrap.style.display = "block";
+        setStatus("", "");
+      }).catch(function () {
+        photoDataUrl = "";
+        setStatus("Could not use that photo. Please try again.", "error");
+      });
+    });
+
+    function clearForm() {
+      photoDataUrl = "";
+      photoInput.value = "";
+      preview.src = "";
+      previewWrap.style.display = "none";
+      nameInput.value = "";
+      document.querySelectorAll(".line-date, .line-qty").forEach(function (el) {
+        el.value = "";
+      });
+    }
+
+    saveBtn.addEventListener("click", function () {
+      const name = nameInput.value.trim();
+      const lines = collectLines();
+      if (!name || lines.length === 0) {
+        setStatus("Please enter the product name and at least one date.", "error");
+        return;
+      }
+      saveBtn.disabled = true;
+      setStatus("Saving...", "");
+      fetch(ENDPOINT, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ name: name, photo: photoDataUrl || "", lines: lines })
+      }).then(function () {
+        setStatus("Saved ✓", "ok");
+        clearForm();
+      }).catch(function () {
+        setStatus("Could not save. Check your connection and try again.", "error");
+      }).then(function () {
+        saveBtn.disabled = false;
+      });
+    });
+  </script>
+</body>
+</html>

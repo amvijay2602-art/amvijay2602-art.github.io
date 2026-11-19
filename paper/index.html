@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#6a1b9a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Paper Stock-In">
+  <title>Birkhill Paper Stock-In</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <style>
+    :root {
+      --accent: #6a1b9a;
+      --accent-dark: #4a148c;
+      --bg: #f6f3f8;
+      --text: #1a1a1a;
+      --muted: #5f6b7a;
+      --card: #ffffff;
+      --danger: #c62828;
+      --line: #e0d6e8;
+      --input-border: #d4c6de;
+    }
+    body.returns {
+      --accent: #e65100;
+      --accent-dark: #bf360c;
+      --bg: #fff6f0;
+      --line: #f0d8c8;
+      --input-border: #e8c8b0;
+    }
+    body.stocktake {
+      --accent: #2e7d32;
+      --accent-dark: #1b5e20;
+      --bg: #f3f8f3;
+      --line: #cfe0cf;
+      --input-border: #b7d0b7;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100%;
+    }
+    body {
+      padding: 20px 16px 32px;
+      padding-top: max(20px, env(safe-area-inset-top));
+      padding-bottom: max(32px, env(safe-area-inset-bottom));
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.35rem;
+      margin: 0 0 16px;
+      text-align: center;
+    }
+    h2 {
+      font-size: 1.05rem;
+      margin: 0 0 10px;
+    }
+    .modes {
+      display: flex;
+      gap: 8px;
+      margin: 0 0 16px;
+    }
+    .mode-btn {
+      flex: 1 1 0;
+      background: #fff;
+      font-size: 1.05rem;
+      font-weight: 700;
+      padding: 14px 6px;
+      border-radius: 14px;
+      cursor: pointer;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .mode-btn.delivery-btn {
+      color: #4a148c;
+      border: 2px solid #6a1b9a;
+    }
+    .mode-btn.delivery-btn.active {
+      background: #6a1b9a;
+      color: #fff;
+    }
+    .mode-btn.returns-btn {
+      color: #bf360c;
+      border: 2px solid #e65100;
+    }
+    .mode-btn.returns-btn.active {
+      background: #e65100;
+      color: #fff;
+    }
+    .mode-btn.stocktake-btn {
+      color: #1b5e20;
+      border: 2px solid #2e7d32;
+    }
+    .mode-btn.stocktake-btn.active {
+      background: #2e7d32;
+      color: #fff;
+    }
+    .mode-btn:active { opacity: 0.85; }
+    .kinds {
+      display: flex;
+      gap: 8px;
+      margin: 0 0 12px;
+    }
+    .kind-btn {
+      flex: 1;
+      padding: 14px 6px;
+      border-radius: 12px;
+      border: 2px solid var(--accent);
+      background: #fff;
+      color: var(--accent-dark);
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .kind-btn.active { background: var(--accent); color: #fff; }
+    .kind-btn .kind-n { display: block; font-size: 0.8rem; font-weight: 600; opacity: 0.9; }
+    .kind-warn {
+      background: #fff8e1;
+      border: 1px solid #ffb300;
+      color: #6d4c00;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.92rem;
+      margin: 6px 0;
+    }
+    .today-split { color: var(--muted); font-size: 0.9rem; text-align: center; margin: 0 0 8px; }
+    .example-banner {
+      display: none;
+      background: #fff3cd;
+      color: #7a4f01;
+      border: 2px solid #f0c36d;
+      border-radius: 12px;
+      font-weight: 700;
+      text-align: center;
+      padding: 10px 12px;
+      margin: 0 0 14px;
+    }
+    body.example .example-banner { display: block; }
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      margin-bottom: 14px;
+    }
+    label.field {
+      display: block;
+      margin-top: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    label.field:first-child { margin-top: 0; }
+    input[type="text"], input[type="date"], input[type="number"] {
+      width: 100%;
+      margin-top: 6px;
+      padding: 14px 12px;
+      font-size: 1.05rem;
+      border: 1px solid var(--input-border);
+      border-radius: 10px;
+      background: #fff;
+    }
+    .row {
+      display: flex;
+      gap: 10px;
+      align-items: stretch;
+    }
+    .row > * { flex: 1 1 0; min-width: 0; }
+    .btn {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 700;
+      padding: 16px 14px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+    }
+    .btn:active { background: var(--accent-dark); }
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .btn.secondary {
+      background: #fff;
+      color: var(--accent-dark);
+      border: 2px solid var(--accent);
+    }
+    .btn.secondary:active { background: #f3eaf8; }
+    body.returns .btn.secondary:active { background: #fff0e6; }
+    body.stocktake .btn.secondary:active { background: #e8f5e9; }
+    .btn.danger {
+      background: #fff;
+      color: var(--danger);
+      border: 2px solid #ef9a9a;
+      font-size: 1rem;
+      padding: 12px 10px;
+    }
+    .scan-wrap {
+      position: relative;
+      margin-top: 12px;
+      background: #1a1020;
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 180px;
+    }
+    body.returns .scan-wrap { background: #1a1008; }
+    body.stocktake .scan-wrap { background: #0c160c; }
+    #video {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      background: #1a1020;
+    }
+    .scan-frame {
+      pointer-events: none;
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 28%;
+      bottom: 28%;
+      border: 3px solid rgba(255,255,255,0.9);
+      border-radius: 10px;
+      box-shadow: 0 0 0 2000px rgba(0,0,0,0.25);
+    }
+    #scanCanvas { display: none; }
+    .manual-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .manual-row input { flex: 1 1 auto; margin-top: 0; }
+    .manual-row button {
+      flex: 0 0 auto;
+      margin-top: 0;
+      width: auto;
+      padding: 12px 14px;
+      font-size: 1rem;
+    }
+    #foundPanel {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid var(--line);
+    }
+    .barcode-readout {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    .price-line {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .stock-line {
+      margin: 8px 0 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .stock-line.negative { color: var(--danger); }
+    .diff-line {
+      margin: 8px 0 0;
+      font-size: 1.05rem;
+      font-weight: 700;
+    }
+    .diff-line.negative, .item-value.negative, .item-diff-col.negative { color: var(--danger); }
+    .diff-line.positive, .item-value.positive, .item-diff-col.positive { color: #1b5e20; }
+    .qty-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .qty-btn {
+      flex: 0 0 52px;
+      width: 52px;
+      height: 52px;
+      border: 0;
+      border-radius: 12px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 1.8rem;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .qty-btn:active { background: var(--accent-dark); }
+    #foundQty {
+      flex: 1 1 auto;
+      text-align: center;
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-top: 0;
+    }
+    #itemList, #todayItemList {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    #itemList li, #todayItemList li {
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    #itemList li:last-child, #todayItemList li:last-child { border-bottom: 0; }
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: flex-start;
+    }
+    .item-name { font-weight: 700; flex: 1 1 auto; min-width: 0; }
+    .item-value { font-weight: 700; white-space: nowrap; }
+    .item-meta {
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-top: 2px;
+    }
+    .item-time {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+    .item-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      align-items: center;
+    }
+    .item-actions .qty-btn {
+      flex: 0 0 44px;
+      width: 44px;
+      height: 44px;
+      font-size: 1.5rem;
+    }
+    .item-qty {
+      min-width: 2rem;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1.1rem;
+    }
+    .remove-btn {
+      margin-left: auto;
+      background: none;
+      border: 0;
+      color: var(--danger);
+      font-weight: 700;
+      font-size: 0.95rem;
+      padding: 8px 6px;
+      cursor: pointer;
+    }
+    .today-head {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      padding: 0 0 8px;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .today-head .col-name { flex: 1 1 auto; }
+    .today-head .col-qty, .today-head .col-stock, .today-head .col-diff,
+    .item-qty-col, .item-stock-col, .item-diff-col {
+      flex: 0 0 4.2rem;
+      width: 4.2rem;
+      text-align: right;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    body.stocktake .today-head .col-qty,
+    body.stocktake .today-head .col-stock,
+    body.stocktake .today-head .col-diff,
+    body.stocktake .item-qty-col,
+    body.stocktake .item-stock-col,
+    body.stocktake .item-diff-col {
+      flex: 0 0 3.4rem;
+      width: 3.4rem;
+    }
+    .item-stock-col.negative { color: var(--danger); }
+    .totals {
+      margin-top: 12px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-align: right;
+    }
+    #saveDelivery { margin-top: 14px; }
+    #clearDelivery { margin-top: 10px; }
+    #status {
+      margin-top: 14px;
+      text-align: center;
+      font-weight: 600;
+      min-height: 1.4em;
+    }
+    #status.error { color: var(--danger); }
+    #status.ok { color: var(--accent-dark); }
+    .hint {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .snapshot {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      text-align: center;
+    }
+    .take-photo {
+      display: block;
+      width: 100%;
+      margin-top: 14px;
+      background: #fff;
+      color: var(--accent-dark);
+      border: 2px solid var(--accent);
+      font-size: 1.05rem;
+      font-weight: 700;
+      text-align: center;
+      padding: 14px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .take-photo:active { background: #f3eaf8; }
+    body.returns .take-photo:active { background: #fff0e6; }
+    body.stocktake .take-photo:active { background: #e8f5e9; }
+    .take-photo input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+    }
+    #previewWrap {
+      display: none;
+      margin: 12px 0 0;
+      text-align: center;
+    }
+    #preview {
+      max-width: 100%;
+      max-height: 180px;
+      border-radius: 12px;
+      object-fit: contain;
+      background: #eee;
+    }
+    .hidden { display: none !important; }
+    #loadState {
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin: 0 0 12px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Birkhill Paper Stock-In</h1>
+  <div class="example-banner">Example data</div>
+  <div class="modes" role="tablist" aria-label="Scan type">
+    <button type="button" id="modeDelivery" class="mode-btn delivery-btn active" role="tab" aria-selected="true">Delivery In</button>
+    <button type="button" id="modeReturns" class="mode-btn returns-btn" role="tab" aria-selected="false">Returns</button>
+    <button type="button" id="modeStockTake" class="mode-btn stocktake-btn" role="tab" aria-selected="false">Stock Take</button>
+  </div>
+  <div class="kinds" id="kindRow" role="tablist" aria-label="Paper type">
+    <button type="button" id="kindNews" class="kind-btn active" role="tab" aria-selected="true">Newspapers<span class="kind-n" id="kindNewsN"></span></button>
+    <button type="button" id="kindMags" class="kind-btn" role="tab" aria-selected="false">Magazines<span class="kind-n" id="kindMagsN"></span></button>
+  </div>
+  <p id="loadState">Loading titles...</p>
+  <div class="card">
+    <label class="field">
+      <span id="dateLabel">Delivery date</span>
+      <input id="deliveryDate" type="date">
+    </label>
+    <label class="field">
+      Checked by
+      <input id="checkedBy" type="text" autocomplete="name" autocapitalize="words" placeholder="Your name">
+    </label>
+    <label class="take-photo" id="photoLabel">
+      <span id="photoLabelText">Optional: photo of the delivery note</span>
+      <input id="photoInput" type="file" accept="image/*" capture="environment">
+    </label>
+    <div id="previewWrap">
+      <img id="preview" alt="Note preview">
+    </div>
+  </div>
+  <div class="card">
+    <button id="cameraBtn" class="btn" type="button">Start camera</button>
+    <div id="scanWrap" class="scan-wrap hidden">
+      <video id="video" playsinline muted autoplay></video>
+      <div class="scan-frame" aria-hidden="true"></div>
+    </div>
+    <canvas id="scanCanvas"></canvas>
+    <label class="field">
+      Or type the barcode
+      <div class="manual-row">
+        <input id="barcodeInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Scan or type barcode">
+        <button id="lookupBtn" class="btn" type="button">Look up</button>
+      </div>
+    </label>
+    <div id="foundPanel" class="hidden">
+      <label class="field">
+        Product name
+        <input id="foundName" type="text" autocomplete="off" autocapitalize="words" placeholder="Unknown, type name">
+      </label>
+      <p id="foundBarcode" class="barcode-readout"></p>
+      <p id="foundPrice" class="price-line"></p>
+      <p id="foundWarn" class="kind-warn hidden"></p>
+      <p id="foundStock" class="stock-line"></p>
+      <p id="foundDiff" class="diff-line hidden"></p>
+      <p id="qtyLabel" class="field hidden" style="margin-bottom:0">Counted on the shelf</p>
+      <div class="qty-row">
+        <button id="qtyMinus" class="qty-btn" type="button" aria-label="Decrease quantity">-</button>
+        <input id="foundQty" type="number" inputmode="numeric" min="1" step="1" value="1" aria-label="Quantity">
+        <button id="qtyPlus" class="qty-btn" type="button" aria-label="Increase quantity">+</button>
+      </div>
+      <button id="addBtn" class="btn" type="button" style="margin-top:14px">Add</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2 id="basketTitle">This delivery</h2>
+    <ul id="itemList"></ul>
+    <p id="emptyList" class="hint">No titles added yet. Scan each newspaper or magazine, enter how many arrived, then add it.</p>
+    <div id="totals" class="totals hidden"></div>
+    <button id="saveDelivery" class="btn" type="button">Save delivery</button>
+    <button id="clearDelivery" class="btn danger" type="button">Clear list</button>
+    <div id="status"></div>
+  </div>
+  <div class="card" id="todayCard">
+    <h2 id="todayTitle">Today's deliveries</h2>
+    <p id="stockSnapshot" class="snapshot"></p>
+    <div id="todaySplit" class="today-split"></div>
+    <div id="todayCount"></div>
+    <div id="todayHead" class="today-head hidden">
+      <span class="col-name">Title</span>
+      <span class="col-qty" id="todayQtyHead">Qty</span>
+      <span class="col-stock" id="todayStockHead">Stock</span>
+      <span class="col-diff hidden" id="todayDiffHead">Diff</span>
+    </div>
+    <ul id="todayItemList"></ul>
+    <p id="todayEmpty" class="hint">Nothing saved yet today.</p>
+  </div>
+  <p class="hint">Add this page to your home screen for one-tap access.</p>
+  <script src="../secure-data.js"></script>
+  <script>
+    const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
+    const DELIVERY_KEY = "birkhill-paper-stockin-v1";
+    const RETURNS_KEY = "birkhill-paper-stockin-returns-basket-v1";
+    const TODAY_DELIVERY_KEY = "birkhill-paper-stockin-today-delivery-v1";
+    const TODAY_RETURNS_KEY = "birkhill-paper-stockin-today-returns-v1";
+    const STOCKTAKE_KEY = "birkhill-paper-stockin-stocktake-basket-v1";
+    const TODAY_STOCKTAKE_KEY = "birkhill-paper-stockin-today-stocktake-v1";
+    const CHECKED_KEY = "birkhill-paper-stockin-checked-by";
+    const USE_NATIVE = "BarcodeDetector" in window;
+
+    const loadState = document.getElementById("loadState");
+    const deliveryDate = document.getElementById("deliveryDate");
+    const checkedBy = document.getElementById("checkedBy");
+    const photoInput = document.getElementById("photoInput");
+    const preview = document.getElementById("preview");
+    const previewWrap = document.getElementById("previewWrap");
+    const cameraBtn = document.getElementById("cameraBtn");
+    const scanWrap = document.getElementById("scanWrap");
+    const video = document.getElementById("video");
+    const barcodeInput = document.getElementById("barcodeInput");
+    const lookupBtn = document.getElementById("lookupBtn");
+    const foundPanel = document.getElementById("foundPanel");
+    const foundName = document.getElementById("foundName");
+    const foundBarcode = document.getElementById("foundBarcode");
+    const foundPrice = document.getElementById("foundPrice");
+    const foundStock = document.getElementById("foundStock");
+    const foundQty = document.getElementById("foundQty");
+    const addBtn = document.getElementById("addBtn");
+    const itemList = document.getElementById("itemList");
+    const emptyList = document.getElementById("emptyList");
+    const totals = document.getElementById("totals");
+    const saveDelivery = document.getElementById("saveDelivery");
+    const clearDelivery = document.getElementById("clearDelivery");
+    const statusEl = document.getElementById("status");
+    const modeDeliveryBtn = document.getElementById("modeDelivery");
+    const modeReturnsBtn = document.getElementById("modeReturns");
+    const modeStockTakeBtn = document.getElementById("modeStockTake");
+    const foundDiff = document.getElementById("foundDiff");
+    const qtyLabel = document.getElementById("qtyLabel");
+    const todayQtyHead = document.getElementById("todayQtyHead");
+    const todayStockHead = document.getElementById("todayStockHead");
+    const todayDiffHead = document.getElementById("todayDiffHead");
+    const todayItemList = document.getElementById("todayItemList");
+    const todayEmpty = document.getElementById("todayEmpty");
+    const todayTitle = document.getElementById("todayTitle");
+    const todayCount = document.getElementById("todayCount");
+    const todayHead = document.getElementById("todayHead");
+    const stockSnapshot = document.getElementById("stockSnapshot");
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    const kindRow = document.getElementById("kindRow");
+    const kindNewsBtn = document.getElementById("kindNews");
+    const kindMagsBtn = document.getElementById("kindMags");
+    const foundWarn = document.getElementById("foundWarn");
+    const todaySplit = document.getElementById("todaySplit");
+    const kindNewsN = document.getElementById("kindNewsN");
+    const kindMagsN = document.getElementById("kindMagsN");
+
+    let titles = {};
+    let by13 = {};
+    let by10 = {};
+    let titlesReady = false;
+    let stockMap = null;
+    let stockTakenDisplay = "";
+    let mode = "delivery";
+    // Each mode keeps a separate basket and today's list per paper type.
+    const KINDS = ["NEWSPAPER", "MAGAZINE"];
+    const KIND_KEY = "birkhill-paper-stockin-kind-v1";
+    let kindByMode = { delivery: "NEWSPAPER", returns: "NEWSPAPER" };
+    let news13 = {};
+    let news10 = {};
+    let newsReady = false;
+    let legacy = null;
+    function emptySlots() {
+      return { NEWSPAPER: { items: [], photo: "" }, MAGAZINE: { items: [], photo: "" } };
+    }
+    let baskets = { delivery: emptySlots(), returns: emptySlots(), stocktake: { ALL: { items: [], photo: "" } } };
+    let todays = { delivery: { NEWSPAPER: [], MAGAZINE: [] }, returns: { NEWSPAPER: [], MAGAZINE: [] }, stocktake: { ALL: [] } };
+    let current = null;
+    let cameraOn = false;
+    let mediaStream = null;
+    let scanTimer = null;
+    let detector = null;
+    let zxingReader = null;
+    let lastScanCode = "";
+    let lastScanAt = 0;
+    let audioCtx = null;
+
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    }
+
+    function todayLondon() {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/London",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(new Date());
+    }
+
+    function nowLondonTime() {
+      return new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/London",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true
+      }).format(new Date()).replace(" ", "").toLowerCase();
+    }
+
+    function isReturns() {
+      return mode === "returns";
+    }
+
+    function isStockTake() {
+      return mode === "stocktake";
+    }
+
+    function kind() {
+      return isStockTake() ? "ALL" : (kindByMode[mode] || "NEWSPAPER");
+    }
+
+    function kindNoun(k) {
+      return k === "MAGAZINE" ? "magazine" : "newspaper";
+    }
+
+    function slot() {
+      return baskets[mode][kind()];
+    }
+
+    function items() { return slot().items; }
+    function setItems(next) { slot().items = next; }
+    function photoData() { return slot().photo; }
+    function setPhotoData(v) { slot().photo = v; }
+    function todayItems() { return todays[mode][kind()]; }
+    function setTodayItems(next) { todays[mode][kind()] = next; }
+
+    function basketKeyFor(m, k) {
+      if (m === "stocktake") return STOCKTAKE_KEY;
+      return (m === "returns" ? RETURNS_KEY : DELIVERY_KEY) + "-" + k.toLowerCase();
+    }
+
+    function todayKeyFor(m, k) {
+      if (m === "stocktake") return TODAY_STOCKTAKE_KEY;
+      return (m === "returns" ? TODAY_RETURNS_KEY : TODAY_DELIVERY_KEY) + "-" + k.toLowerCase();
+    }
+
+    function basketKey() {
+      return basketKeyFor(mode, kind());
+    }
+
+    const NEWS_NAME = /^(THE )?(DAILY (MAIL|MIRROR|EXPRESS|STAR|TELEGRAPH|RECORD)|SUNDAY (EXPRESS|MIRROR|PEOPLE|SPORT|TIMES|TELEGRAPH|POST|SUN|MAIL|MERCURY|WORLD|INDEPENDENT)|SUN( ON SUNDAY| SAT| FRI| MON| STAR)?( |\(|$)|MAIL( ON (SUNDAY|SATURDAY))?( |\(|$)|MIRROR( SAT| NEWS| \(|$)|STAR( SAT| SHEFF\w*)?$|SHEF+I?E?L?D? ?STAR|THE S STRA|DERBYSHIRE ?TIMES|GUARDIAN$|INDEPENDENT$|TIMES( SAT| COMPACT)?$|TELEGRAPH( DAILY| SUNDAY)?$|EXPRESS( DAILY| MO| TU| FR)?$|RACING POST$|MORNING STAR|OBSERVER$|I$|II$|IDAILY|IWEEKEND|I ON SAT|MIDWEEK SPORT|PEOPLE \(THE\))/i;
+
+    // "NEWSPAPER", "MAGAZINE", or "" when unknown.
+    function paperType(barcode, name) {
+      const code = digits(barcode);
+      if (code) {
+        if (news13[code] || news13[code.slice(0, 13)]) return "NEWSPAPER";
+        if (code.indexOf("977") === 0 && code.length >= 10 && news10[code.slice(0, 10)]) return "NEWSPAPER";
+      }
+      const n = String(name || "").trim();
+      if (n && NEWS_NAME.test(n) && !/MAG|LIFE|PUZZLE|CROSSWORD/i.test(n)) return "NEWSPAPER";
+      if (n && code && (titles[code] || titles[code.slice(0, 13)] || by13[code.slice(0, 13)])) return newsReady ? "MAGAZINE" : "";
+      return "";
+    }
+
+    function formatDiff(counted, till) {
+      if (till === null || till === undefined) return "-";
+      const d = Number(counted) - Number(till);
+      return d > 0 ? ("+" + d) : String(d);
+    }
+
+    function itemTill(item) {
+      if (item && Object.prototype.hasOwnProperty.call(item, "till")) return item.till;
+      return tillStock(item && item.barcode);
+    }
+
+    function setStatus(msg, kind) {
+      statusEl.textContent = msg;
+      statusEl.className = kind || "";
+    }
+
+    function money(n) {
+      const v = Number(n) || 0;
+      return "£" + v.toFixed(2);
+    }
+
+    function digits(raw) {
+      return String(raw || "").replace(/\D/g, "");
+    }
+
+    function tillStock(raw) {
+      if (!stockMap) return null;
+      const code = digits(raw);
+      if (!code) return null;
+      if (Object.prototype.hasOwnProperty.call(stockMap, code)) return stockMap[code];
+      if (code.length > 13) {
+        const base = code.slice(0, 13);
+        if (Object.prototype.hasOwnProperty.call(stockMap, base)) return stockMap[base];
+      }
+      return null;
+    }
+
+    function stockText(raw) {
+      const q = tillStock(raw);
+      return q === null ? "-" : String(q);
+    }
+
+    function setFoundStock(code) {
+      const q = tillStock(code);
+      foundStock.textContent = "Till stock: " + (q === null ? "-" : String(q));
+      foundStock.classList.toggle("negative", q !== null && q < 0);
+      updateFoundDiff();
+    }
+
+    function updateFoundDiff() {
+      if (!isStockTake() || !current) {
+        foundDiff.classList.add("hidden");
+        foundDiff.textContent = "";
+        foundDiff.classList.remove("negative", "positive");
+        return;
+      }
+      const parsed = parseInt(foundQty.value, 10);
+      const counted = isNaN(parsed) ? 0 : parsed;
+      const till = tillStock(current.barcode);
+      foundDiff.textContent = "Difference: " + formatDiff(counted, till);
+      foundDiff.classList.remove("hidden");
+      foundDiff.classList.toggle("negative", till !== null && counted - till < 0);
+      foundDiff.classList.toggle("positive", till !== null && counted - till > 0);
+    }
+
+    function updateSnapshotLabel() {
+      if (stockTakenDisplay) {
+        stockSnapshot.textContent = "Till stock as at " + stockTakenDisplay + " (Europe/London). A dash means the barcode is not on the till.";
+      } else if (stockMap === null) {
+        stockSnapshot.textContent = "Till stock snapshot could not be loaded.";
+      } else {
+        stockSnapshot.textContent = "";
+      }
+    }
+
+    function buildIndexes() {
+      by13 = {};
+      by10 = {};
+      Object.keys(titles).forEach(function (code) {
+        const rec = { code: code, name: titles[code][0], price: titles[code][1] };
+        if (code.length >= 13) {
+          const p13 = code.slice(0, 13);
+          if (!by13[p13] || (code.length === 13 && by13[p13].code.length !== 13)) {
+            by13[p13] = rec;
+          }
+        }
+        if (code.indexOf("977") === 0 && code.length >= 10) {
+          const p10 = code.slice(0, 10);
+          if (!by10[p10]) {
+            by10[p10] = { name: rec.name, price: rec.price, names: {} };
+          }
+          const bag = by10[p10].names;
+          bag[rec.name] = (bag[rec.name] || 0) + 1;
+        }
+      });
+      Object.keys(by10).forEach(function (p) {
+        const bag = by10[p].names;
+        let best = by10[p].name;
+        let bestN = 0;
+        Object.keys(bag).forEach(function (n) {
+          if (bag[n] > bestN) {
+            best = n;
+            bestN = bag[n];
+          }
+        });
+        by10[p].name = best;
+      });
+    }
+
+    function lookup(raw) {
+      const code = digits(raw);
+      if (!code) return null;
+      if (titles[code]) {
+        return { barcode: code, name: titles[code][0], price: titles[code][1], match: "exact" };
+      }
+      if (code.length > 13) {
+        const base = code.slice(0, 13);
+        if (titles[base]) {
+          return { barcode: base, name: titles[base][0], price: titles[base][1], match: "base13" };
+        }
+        if (by13[base]) {
+          return { barcode: by13[base].code, name: by13[base].name, price: by13[base].price, match: "base13" };
+        }
+      }
+      if (by13[code]) {
+        return { barcode: by13[code].code, name: by13[code].name, price: by13[code].price, match: "base13" };
+      }
+      if (code.length >= 10 && code.slice(0, 3) === "977" && by10[code.slice(0, 10)]) {
+        const rec = by10[code.slice(0, 10)];
+        return { barcode: code.length > 13 ? code.slice(0, 13) : code, name: rec.name, price: rec.price, match: "issn" };
+      }
+      return { barcode: code, name: "", price: 0, match: "none" };
+    }
+
+    function persistBasket() {
+      try {
+        localStorage.setItem(CHECKED_KEY, checkedBy.value.trim());
+        const payload = {
+          date: deliveryDate.value,
+          items: items(),
+          photo: photoData() || ""
+        };
+        localStorage.setItem(basketKey(), JSON.stringify(payload));
+      } catch (e) {}
+    }
+
+    function persistToday() {
+      try {
+        const today = todayLondon();
+        ["delivery", "returns"].forEach(function (m) {
+          KINDS.forEach(function (k) {
+            localStorage.setItem(todayKeyFor(m, k), JSON.stringify({ date: today, items: todays[m][k] }));
+          });
+        });
+        localStorage.setItem(TODAY_STOCKTAKE_KEY, JSON.stringify({ date: today, items: todays.stocktake.ALL }));
+      } catch (e) {}
+    }
+
+    function readBasket(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function readToday(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        if (!raw) return [];
+        const data = JSON.parse(raw);
+        if (data && data.date === todayLondon() && Array.isArray(data.items)) return data.items;
+      } catch (e) {}
+      return [];
+    }
+
+    function showPhoto(dataUrl) {
+      if (dataUrl) {
+        preview.src = dataUrl;
+        previewWrap.style.display = "block";
+      } else {
+        preview.src = "";
+        previewWrap.style.display = "none";
+      }
+    }
+
+    function restore() {
+      checkedBy.value = localStorage.getItem(CHECKED_KEY) || "";
+      deliveryDate.value = todayLondon();
+      try {
+        const savedKinds = JSON.parse(localStorage.getItem(KIND_KEY) || "null");
+        if (savedKinds) {
+          if (KINDS.indexOf(savedKinds.delivery) >= 0) kindByMode.delivery = savedKinds.delivery;
+          if (KINDS.indexOf(savedKinds.returns) >= 0) kindByMode.returns = savedKinds.returns;
+        }
+      } catch (e) {}
+      ["delivery", "returns"].forEach(function (m) {
+        KINDS.forEach(function (k) {
+          const b = readBasket(basketKeyFor(m, k));
+          if (b) {
+            if (Array.isArray(b.items)) baskets[m][k].items = b.items;
+            if (b.photo) baskets[m][k].photo = b.photo;
+          }
+          todays[m][k] = readToday(todayKeyFor(m, k));
+        });
+      });
+      const del = readBasket(basketKeyFor("delivery", kindByMode.delivery));
+      if (del && del.date) deliveryDate.value = del.date;
+      // Lists saved by the older one-list version are split by type once the newspaper list loads.
+      legacy = {
+        delivery: readBasket(DELIVERY_KEY),
+        returns: readBasket(RETURNS_KEY),
+        todayDelivery: readToday(TODAY_DELIVERY_KEY),
+        todayReturns: readToday(TODAY_RETURNS_KEY)
+      };
+      const stk = readBasket(STOCKTAKE_KEY);
+      if (stk) {
+        if (Array.isArray(stk.items)) baskets.stocktake.ALL.items = stk.items;
+        if (stk.photo) baskets.stocktake.ALL.photo = stk.photo;
+      }
+      todays.stocktake.ALL = readToday(TODAY_STOCKTAKE_KEY);
+      showPhoto(photoData());
+    }
+
+    function migrateLegacy() {
+      if (!legacy) return;
+      const L = legacy;
+      legacy = null;
+      function split(list) {
+        const out = { NEWSPAPER: [], MAGAZINE: [] };
+        (list || []).forEach(function (it) {
+          const t = paperType(it.barcode, it.name) || "MAGAZINE";
+          out[t].push(it);
+        });
+        return out;
+      }
+      let changed = false;
+      [["delivery", L.delivery, DELIVERY_KEY], ["returns", L.returns, RETURNS_KEY]].forEach(function (x) {
+        const b = x[1];
+        if (b && Array.isArray(b.items) && b.items.length) {
+          const parts = split(b.items);
+          KINDS.forEach(function (k) {
+            baskets[x[0]][k].items = baskets[x[0]][k].items.concat(parts[k]);
+            if (b.photo && parts[k].length && !baskets[x[0]][k].photo) baskets[x[0]][k].photo = b.photo;
+            try {
+              localStorage.setItem(basketKeyFor(x[0], k), JSON.stringify({ date: b.date || todayLondon(), items: baskets[x[0]][k].items, photo: baskets[x[0]][k].photo || "" }));
+            } catch (e) {}
+          });
+          changed = true;
+        }
+        try { localStorage.removeItem(x[2]); } catch (e) {}
+      });
+      [["delivery", L.todayDelivery, TODAY_DELIVERY_KEY], ["returns", L.todayReturns, TODAY_RETURNS_KEY]].forEach(function (x) {
+        if (x[1] && x[1].length) {
+          const parts = split(x[1]);
+          KINDS.forEach(function (k) { todays[x[0]][k] = todays[x[0]][k].concat(parts[k]); });
+          changed = true;
+        }
+        try { localStorage.removeItem(x[2]); } catch (e) {}
+      });
+      if (changed) {
+        persistToday();
+        showPhoto(photoData());
+        renderList();
+        renderTodayList();
+      }
+    }
+
+    function applyKindLabels() {
+      const stock = isStockTake();
+      const ret = isReturns();
+      kindRow.classList.toggle("hidden", stock);
+      const k = kind();
+      kindNewsBtn.classList.toggle("active", k === "NEWSPAPER");
+      kindMagsBtn.classList.toggle("active", k === "MAGAZINE");
+      kindNewsBtn.setAttribute("aria-selected", k === "NEWSPAPER" ? "true" : "false");
+      kindMagsBtn.setAttribute("aria-selected", k === "MAGAZINE" ? "true" : "false");
+      if (stock) return;
+      const noun = kindNoun(k);
+      document.getElementById("basketTitle").textContent = ret ? ("This " + noun + " return") : ("This " + noun + " delivery");
+      emptyList.textContent = ret
+        ? ("No " + noun + "s added yet. Scan each " + noun + " being returned, enter how many, then add it.")
+        : ("No " + noun + "s added yet. Scan each " + noun + ", enter how many arrived, then add it.");
+      saveDelivery.textContent = ret ? ("Save " + noun + " returns") : ("Save " + noun + " delivery");
+      todayTitle.textContent = "Today's " + noun + (ret ? " returns" : " deliveries");
+    }
+
+    function setKind(next) {
+      if (isStockTake() || KINDS.indexOf(next) < 0 || kind() === next) return;
+      persistBasket();
+      kindByMode[mode] = next;
+      try { localStorage.setItem(KIND_KEY, JSON.stringify(kindByMode)); } catch (e) {}
+      const stored = readBasket(basketKey());
+      deliveryDate.value = (stored && stored.date) ? stored.date : todayLondon();
+      photoInput.value = "";
+      showPhoto(photoData());
+      hideFound();
+      setStatus("", "");
+      applyKindLabels();
+      renderList();
+      renderTodayList();
+    }
+
+    function updateKindWarn(rec, name) {
+      if (!rec || isStockTake()) {
+        foundWarn.classList.add("hidden");
+        foundWarn.textContent = "";
+        return;
+      }
+      const t = paperType(rec.barcode, name == null ? rec.name : name);
+      if (t && t !== kind()) {
+        foundWarn.textContent = "This looks like a " + kindNoun(t) + ", but you are on the " +
+          (kind() === "MAGAZINE" ? "Magazines" : "Newspapers") + " list. You can still add it here, or switch lists first.";
+        foundWarn.classList.remove("hidden");
+      } else {
+        foundWarn.classList.add("hidden");
+        foundWarn.textContent = "";
+      }
+    }
+
+    function setMode(next) {
+      persistBasket();
+      mode = next;
+      const ret = isReturns();
+      const stock = isStockTake();
+      document.body.classList.toggle("returns", ret);
+      document.body.classList.toggle("stocktake", stock);
+      if (themeColor) {
+        themeColor.setAttribute("content", stock ? "#2e7d32" : (ret ? "#e65100" : "#6a1b9a"));
+      }
+      modeDeliveryBtn.classList.toggle("active", !ret && !stock);
+      modeReturnsBtn.classList.toggle("active", ret);
+      modeStockTakeBtn.classList.toggle("active", stock);
+      modeDeliveryBtn.setAttribute("aria-selected", (!ret && !stock) ? "true" : "false");
+      modeReturnsBtn.setAttribute("aria-selected", ret ? "true" : "false");
+      modeStockTakeBtn.setAttribute("aria-selected", stock ? "true" : "false");
+      document.getElementById("dateLabel").textContent = stock ? "Stock take date" : (ret ? "Return date" : "Delivery date");
+      document.getElementById("photoLabelText").textContent = stock
+        ? "Optional: photo of the stock take"
+        : (ret ? "Optional: photo of the returns" : "Optional: photo of the delivery note");
+      document.getElementById("basketTitle").textContent = stock ? "This stock take" : (ret ? "This return" : "This delivery");
+      emptyList.textContent = stock
+        ? "No titles added yet. Scan each newspaper or magazine, enter how many are on the shelf, then add it."
+        : (ret
+          ? "No titles added yet. Scan each newspaper or magazine being returned, enter how many, then add it."
+          : "No titles added yet. Scan each newspaper or magazine, enter how many arrived, then add it.");
+      saveDelivery.textContent = stock ? "Save stock take" : (ret ? "Save returns" : "Save delivery");
+      todayTitle.textContent = stock ? "Today's stock take" : (ret ? "Today's returns" : "Today's deliveries");
+      todayQtyHead.textContent = stock ? "Counted" : "Qty";
+      todayStockHead.textContent = stock ? "Till" : "Stock";
+      todayDiffHead.classList.toggle("hidden", !stock);
+      qtyLabel.classList.toggle("hidden", !stock);
+      foundQty.min = stock ? "0" : "1";
+      foundQty.setAttribute("aria-label", stock ? "Counted quantity" : "Quantity");
+      const stored = readBasket(basketKey());
+      deliveryDate.value = (stored && stored.date) ? stored.date : todayLondon();
+      showPhoto(photoData());
+      hideFound();
+      setStatus("", "");
+      applyKindLabels();
+      renderList();
+      renderTodayList();
+    }
+
+    function renderList() {
+      const list = items();
+      itemList.innerHTML = "";
+      let totalQty = 0;
+      let totalValue = 0;
+      list.forEach(function (item, index) {
+        const qty = Number(item.qty) || 0;
+        const price = Number(item.price) || 0;
+        totalQty += qty;
+        totalValue += qty * price;
+        const li = document.createElement("li");
+        li.innerHTML =
+          '<div class="item-top">' +
+            '<div class="item-name"></div>' +
+            '<div class="item-value"></div>' +
+          "</div>" +
+          '<div class="item-meta"></div>' +
+          '<div class="item-actions">' +
+            '<button class="qty-btn minus" type="button" aria-label="Decrease quantity">-</button>' +
+            '<span class="item-qty"></span>' +
+            '<button class="qty-btn plus" type="button" aria-label="Increase quantity">+</button>' +
+            '<button class="remove-btn" type="button">Remove</button>' +
+          "</div>";
+        const stock = stockText(item.barcode);
+        li.querySelector(".item-name").textContent = item.name || "Unknown";
+        if (isStockTake()) {
+          const till = itemTill(item);
+          const diffText = formatDiff(qty, till);
+          const valueEl = li.querySelector(".item-value");
+          valueEl.textContent = "Diff " + diffText;
+          valueEl.classList.toggle("negative", till !== null && till !== undefined && qty - till < 0);
+          valueEl.classList.toggle("positive", till !== null && till !== undefined && qty - till > 0);
+          li.querySelector(".item-meta").textContent =
+            item.barcode + "  ·  Counted " + qty + "  ·  Till " + (till === null || till === undefined ? "-" : String(till));
+        } else {
+          li.querySelector(".item-value").textContent = money(qty * price);
+          li.querySelector(".item-meta").textContent =
+            item.barcode + (price ? " at " + money(price) : "") + "  ·  Stock " + stock;
+        }
+        li.querySelector(".item-qty").textContent = String(qty);
+        li.querySelector(".minus").addEventListener("click", function () {
+          const cur = items();
+          const minQty = isStockTake() ? 0 : 1;
+          if (cur[index].qty > minQty) {
+            cur[index].qty -= 1;
+            persistBasket();
+            renderList();
+          }
+        });
+        li.querySelector(".plus").addEventListener("click", function () {
+          items()[index].qty += 1;
+          persistBasket();
+          renderList();
+        });
+        li.querySelector(".remove-btn").addEventListener("click", function () {
+          const cur = items().slice();
+          cur.splice(index, 1);
+          setItems(cur);
+          persistBasket();
+          renderList();
+        });
+        itemList.appendChild(li);
+      });
+      emptyList.classList.toggle("hidden", list.length > 0);
+      totals.classList.toggle("hidden", list.length === 0);
+      if (isStockTake()) {
+        let tillKnown = 0;
+        let tillMissing = 0;
+        let diffSum = 0;
+        let haveDiff = false;
+        list.forEach(function (item) {
+          const till = itemTill(item);
+          if (till === null || till === undefined) tillMissing += 1;
+          else {
+            tillKnown += Number(till);
+            diffSum += (Number(item.qty) || 0) - Number(till);
+            haveDiff = true;
+          }
+        });
+        totals.textContent = list.length + (list.length === 1 ? " title" : " titles") +
+          "  ·  Counted " + totalQty +
+          "  ·  Till " + tillKnown +
+          (tillMissing ? "  ·  " + tillMissing + " with no till stock" : "") +
+          (haveDiff ? "  ·  Diff " + formatDiff(diffSum, 0) : "");
+      } else {
+        totals.textContent = totalQty + (totalQty === 1 ? " item" : " items") + "  ·  " + money(totalValue);
+      }
+    }
+
+    function renderTodayList() {
+      const list = todayItems();
+      todayItemList.innerHTML = "";
+      const n = list.length;
+      function copies(l) { return l.reduce(function (a, it) { return a + (Number(it.qty) || 0); }, 0); }
+      todayCount.textContent = n === 0 ? "" : (n + (n === 1 ? " item" : " items") + (isStockTake() ? "" : ", " + copies(list) + " copies"));
+      if (isStockTake()) {
+        todaySplit.textContent = "";
+        kindNewsN.textContent = "";
+        kindMagsN.textContent = "";
+      } else {
+        const tn = todays[mode].NEWSPAPER;
+        const tm = todays[mode].MAGAZINE;
+        const word = isReturns() ? "returned" : "in";
+        todaySplit.textContent = "Today " + word + ": Newspapers " + tn.length + " (" + copies(tn) + " copies)  ·  Magazines " + tm.length + " (" + copies(tm) + " copies)";
+        kindNewsN.textContent = "Today: " + tn.length;
+        kindMagsN.textContent = "Today: " + tm.length;
+      }
+      todayHead.classList.toggle("hidden", n === 0);
+      list.forEach(function (item, index) {
+        const li = document.createElement("li");
+        const top = document.createElement("div");
+        top.className = "item-top";
+        const nameEl = document.createElement("div");
+        nameEl.className = "item-name";
+        nameEl.textContent = item.name || "Unknown";
+        const qtyEl = document.createElement("div");
+        qtyEl.className = "item-qty-col";
+        qtyEl.textContent = String(item.qty || 0);
+        const stockEl = document.createElement("div");
+        const tillVal = isStockTake() ? itemTill(item) : tillStock(item.barcode);
+        const stock = (tillVal === null || tillVal === undefined) ? "-" : String(tillVal);
+        stockEl.className = "item-stock-col" + (tillVal !== null && tillVal !== undefined && tillVal < 0 ? " negative" : "");
+        stockEl.textContent = stock;
+        top.appendChild(nameEl);
+        top.appendChild(qtyEl);
+        top.appendChild(stockEl);
+        if (isStockTake()) {
+          const diffEl = document.createElement("div");
+          const diffText = formatDiff(item.qty || 0, tillVal);
+          diffEl.className = "item-diff-col";
+          if (tillVal !== null && tillVal !== undefined) {
+            const d = (Number(item.qty) || 0) - Number(tillVal);
+            if (d < 0) diffEl.classList.add("negative");
+            if (d > 0) diffEl.classList.add("positive");
+          }
+          diffEl.textContent = diffText;
+          top.appendChild(diffEl);
+        }
+        li.appendChild(top);
+        const meta = document.createElement("div");
+        meta.className = "item-meta";
+        meta.textContent = item.barcode || "";
+        li.appendChild(meta);
+        const timeEl = document.createElement("div");
+        timeEl.className = "item-time";
+        timeEl.textContent = item.time || "";
+        li.appendChild(timeEl);
+        const actions = document.createElement("div");
+        actions.className = "item-actions";
+        const hideBtn = document.createElement("button");
+        hideBtn.type = "button";
+        hideBtn.className = "remove-btn";
+        hideBtn.textContent = "Hide";
+        hideBtn.addEventListener("click", function () {
+          const cur = todayItems().slice();
+          cur.splice(index, 1);
+          setTodayItems(cur);
+          persistToday();
+          renderTodayList();
+        });
+        actions.appendChild(hideBtn);
+        li.appendChild(actions);
+        todayItemList.appendChild(li);
+      });
+      todayEmpty.classList.toggle("hidden", n > 0);
+    }
+
+    function showFound(rec, qty) {
+      current = rec;
+      foundName.value = rec.name || "";
+      foundBarcode.textContent = "Barcode " + rec.barcode;
+      if (rec.match === "none") {
+        foundPrice.textContent = "Unknown, type name";
+      } else if (rec.match === "issn") {
+        foundPrice.textContent = (rec.price ? money(rec.price) + " each" : "No price") + "  (closest title, edit if needed)";
+      } else {
+        foundPrice.textContent = rec.price ? money(rec.price) + " each" : "No price on the till";
+      }
+      setFoundStock(rec.barcode);
+      updateKindWarn(rec);
+      foundQty.value = String(qty == null ? (isStockTake() ? 0 : 1) : qty);
+      foundPanel.classList.remove("hidden");
+      updateFoundDiff();
+    }
+
+    function hideFound() {
+      current = null;
+      foundPanel.classList.add("hidden");
+      foundName.value = "";
+      foundQty.value = isStockTake() ? "0" : "1";
+      foundStock.textContent = "";
+      foundWarn.classList.add("hidden");
+      foundWarn.textContent = "";
+      foundDiff.textContent = "";
+      foundDiff.classList.add("hidden");
+      foundDiff.classList.remove("negative", "positive");
+    }
+
+    function addCurrent() {
+      if (!current) {
+        setStatus("Scan or look up a barcode first.", "error");
+        return false;
+      }
+      const name = foundName.value.trim();
+      const qty = parseInt(foundQty.value, 10);
+      if (!name) {
+        setStatus("Unknown, type name", "error");
+        foundName.focus();
+        return false;
+      }
+      if (isNaN(qty) || qty < (isStockTake() ? 0 : 1) || String(foundQty.value).trim() === "") {
+        setStatus(isStockTake() ? "Please enter the counted quantity (0 or more)." : "Please enter a quantity of 1 or more.", "error");
+        return false;
+      }
+      const price = Number(current.price) || 0;
+      const till = tillStock(current.barcode);
+      const list = items();
+      const existing = list.find(function (it) {
+        return it.barcode === current.barcode && it.name === name;
+      });
+      if (existing) {
+        if (isStockTake()) {
+          existing.qty = qty;
+          existing.till = till;
+        } else {
+          existing.qty += qty;
+        }
+      } else {
+        const row = {
+          barcode: current.barcode,
+          name: name,
+          qty: qty,
+          price: price
+        };
+        if (isStockTake()) row.till = till;
+        list.push(row);
+      }
+      persistBasket();
+      renderList();
+      hideFound();
+      barcodeInput.value = "";
+      setStatus("Added " + name, "ok");
+      return true;
+    }
+
+    function beep() {
+      try {
+        if (!audioCtx) {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = 880;
+        gain.gain.value = 0.12;
+        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+      } catch (e) {}
+      try {
+        if (navigator.vibrate) navigator.vibrate(120);
+      } catch (e) {}
+    }
+
+    function onScan(raw) {
+      const code = digits(raw);
+      if (!code) return;
+      const now = Date.now();
+      if (code === lastScanCode && now - lastScanAt < 1500) return;
+      lastScanCode = code;
+      lastScanAt = now;
+      const rec = lookup(code);
+      if (!rec) return;
+      beep();
+      barcodeInput.value = rec.barcode;
+      if (current && current.barcode === rec.barcode) {
+        const q = (parseInt(foundQty.value, 10) || 0) + 1;
+        foundQty.value = String(q);
+        updateFoundDiff();
+        setStatus((isStockTake() ? "Counted " : "Quantity ") + q, "ok");
+        return;
+      }
+      if (current && foundName.value.trim() && (parseInt(foundQty.value, 10) || 0) >= 1) {
+        addCurrent();
+      }
+      showFound(rec, isStockTake() ? 0 : 1);
+    }
+
+    function loadZXing() {
+      return new Promise(function (resolve, reject) {
+        if (window.ZXing) {
+          resolve(window.ZXing);
+          return;
+        }
+        const script = document.createElement("script");
+        script.src = "zxing.min.js";
+        script.onload = function () {
+          if (window.ZXing) resolve(window.ZXing);
+          else reject(new Error("Barcode library failed to load"));
+        };
+        script.onerror = function () {
+          reject(new Error("Could not load the barcode library"));
+        };
+        document.head.appendChild(script);
+      });
+    }
+
+    function zxingCode(result) {
+      if (!result) return "";
+      let text = result.getText ? result.getText() : String(result);
+      try {
+        const meta = result.getResultMetadata && result.getResultMetadata();
+        if (meta && window.ZXing && ZXing.ResultMetadataType) {
+          const ext = meta.get(ZXing.ResultMetadataType.UPC_EAN_EXTENSION);
+          if (ext) text = String(text) + String(ext);
+        }
+      } catch (e) {}
+      return text;
+    }
+
+    async function startCamera() {
+      setStatus("", "");
+      if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+      audioCtx = audioCtx || (window.AudioContext || window.webkitAudioContext ? new (window.AudioContext || window.webkitAudioContext)() : null);
+      const constraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      };
+      mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      video.srcObject = mediaStream;
+      await video.play();
+      scanWrap.classList.remove("hidden");
+      cameraOn = true;
+      cameraBtn.textContent = "Stop camera";
+      cameraBtn.classList.add("secondary");
+      if (USE_NATIVE) {
+        detector = new BarcodeDetector({
+          formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "itf", "qr_code"]
+        });
+        const tick = async function () {
+          if (!cameraOn) return;
+          try {
+            if (video.readyState >= 2) {
+              const codes = await detector.detect(video);
+              if (codes && codes.length) onScan(codes[0].rawValue);
+            }
+          } catch (e) {}
+          scanTimer = setTimeout(tick, 200);
+        };
+        tick();
+      } else {
+        const Z = await loadZXing();
+        const hints = new Map();
+        hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [
+          Z.BarcodeFormat.EAN_13,
+          Z.BarcodeFormat.EAN_8,
+          Z.BarcodeFormat.UPC_A,
+          Z.BarcodeFormat.UPC_E,
+          Z.BarcodeFormat.CODE_128,
+          Z.BarcodeFormat.ITF,
+          Z.BarcodeFormat.QR_CODE
+        ]);
+        hints.set(Z.DecodeHintType.TRY_HARDER, true);
+        try {
+          hints.set(Z.DecodeHintType.ALLOWED_EAN_EXTENSIONS, [2, 5]);
+        } catch (e) {}
+        zxingReader = new Z.BrowserMultiFormatReader(hints, 400);
+        await zxingReader.decodeFromStream(mediaStream, video, function (result) {
+          if (result) onScan(zxingCode(result));
+        });
+      }
+    }
+
+    function stopCamera() {
+      cameraOn = false;
+      if (scanTimer) {
+        clearTimeout(scanTimer);
+        scanTimer = null;
+      }
+      if (zxingReader) {
+        try { zxingReader.reset(); } catch (e) {}
+        try { zxingReader.stopContinuousDecode(); } catch (e) {}
+        zxingReader = null;
+      }
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(function (t) { t.stop(); });
+        mediaStream = null;
+      }
+      video.srcObject = null;
+      scanWrap.classList.add("hidden");
+      cameraBtn.textContent = "Start camera";
+      cameraBtn.classList.remove("secondary");
+    }
+
+    cameraBtn.addEventListener("click", function () {
+      if (cameraOn) {
+        stopCamera();
+        return;
+      }
+      cameraBtn.disabled = true;
+      startCamera().catch(function () {
+        stopCamera();
+        setStatus("Could not open the camera. You can type the barcode instead.", "error");
+      }).then(function () {
+        cameraBtn.disabled = false;
+      });
+    });
+
+    function runLookup() {
+      const rec = lookup(barcodeInput.value);
+      if (!rec) {
+        setStatus("Please enter a barcode.", "error");
+        return;
+      }
+      showFound(rec, parseInt(foundQty.value, 10) || 1);
+      if (rec.match === "none") setStatus("Unknown, type name", "error");
+      else setStatus("", "");
+    }
+
+    lookupBtn.addEventListener("click", runLookup);
+    barcodeInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        runLookup();
+      }
+    });
+
+    document.getElementById("qtyMinus").addEventListener("click", function () {
+      const q = parseInt(foundQty.value, 10) || 0;
+      foundQty.value = String(Math.max(isStockTake() ? 0 : 1, q - 1));
+      updateFoundDiff();
+    });
+    document.getElementById("qtyPlus").addEventListener("click", function () {
+      const q = parseInt(foundQty.value, 10) || 0;
+      foundQty.value = String(q + 1);
+      updateFoundDiff();
+    });
+    foundQty.addEventListener("input", updateFoundDiff);
+    addBtn.addEventListener("click", function () { addCurrent(); });
+
+    deliveryDate.addEventListener("change", persistBasket);
+    checkedBy.addEventListener("input", persistBasket);
+    modeDeliveryBtn.addEventListener("click", function () { setMode("delivery"); });
+    modeReturnsBtn.addEventListener("click", function () { setMode("returns"); });
+    modeStockTakeBtn.addEventListener("click", function () { setMode("stocktake"); });
+    kindNewsBtn.addEventListener("click", function () { setKind("NEWSPAPER"); });
+    kindMagsBtn.addEventListener("click", function () { setKind("MAGAZINE"); });
+    foundName.addEventListener("input", function () { if (current) updateKindWarn(current, foundName.value); });
+
+    function downscale(file) {
+      return new Promise(function (resolve, reject) {
+        const reader = new FileReader();
+        reader.onerror = function () { reject(new Error("Could not read the photo")); };
+        reader.onload = function () {
+          const img = new Image();
+          img.onerror = function () { reject(new Error("Could not load the photo")); };
+          img.onload = function () {
+            let w = img.width;
+            let h = img.height;
+            const max = 1280;
+            if (w > max || h > max) {
+              if (w > h) {
+                h = Math.round(h * max / w);
+                w = max;
+              } else {
+                w = Math.round(w * max / h);
+                h = max;
+              }
+            }
+            const canvas = document.createElement("canvas");
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0, w, h);
+            resolve(canvas.toDataURL("image/jpeg", 0.8));
+          };
+          img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    photoInput.addEventListener("change", function () {
+      const file = photoInput.files && photoInput.files[0];
+      if (!file) return;
+      setStatus("Preparing photo...", "");
+      downscale(file).then(function (dataUrl) {
+        setPhotoData(dataUrl);
+        showPhoto(dataUrl);
+        persistBasket();
+        setStatus("", "");
+      }).catch(function () {
+        setPhotoData("");
+        setStatus("Could not use that photo. Please try again.", "error");
+      });
+    });
+
+    function postPayload(payload) {
+      return fetch(ENDPOINT, {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    function clearItems() {
+      setItems([]);
+      setPhotoData("");
+      photoInput.value = "";
+      showPhoto("");
+      hideFound();
+      barcodeInput.value = "";
+      persistBasket();
+      renderList();
+    }
+
+    clearDelivery.addEventListener("click", function () {
+      if (!items().length && !photoData()) {
+        setStatus("The list is already empty.", "");
+        return;
+      }
+      const msg = isStockTake() ? "Clear this stock take list?" : (isReturns() ? "Clear this return list?" : "Clear this delivery list?");
+      if (!confirm(msg)) return;
+      clearItems();
+      setStatus("List cleared.", "ok");
+    });
+
+    function appendToday(saved) {
+      const stamped = saved.map(function (item) {
+        const row = {
+          barcode: item.barcode,
+          name: item.name,
+          qty: item.qty,
+          time: nowLondonTime()
+        };
+        if (Object.prototype.hasOwnProperty.call(item, "till")) row.till = item.till;
+        return row;
+      }).reverse();
+      setTodayItems(stamped.concat(todayItems()));
+      persistToday();
+      renderTodayList();
+    }
+
+    saveDelivery.addEventListener("click", function () {
+      const date = deliveryDate.value.trim();
+      const who = checkedBy.value.trim();
+      const list = items();
+      const ret = isReturns();
+      const stock = isStockTake();
+      if (!date) {
+        setStatus(stock ? "Please enter the stock take date." : (ret ? "Please enter the return date." : "Please enter the delivery date."), "error");
+        return;
+      }
+      if (!who) {
+        setStatus(stock ? "Please enter who checked this stock take." : (ret ? "Please enter who checked these returns." : "Please enter who checked this delivery."), "error");
+        checkedBy.focus();
+        return;
+      }
+      if (!list.length) {
+        setStatus("Add at least one title before saving.", "error");
+        return;
+      }
+      const saved = list.slice();
+      const photo = photoData() || "";
+      // Type goes last so older parsers that read fields by position still work.
+      const saveKind = kind();
+      const saveMode = mode;
+      saveDelivery.disabled = true;
+      clearDelivery.disabled = true;
+      kindNewsBtn.disabled = true;
+      kindMagsBtn.disabled = true;
+      setStatus("Saving 1 of " + saved.length + "...", "");
+      let chain = Promise.resolve();
+      saved.forEach(function (item, index) {
+        chain = chain.then(function () {
+          setStatus("Saving " + (index + 1) + " of " + saved.length + "...", "");
+          // Delivery rows must stay exactly "PAPER: barcode | title | checked by".
+          // Stock take uses "PAPERSTOCK:" so it is never matched as a "PAPER: " delivery row.
+          let name;
+          if (stock) {
+            const tillText = (item.till === null || item.till === undefined) ? "-" : String(item.till);
+            name = "PAPERSTOCK: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + tillText + " | " + who;
+          } else if (ret) {
+            name = "PAPERRETURN: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + who + " | " + saveKind;
+          } else {
+            name = "PAPER: " + item.barcode + " | " + item.name + " | " + who + " | " + saveKind;
+          }
+          return postPayload({
+            name: name,
+            photo: index === 0 ? photo : "",
+            lines: [{ date: date, qty: String(item.qty) }]
+          });
+        });
+      });
+      chain.then(function () {
+        if (mode !== saveMode || kind() !== saveKind) {
+          if (saveMode === "stocktake") setMode("stocktake");
+          else { setMode(saveMode); setKind(saveKind); }
+        }
+        appendToday(saved);
+        clearItems();
+        const noun = kindNoun(saveKind);
+        setStatus(stock ? "Stock take saved" : (ret ? (noun.charAt(0).toUpperCase() + noun.slice(1) + " returns saved") : (noun.charAt(0).toUpperCase() + noun.slice(1) + " delivery saved")), "ok");
+      }).catch(function () {
+        setStatus("Could not save. Check your connection and try again.", "error");
+      }).then(function () {
+        saveDelivery.disabled = false;
+        clearDelivery.disabled = false;
+        kindNewsBtn.disabled = false;
+        kindMagsBtn.disabled = false;
+      });
+    });
+
+    restore();
+    applyKindLabels();
+    renderList();
+    renderTodayList();
+    updateSnapshotLabel();
+
+    let titlesLoaded = null;
+    const newsLoaded = fetch("news.json").then(function (res) {
+      if (!res.ok) throw new Error("news");
+      return res.json();
+    }).then(function (data) {
+      news13 = {};
+      news10 = {};
+      ((data && data.n13) || []).forEach(function (c) { news13[c] = true; });
+      ((data && data.n10) || []).forEach(function (c) { news10[c] = true; });
+      newsReady = true;
+    }).catch(function () {});
+
+    titlesLoaded = fetch("titles.json").then(function (res) {
+      if (!res.ok) throw new Error("titles");
+      return res.json();
+    }).then(function (data) {
+      titles = data || {};
+      buildIndexes();
+      titlesReady = true;
+      const n = Object.keys(titles).length;
+      loadState.textContent = n.toLocaleString("en-GB") + " titles loaded. " +
+        (USE_NATIVE ? "This phone can scan with its built-in barcode reader." : "This phone will use the backup scanner.");
+    }).catch(function () {
+      loadState.textContent = "Could not load the title list. You can still type the name after a scan.";
+    });
+
+    fetch("stock.json").then(function (res) {
+      if (!res.ok) throw new Error("stock");
+      return res.json();
+    }).then(function (data) {
+      stockMap = (data && data.stock) ? data.stock : {};
+      stockTakenDisplay = (data && (data.taken_display || data.taken_at)) ? (data.taken_display || data.taken_at) : "";
+      updateSnapshotLabel();
+      if (current) setFoundStock(current.barcode);
+      renderList();
+      renderTodayList();
+    }).catch(function () {
+      stockMap = null;
+      updateSnapshotLabel();
+    });
+
+    Promise.all([titlesLoaded, newsLoaded]).then(function () {
+      migrateLegacy();
+      if (current) updateKindWarn(current, foundName.value);
+    });
+  </script>
+</body>
+</html>
