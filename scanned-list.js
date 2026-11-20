@@ -130,7 +130,7 @@
               (opts.hidePlusMinus ? "" :
                 '<button class="bk-qty-btn minus" type="button" aria-label="Decrease quantity">-</button>' +
                 '<span class="bk-scan-qty"></span>' +
-                '<button class="bk-qty-btn plus" type="button" aria-label="Increase quantity">+</button>') +
+                (opts.hidePlus ? "" : '<button class="bk-qty-btn plus" type="button" aria-label="Increase quantity">+</button>')) +
               (opts.hidePlusMinus ? '<span class="bk-scan-qty"></span>' : "") +
               '<button class="bk-scan-remove" type="button">' + esc(opts.removeLabel || "Remove") + "</button>" +
             "</div>" +

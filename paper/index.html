@@ -536,6 +536,19 @@
     .rs-btn:disabled { opacity: 0.55; cursor: default; }
     .rs-err { display: none; margin-top: 8px; color: #c62828; font-weight: 700; font-size: 0.85rem; }
     .rs-err.show { display: block; }
+    .confirm-note {
+      margin: 12px 0 0;
+      font-weight: 800;
+      font-size: 0.98rem;
+      color: #8a3b12;
+      text-align: center;
+      line-height: 1.35;
+    }
+    .confirm-note.is-ready { color: #17643F; }
+    #confirmReturnBtn { margin-top: 12px; }
+    body.returns .qty-row,
+    body.returns #addBtn,
+    body.returns #qtyLabel { display: none !important; }
   </style>
   <link rel="stylesheet" href="../scanned-list.css">
 </head>
@@ -559,6 +572,8 @@
     <p class="rs-meta" id="returnSheetMeta"></p>
     <ul id="returnSheetToday" class="rs-list"></ul>
     <p id="returnSheetTodayEmpty" class="hint hidden">Nothing to scan today</p>
+    <p id="confirmReturnHint" class="confirm-note"></p>
+    <button id="confirmReturnBtn" class="btn" type="button" disabled>Confirm return</button>
     <div id="returnSheetTonight" class="rs-tonight hidden">
       <h3 class="rs-sec">Tonight: count at close</h3>
       <p class="rs-meta" id="returnSheetTonightMeta"></p>
@@ -622,6 +637,7 @@
       <ul id="itemList" class="bk-scan-list"></ul>
       <p id="emptyList" class="hint">No titles added yet. Scan each newspaper or magazine and it will appear here.</p>
       <div id="totals" class="totals hidden"></div>
+      <p id="confirmReturnNote" class="confirm-note hidden"></p>
       <button id="saveDelivery" class="btn" type="button">Save delivery</button>
       <button id="clearDelivery" class="btn danger" type="button">Clear list</button>
       <div id="status"></div>
@@ -1115,9 +1131,9 @@
       const noun = kindNoun(k);
       document.getElementById("basketTitle").textContent = ret ? ("This " + noun + " return") : ("This " + noun + " delivery");
       emptyList.textContent = ret
-        ? ("No " + noun + "s added yet. Scan each " + noun + " being returned, enter how many, then add it.")
+        ? ("No " + noun + "s added yet. Scan each " + noun + " being returned. Each scan adds one copy.")
         : ("No " + noun + "s added yet. Scan each " + noun + ", enter how many arrived, then add it.");
-      saveDelivery.textContent = ret ? ("Save " + noun + " returns") : ("Save " + noun + " delivery");
+      saveDelivery.textContent = ret ? "Confirm return" : ("Save " + noun + " delivery");
       todayTitle.textContent = "Today's " + noun + (ret ? " returns" : " deliveries");
     }
 
@@ -1177,9 +1193,9 @@
       emptyList.textContent = stock
         ? "No titles added yet. Scan each newspaper or magazine, enter how many are on the shelf, then add it."
         : (ret
-          ? "No titles added yet. Scan each newspaper or magazine being returned, enter how many, then add it."
+          ? "No titles added yet. Scan each newspaper or magazine being returned. Each scan adds one copy."
           : "No titles added yet. Scan each newspaper or magazine, enter how many arrived, then add it.");
-      saveDelivery.textContent = stock ? "Save stock take" : (ret ? "Save returns" : "Save delivery");
+      saveDelivery.textContent = stock ? "Save stock take" : (ret ? "Confirm return" : "Save delivery");
       todayTitle.textContent = stock ? "Today's stock take" : (ret ? "Today's returns" : "Today's deliveries");
       todayQtyHead.textContent = stock ? "Counted" : "Qty";
       todayStockHead.textContent = stock ? "Till" : "Stock";
@@ -1211,6 +1227,9 @@
           items: list,
           newestFirst: true,
           alreadyNewest: false,
+          hidePlus: isReturns(),
+          removeLabel: isStockTake() ? "Remove" : "Cancel",
+          confirmMsg: function () { return isStockTake() ? "Remove this item from the scanned list?" : "Remove this scan?"; },
           name: function (item) { return item.name || "Unknown"; },
           barcode: function (item) { return item.barcode || ""; },
           price: function (item) { return item.price; },
@@ -1296,6 +1315,7 @@
         }
       }
       renderReturnSheet();
+      if (typeof updateConfirmLock === "function") updateConfirmLock();
     }
 
     function renderTodayList() {
@@ -1358,18 +1378,70 @@
         li.appendChild(timeEl);
         const actions = document.createElement("div");
         actions.className = "item-actions";
-        const hideBtn = document.createElement("button");
-        hideBtn.type = "button";
-        hideBtn.className = "remove-btn";
-        hideBtn.textContent = "Hide";
-        hideBtn.addEventListener("click", function () {
-          const cur = todayItems().slice();
-          cur.splice(index, 1);
-          setTodayItems(cur);
-          persistToday();
-          renderTodayList();
-        });
-        actions.appendChild(hideBtn);
+        if (isStockTake()) {
+          const hideBtn = document.createElement("button");
+          hideBtn.type = "button";
+          hideBtn.className = "remove-btn";
+          hideBtn.textContent = "Hide";
+          hideBtn.addEventListener("click", function () {
+            const cur = todayItems().slice();
+            cur.splice(index, 1);
+            setTodayItems(cur);
+            persistToday();
+            renderTodayList();
+          });
+          actions.appendChild(hideBtn);
+        } else {
+          const minusBtn = document.createElement("button");
+          minusBtn.type = "button";
+          minusBtn.className = "qty-btn";
+          minusBtn.setAttribute("aria-label", "Decrease quantity");
+          minusBtn.textContent = "-";
+          minusBtn.addEventListener("click", function () {
+            const cur = todayItems();
+            if (!cur[index] || (Number(cur[index].qty) || 0) <= 1) return;
+            voidSavedScan(cur[index], 1).then(function () {
+              const next = todayItems().slice();
+              if (!next[index]) return;
+              next[index].qty = (Number(next[index].qty) || 0) - 1;
+              next[index].postedQty = Math.max(0, (Number(next[index].postedQty) || 0) - 1);
+              if (next[index].qty <= 0) next.splice(index, 1);
+              setTodayItems(next);
+              persistToday();
+              renderTodayList();
+              renderReturnSheet();
+              if (typeof updateConfirmLock === "function") updateConfirmLock();
+            });
+          });
+          const cancelBtn = document.createElement("button");
+          cancelBtn.type = "button";
+          cancelBtn.className = "remove-btn";
+          cancelBtn.textContent = "Cancel";
+          cancelBtn.addEventListener("click", function () {
+            if (!confirm("Remove this scan?")) return;
+            const cur = todayItems();
+            const item = cur[index];
+            if (!item) return;
+            cancelBtn.disabled = true;
+            voidSavedScan(item, item.qty).then(function () {
+              const next = todayItems().slice();
+              const ix = next.indexOf(item);
+              if (ix >= 0) next.splice(ix, 1);
+              else next.splice(index, 1);
+              setTodayItems(next);
+              persistToday();
+              renderTodayList();
+              renderReturnSheet();
+              if (typeof updateConfirmLock === "function") updateConfirmLock();
+              setStatus("Scan cancelled.", "ok");
+            }).catch(function () {
+              cancelBtn.disabled = false;
+              setStatus("Could not cancel this scan. Check your connection and try again.", "error");
+            });
+          });
+          actions.appendChild(minusBtn);
+          actions.appendChild(cancelBtn);
+        }
         li.appendChild(actions);
         todayItemList.appendChild(li);
       });
@@ -1410,6 +1482,12 @@
     function addCurrent() {
       if (!current) {
         setStatus("Scan or look up a barcode first.", "error");
+        return false;
+      }
+      if (isReturns() && returnSheetData && typeof matchReturnLine === "function" && !matchReturnLine({ barcode: current.barcode, name: foundName.value.trim() || current.name })) {
+        foundWarn.textContent = "Not on today's return list";
+        foundWarn.classList.remove("hidden");
+        setStatus("Not on today's return list", "error");
         return false;
       }
       const name = foundName.value.trim();
@@ -1487,6 +1565,14 @@
       lastScanAt = now;
       const rec = lookup(code);
       if (!rec) return;
+      if (isReturns() && returnSheetData && typeof matchReturnLine === "function" && !matchReturnLine(rec)) {
+        barcodeInput.value = rec.barcode;
+        showFound(rec, 1);
+        foundWarn.textContent = "Not on today's return list";
+        foundWarn.classList.remove("hidden");
+        setStatus("Not on today's return list", "error");
+        return;
+      }
       beep();
       if (typeof magOnScan === "function") magOnScan(rec);
       barcodeInput.value = rec.barcode;
@@ -1791,6 +1877,10 @@
           time: nowLondonTime()
         };
         if (Object.prototype.hasOwnProperty.call(item, "till")) row.till = item.till;
+        row.posted = true;
+        row.postedQty = Number(item.qty) || 0;
+        row.postedKind = item.postedKind || item.kind || kind();
+        row.postedMode = item.postedMode || mode;
         return row;
       }).reverse();
       setTodayItems(stamped.concat(todayItems()));
@@ -1798,12 +1888,170 @@
       renderTodayList();
     }
 
-    saveDelivery.addEventListener("click", function () {
+    function allReturnItems() {
+      var out = [];
+      KINDS.forEach(function (k) {
+        (((baskets.returns[k] && baskets.returns[k].items) || [])).forEach(function (it) {
+          var row = {};
+          Object.keys(it).forEach(function (key) { row[key] = it[key]; });
+          row.postedKind = k;
+          row.postedMode = "returns";
+          out.push(row);
+        });
+      });
+      return out;
+    }
+
+    function returnListEntries() {
+      var out = [];
+      if (!returnSheetData) return out;
+      function add(it, tonight) {
+        if (!it) return;
+        if (!tonight && !(Number(it.qty) > 0)) return;
+        out.push(it);
+      }
+      var rt = returnSheetData.return_today || {};
+      var tn = returnSheetData.tonight || {};
+      (rt.newspapers || []).forEach(function (it) { add(it, false); });
+      (rt.magazines || []).forEach(function (it) { add(it, false); });
+      (tn.newspapers || []).forEach(function (it) { add(it, true); });
+      (tn.magazines || []).forEach(function (it) { add(it, true); });
+      return out;
+    }
+
+    function matchReturnLine(rec) {
+      if (!rec) return null;
+      var code = codeKey(rec.barcode);
+      var name = String(rec.name || rec.title || "").toLowerCase().replace(/\s+/g, " ").trim();
+      var list = returnListEntries();
+      var i, it, bc, t;
+      for (i = 0; i < list.length; i++) {
+        it = list[i];
+        bc = codeKey(it.barcode);
+        if (code && bc && (code === bc || (code.slice(0, 12) === bc.slice(0, 12) && code.length >= 12 && bc.length >= 12) || (code.slice(0, 10) === bc.slice(0, 10) && code.length >= 10 && bc.length >= 10))) {
+          return it;
+        }
+      }
+      for (i = 0; i < list.length; i++) {
+        it = list[i];
+        if (code && codeKey(it.barcode)) continue;
+        t = String(it.title || it.full_title || "").toLowerCase().replace(/\s+/g, " ").trim();
+        if (name && t && (name === t || name.indexOf(t) >= 0 || t.indexOf(name) >= 0)) return it;
+      }
+      return null;
+    }
+
+    function todayReturnProgress() {
+      if (!returnSheetData) return { done: 0, total: 0, ready: false, hasSheet: false };
+      var localMap = localReturnScanMap();
+      var rt = returnSheetData.return_today || {};
+      var lines = (rt.newspapers || []).concat(rt.magazines || []);
+      var due = lines.filter(function (it) { return Number(it.qty) > 0; }).map(function (it) { return mergeSheetItem(it, localMap); });
+      var done = due.filter(function (it) { return it.done; }).length;
+      return { done: done, total: due.length, ready: due.length > 0 && done === due.length, hasSheet: true };
+    }
+
+    function updateConfirmLock() {
+      var ret = isReturns();
+      var hint = document.getElementById("confirmReturnHint");
+      var note = document.getElementById("confirmReturnNote");
+      var topBtn = document.getElementById("confirmReturnBtn");
+      if (!ret) {
+        if (hint) { hint.textContent = ""; hint.classList.add("hidden"); }
+        if (note) { note.textContent = ""; note.classList.add("hidden"); }
+        if (topBtn) topBtn.classList.add("hidden");
+        saveDelivery.disabled = false;
+        return;
+      }
+      if (topBtn) topBtn.classList.remove("hidden");
+      var prog = todayReturnProgress();
+      var unsaved = allReturnItems().length;
+      var msg = "";
+      var ready = false;
+      if (prog.hasSheet && prog.total > 0 && !prog.ready) {
+        msg = "Scan all items to confirm (" + prog.done + " of " + prog.total + " done)";
+        ready = false;
+      } else if (prog.hasSheet && prog.ready && unsaved === 0) {
+        msg = "All items scanned";
+        ready = false;
+      } else if (prog.hasSheet && prog.ready && unsaved > 0) {
+        msg = "All items scanned. Tap Confirm return.";
+        ready = true;
+      } else if (!prog.hasSheet) {
+        msg = unsaved ? "Today's return sheet could not be loaded. You can still confirm scanned returns." : "";
+        ready = unsaved > 0;
+      } else {
+        msg = unsaved ? "Nothing due on today's list. You can still confirm scanned returns." : "Nothing to scan today";
+        ready = unsaved > 0;
+      }
+      [hint, note].forEach(function (el) {
+        if (!el) return;
+        el.textContent = msg;
+        el.classList.toggle("hidden", !msg);
+        el.classList.toggle("is-ready", ready);
+      });
+      saveDelivery.disabled = !ready;
+      if (topBtn) topBtn.disabled = !ready;
+    }
+
+    function postCancelRow(item, qty, modeHint, kindHint) {
+      var date = (deliveryDate.value || todayLondon()).trim();
+      var who = (checkedBy.value || "staff").trim();
+      var q = Number(qty) || 0;
+      if (q <= 0) return Promise.resolve();
+      var typ = kindHint || item.postedKind || item.kind || paperType(item.barcode, item.name) || kind();
+      var name;
+      if (modeHint === "stocktake") {
+        name = "PAPERSTOCKCANCEL: " + item.barcode + " | " + item.name + " | " + String(q) + " | " + who;
+      } else if (modeHint === "returns") {
+        name = "PAPERRETURNCANCEL: " + item.barcode + " | " + item.name + " | " + String(q) + " | " + who + " | " + typ;
+      } else {
+        name = "PAPERCANCEL: " + item.barcode + " | " + item.name + " | " + String(q) + " | " + who + " | " + typ;
+      }
+      return postPayload({
+        name: name,
+        photo: "",
+        lines: [{ date: date, qty: String(q) }]
+      });
+    }
+
+    function voidSavedScan(item, qty) {
+      var q = Number(qty) || 0;
+      var posted = Number(item && (item.postedQty != null ? item.postedQty : (item.posted ? item.qty : 0))) || 0;
+      if (!item || q <= 0 || posted <= 0) return Promise.resolve();
+      var take = Math.min(q, posted);
+      var modeHint = item.postedMode || (isReturns() ? "returns" : (isStockTake() ? "stocktake" : "delivery"));
+      var kindHint = item.postedKind || item.kind || paperType(item.barcode, item.name) || kind();
+      return postCancelRow(item, take, modeHint, kindHint);
+    }
+
+    function rowNameForSave(item, stock, ret, who, saveKind) {
+      if (stock) {
+        var tillText = (item.till === null || item.till === undefined) ? "-" : String(item.till);
+        return "PAPERSTOCK: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + tillText + " | " + who;
+      }
+      if (ret) {
+        return "PAPERRETURN: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + who + " | " + saveKind;
+      }
+      return "PAPER: " + item.barcode + " | " + item.name + " | " + who + " | " + saveKind;
+    }
+
+    function finishSaveButtons() {
+      saveDelivery.disabled = false;
+      clearDelivery.disabled = false;
+      kindNewsBtn.disabled = false;
+      kindMagsBtn.disabled = false;
+      var topBtn = document.getElementById("confirmReturnBtn");
+      if (topBtn) topBtn.disabled = false;
+      if (typeof updateConfirmLock === "function") updateConfirmLock();
+    }
+
+    function saveCurrent() {
       const date = deliveryDate.value.trim();
       const who = checkedBy.value.trim();
-      const list = items();
       const ret = isReturns();
       const stock = isStockTake();
+      var list = ret ? allReturnItems() : items();
       if (!date) {
         setStatus(stock ? "Please enter the stock take date." : (ret ? "Please enter the return date." : "Please enter the delivery date."), "error");
         return;
@@ -1813,35 +2061,35 @@
         checkedBy.focus();
         return;
       }
+      if (ret) {
+        var prog = todayReturnProgress();
+        if (prog.hasSheet && prog.total > 0 && !prog.ready) {
+          setStatus("Scan all items to confirm (" + prog.done + " of " + prog.total + " done).", "error");
+          updateConfirmLock();
+          return;
+        }
+      }
       if (!list.length) {
         setStatus("Add at least one title before saving.", "error");
         return;
       }
       const saved = list.slice();
-      const photo = photoData() || "";
-      // Type goes last so older parsers that read fields by position still work.
+      const photo = ret ? ((baskets.returns.NEWSPAPER && baskets.returns.NEWSPAPER.photo) || (baskets.returns.MAGAZINE && baskets.returns.MAGAZINE.photo) || "") : (photoData() || "");
       const saveKind = kind();
       const saveMode = mode;
       saveDelivery.disabled = true;
       clearDelivery.disabled = true;
       kindNewsBtn.disabled = true;
       kindMagsBtn.disabled = true;
+      var topBtn = document.getElementById("confirmReturnBtn");
+      if (topBtn) topBtn.disabled = true;
       setStatus("Saving 1 of " + saved.length + "...", "");
       let chain = Promise.resolve();
       saved.forEach(function (item, index) {
         chain = chain.then(function () {
           setStatus("Saving " + (index + 1) + " of " + saved.length + "...", "");
-          // Delivery rows must stay exactly "PAPER: barcode | title | checked by".
-          // Stock take uses "PAPERSTOCK:" so it is never matched as a "PAPER: " delivery row.
-          let name;
-          if (stock) {
-            const tillText = (item.till === null || item.till === undefined) ? "-" : String(item.till);
-            name = "PAPERSTOCK: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + tillText + " | " + who;
-          } else if (ret) {
-            name = "PAPERRETURN: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + who + " | " + saveKind;
-          } else {
-            name = "PAPER: " + item.barcode + " | " + item.name + " | " + who + " | " + saveKind;
-          }
+          var itemKind = item.postedKind || item.kind || saveKind;
+          var name = rowNameForSave(item, stock, ret, who, itemKind);
           return postPayload({
             name: name,
             photo: index === 0 ? photo : "",
@@ -1850,23 +2098,47 @@
         });
       });
       chain.then(function () {
-        if (mode !== saveMode || kind() !== saveKind) {
+        if (mode !== saveMode) {
           if (saveMode === "stocktake") setMode("stocktake");
-          else { setMode(saveMode); setKind(saveKind); }
+          else setMode(saveMode);
         }
-        appendToday(saved);
-        clearItems();
-        const noun = kindNoun(saveKind);
-        setStatus(stock ? "Stock take saved" : (ret ? (noun.charAt(0).toUpperCase() + noun.slice(1) + " returns saved") : (noun.charAt(0).toUpperCase() + noun.slice(1) + " delivery saved")), "ok");
+        if (ret) {
+          KINDS.forEach(function (k) {
+            var batch = saved.filter(function (it) { return (it.postedKind || it.kind) === k; });
+            if (!batch.length) return;
+            if (kind() !== k) setKind(k);
+            appendToday(batch);
+            baskets.returns[k].items = [];
+            baskets.returns[k].photo = "";
+          });
+          persistBasket();
+          photoInput.value = "";
+          showPhoto("");
+          hideFound();
+          barcodeInput.value = "";
+          renderList();
+          renderTodayList();
+          renderReturnSheet();
+          setStatus("Returns confirmed", "ok");
+        } else {
+          if (kind() !== saveKind && saveMode !== "stocktake") setKind(saveKind);
+          appendToday(saved);
+          clearItems();
+          const noun = kindNoun(saveKind);
+          setStatus(stock ? "Stock take saved" : (noun.charAt(0).toUpperCase() + noun.slice(1) + " delivery saved"), "ok");
+        }
       }).catch(function () {
         setStatus("Could not save. Check your connection and try again.", "error");
       }).then(function () {
-        saveDelivery.disabled = false;
-        clearDelivery.disabled = false;
-        kindNewsBtn.disabled = false;
-        kindMagsBtn.disabled = false;
+        finishSaveButtons();
       });
-    });
+    }
+
+    saveDelivery.addEventListener("click", function () { saveCurrent(); });
+    (function () {
+      var topBtn = document.getElementById("confirmReturnBtn");
+      if (topBtn) topBtn.addEventListener("click", function () { saveCurrent(); });
+    })();
 
 
     var returnSheetData = null;
@@ -2007,15 +2279,12 @@
         li.appendChild(thumb);
         li.appendChild(col);
         li.appendChild(badge);
-        if (!tonight && lineKind === "MAGAZINE" && !sold && !item.done) {
+        if (!tonight && !sold && !item.done && lineKind) {
           var actions = document.createElement("div");
           actions.className = "rs-actions";
-          actions.innerHTML = '<button type="button" class="rs-btn scan" data-act="scan">Scan</button>' +
-            '<button type="button" class="rs-btn" data-act="ok">Confirm ' + (item.left || item.qty || "") + "</button>";
-          var err = document.createElement("div");
-          err.className = "rs-err";
+          actions.style.gridTemplateColumns = "1fr";
+          actions.innerHTML = '<button type="button" class="rs-btn scan" data-act="scan">Scan</button>';
           col.appendChild(actions);
-          col.appendChild(err);
           li.classList.add("is-due");
           li.addEventListener("click", function (e) {
             if (e.target && e.target.closest && e.target.closest("button")) return;
@@ -2024,10 +2293,6 @@
           actions.querySelector('[data-act="scan"]').addEventListener("click", function (e) {
             e.stopPropagation();
             if (typeof startMagReturn === "function") startMagReturn(item, true);
-          });
-          actions.querySelector('[data-act="ok"]').addEventListener("click", function (e) {
-            e.stopPropagation();
-            if (typeof confirmMagReturn === "function") confirmMagReturn(item, err, e.currentTarget);
           });
         } else if (!tonight && lineKind) {
           li.addEventListener("click", function () {
@@ -2085,6 +2350,7 @@
         dummy.className = "hidden";
         renderSheetList(tlist, dummy, (tn.newspapers || []).concat(tn.magazines || []), "", true);
       }
+      if (typeof updateConfirmLock === "function") updateConfirmLock();
     }
 
 
@@ -2095,14 +2361,14 @@
       if (!isReturns()) setMode("returns");
       setKind("MAGAZINE");
       magAwaiting = item.barcode || item.title || "mag";
-      var qty = Number(item.left) || Number(item.qty) || 1;
       if (item.barcode) {
         var rec = lookup(item.barcode) || { barcode: item.barcode, name: item.title || item.full_title || "", price: 0, match: "none" };
         if (!rec.name) rec.name = item.title || item.full_title || "";
         current = rec;
-        showFound(rec, qty);
+        showFound(rec, 1);
         foundName.value = item.title || item.full_title || rec.name || "";
         barcodeInput.value = item.barcode;
+        setStatus("Scan each copy of " + (item.title || "this title") + ".", "");
       } else {
         hideFound();
         barcodeInput.value = "";
@@ -2121,6 +2387,10 @@
     }
 
     function confirmMagReturn(item, errEl, btn) {
+      // Confirm is locked to full-list scanning. This leftover only starts the camera.
+      if (typeof startMagReturn === "function") startMagReturn(item, true);
+      if (errEl) { errEl.textContent = "Scan each copy, then tap Confirm return when the list is done."; errEl.classList.add("show"); }
+      return;
       var who = checkedBy.value.trim();
       function showErr(msg) {
         if (errEl) { errEl.textContent = msg || ""; errEl.classList.toggle("show", !!msg); }
@@ -2186,6 +2456,7 @@
           if (total) total.textContent = "";
           if (inst) inst.textContent = "Today's return sheet could not be loaded. You can still scan returns below.";
         }
+        if (typeof updateConfirmLock === "function") updateConfirmLock();
       });
     }
 

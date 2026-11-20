@@ -1,4 +1,4 @@
-const CACHE_NAME = "birkhill-paper-stockin-v6-gh";
+const CACHE_NAME = "birkhill-paper-stockin-v7-gh";
 
 self.addEventListener("install", function (event) {
   event.waitUntil(
