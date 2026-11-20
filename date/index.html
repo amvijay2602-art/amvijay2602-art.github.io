@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#2e7d32">
+  <meta name="theme-color" content="#17643F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Birkhill Camera">
@@ -13,10 +13,10 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <style>
     :root {
-      --green: #2e7d32;
-      --green-dark: #1b5e20;
+      --green: #17643F;
+      --green-dark: #0f4a2e;
       --bg: #f4f7f4;
-      --text: #1a1a1a;
+      --text: #18342A;
       --muted: #5f6b5f;
       --card: #ffffff;
       --danger: #c62828;
@@ -92,7 +92,7 @@
       margin-top: 6px;
       padding: 14px 12px;
       font-size: 1.05rem;
-      border: 1px solid #c5d0c5;
+      border: 1px solid #c3d6ca;
       border-radius: 10px;
       background: #fff;
     }
@@ -156,6 +156,24 @@
       font-size: 0.9rem;
       text-align: center;
     }
+  </style>
+
+  <style id="birkhill-theme">
+    /* Birkhill Stores shared look (restyle only) */
+    :root { --bk-g:#17643F; --bk-gd:#0f4a2e; --bk-o:#E86B2A; --bk-bg:#F4F7F4; --bk-ink:#18342A; --bk-line:#d5e3da; }
+    html, body { background: var(--bk-bg); color: var(--bk-ink); }
+    body { font-family: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { font-size: 16px !important; }
+    button, .btn, a.btn, input[type="text"], input[type="number"], input[type="date"], input[type="search"], select { min-height: 48px; }
+    .card { border-radius: 18px !important; box-shadow: 0 1px 4px rgba(24,52,42,.10) !important; }
+    .bk-logo { display:block; margin: 0 auto 6px; height: 44px; width: auto; }
+    body.bk-has-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+    .bk-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9990; display: grid; grid-template-columns: repeat(5, 1fr);
+              background: #fff; border-top: 1px solid var(--bk-line); box-shadow: 0 -2px 8px rgba(24,52,42,.08); padding-bottom: env(safe-area-inset-bottom); }
+    .bk-nav a { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:58px; color: var(--bk-ink); text-decoration:none;
+                font: 700 12px/1.1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; gap: 3px; }
+    .bk-nav a .i { font-size: 20px; line-height: 1; }
+    .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
   </style>
 </head>
 <body>

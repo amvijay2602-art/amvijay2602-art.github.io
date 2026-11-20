@@ -3,11 +3,25 @@
   var STAFF = "birkhill-staff-name";
   function staff() { try { return localStorage.getItem(STAFF) || ""; } catch (e) { return ""; } }
   function ready(fn) { if (document.readyState !== "loading") fn(); else document.addEventListener("DOMContentLoaded", fn); }
+  var APPS = [["../", "\u2302", "Home"], ["../paper/", "\ud83d\udcf0", "Papers"], ["../chiller/", "\ud83e\uddca", "Chiller"], ["../date/", "\ud83d\udcf7", "Date"], ["../count/", "\ud83d\udccb", "Count"]];
   ready(function () {
-    var a = document.createElement("a");
-    a.href = "../"; a.textContent = "\u2302 Home"; a.setAttribute("aria-label", "Back to Birkhill home");
-    a.style.cssText = "position:fixed;left:10px;bottom:14px;z-index:9999;background:#0d47a1;color:#fff;padding:10px 14px;border-radius:22px;font:600 15px system-ui,sans-serif;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.3)";
-    document.body.appendChild(a);
+    var here = location.pathname.replace(/index\.html$/, "");
+    if (/\/count\/$/.test(here)) return;   // Stock Count has its own bottom bar
+    var h1 = document.querySelector("h1");
+    if (h1 && !document.querySelector(".bk-logo")) {
+      var img = document.createElement("img"); img.src = "../logo.png"; img.alt = "Birkhill Stores"; img.className = "bk-logo";
+      h1.parentNode.insertBefore(img, h1);
+    }
+    var nav = document.createElement("nav"); nav.className = "bk-nav"; nav.setAttribute("aria-label", "Birkhill apps");
+    APPS.forEach(function (a) {
+      var el = document.createElement("a"); el.href = a[0];
+      var seg = a[0].replace("../", "");
+      if (seg && here.indexOf("/" + seg) >= 0) el.className = "on";
+      el.innerHTML = "<span class='i'>" + a[1] + "</span><span>" + a[2] + "</span>";
+      if (a[2] === "Home") el.setAttribute("aria-label", "Back to Birkhill home");
+      nav.appendChild(el);
+    });
+    document.body.appendChild(nav); document.body.classList.add("bk-has-nav");
   });
   window.addEventListener("load", function () {
     setTimeout(function () {

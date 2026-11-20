@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#1565c0">
+  <meta name="theme-color" content="#17643F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Chiller Check">
@@ -13,10 +13,10 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <style>
     :root {
-      --blue: #1565c0;
-      --blue-dark: #0d47a1;
-      --bg: #f4f6fa;
-      --text: #1a1a1a;
+      --blue: #17643F;
+      --blue-dark: #0f4a2e;
+      --bg: #F4F7F4;
+      --text: #18342A;
       --muted: #5f6b7a;
       --card: #ffffff;
       --danger: #c62828;
@@ -64,11 +64,11 @@
       color: #fff;
     }
     #modeStockIn {
-      color: #00695c;
-      border-color: #00897b;
+      color: #b4501c;
+      border-color: #E86B2A;
     }
     #modeStockIn.active {
-      background: #00897b;
+      background: #E86B2A;
       color: #fff;
     }
     .example-banner {
@@ -134,7 +134,7 @@
       margin-top: 6px;
       padding: 14px 12px;
       font-size: 1.05rem;
-      border: 1px solid #c5d0dc;
+      border: 1px solid #c3d6ca;
       border-radius: 10px;
       background: #fff;
     }
@@ -232,11 +232,11 @@
       color: var(--blue-dark);
       border: 2px solid var(--blue);
     }
-    #wastePanel .btn.secondary:active { background: #eaf1fb; }
+    #wastePanel .btn.secondary:active { background: #e7f2ec; }
     #wastePanel .scan-wrap {
       position: relative;
       margin-top: 12px;
-      background: #10151a;
+      background: #18342A;
       border-radius: 14px;
       overflow: hidden;
       min-height: 180px;
@@ -246,7 +246,7 @@
       width: 100%;
       max-height: 280px;
       object-fit: cover;
-      background: #10151a;
+      background: #18342A;
     }
     #wastePanel .scan-frame {
       pointer-events: none;
@@ -276,7 +276,7 @@
     #wasteFoundPanel {
       margin-top: 14px;
       padding-top: 14px;
-      border-top: 1px solid #d7e0ea;
+      border-top: 1px solid #d5e3da;
     }
     #wastePanel .barcode-readout {
       margin: 4px 0 0;
@@ -323,7 +323,7 @@
     }
     #wasteItemList li {
       padding: 12px 0;
-      border-bottom: 1px solid #d7e0ea;
+      border-bottom: 1px solid #d5e3da;
     }
     #wasteItemList li:last-child { border-bottom: 0; }
     #wastePanel .item-top {
@@ -382,7 +382,7 @@
       cursor: pointer;
       user-select: none;
     }
-    #wastePanel .waste-photo:active { background: #eaf1fb; }
+    #wastePanel .waste-photo:active { background: #e7f2ec; }
     #wastePanel .waste-photo input {
       position: absolute;
       width: 1px;
@@ -473,7 +473,7 @@
     .check-scan-wrap {
       position: relative;
       margin-top: 12px;
-      background: #10151a;
+      background: #18342A;
       border-radius: 14px;
       overflow: hidden;
       min-height: 180px;
@@ -483,7 +483,7 @@
       width: 100%;
       max-height: 280px;
       object-fit: cover;
-      background: #10151a;
+      background: #18342A;
     }
     .check-scan-wrap .scan-frame {
       pointer-events: none;
@@ -520,7 +520,7 @@
     }
     #checkItemList li {
       padding: 12px 0;
-      border-bottom: 1px solid #d7e0ea;
+      border-bottom: 1px solid #d5e3da;
     }
     #checkItemList li:last-child { border-bottom: 0; }
     #checkListCard .item-name { font-weight: 700; }
@@ -559,7 +559,7 @@
     #stockInPanel .btn {
       display: block;
       width: 100%;
-      background: #00897b;
+      background: #E86B2A;
       color: #fff;
       font-size: 1.15rem;
       font-weight: 700;
@@ -568,21 +568,21 @@
       border-radius: 14px;
       cursor: pointer;
     }
-    #stockInPanel .btn:active { background: #00695c; }
+    #stockInPanel .btn:active { background: #b4501c; }
     #stockInPanel .btn:disabled {
       opacity: 0.6;
       cursor: default;
     }
     #stockInPanel .btn.secondary {
       background: #fff;
-      color: #00695c;
-      border: 2px solid #00897b;
+      color: #b4501c;
+      border: 2px solid #E86B2A;
     }
-    #stockInPanel .btn.secondary:active { background: #e0f2f1; }
+    #stockInPanel .btn.secondary:active { background: #fdeee5; }
     #stockInPanel .scan-wrap {
       position: relative;
       margin-top: 12px;
-      background: #10151a;
+      background: #18342A;
       border-radius: 14px;
       overflow: hidden;
       min-height: 180px;
@@ -592,7 +592,7 @@
       width: 100%;
       max-height: 280px;
       object-fit: cover;
-      background: #10151a;
+      background: #18342A;
     }
     #stockInPanel .scan-frame {
       pointer-events: none;
@@ -645,19 +645,19 @@
       flex: 1 1 calc(20% - 7px);
       min-width: 3.4rem;
       background: #fff;
-      color: #00695c;
-      border: 2px solid #00897b;
+      color: #b4501c;
+      border: 2px solid #E86B2A;
       border-radius: 10px;
       font-size: 0.95rem;
       font-weight: 700;
       padding: 10px 6px;
       cursor: pointer;
     }
-    #stockInPanel .date-quick button:active { background: #e0f2f1; }
+    #stockInPanel .date-quick button:active { background: #fdeee5; }
     #stockInSave { margin-top: 18px; }
     #stockInListCard {
-      background: #e0f2f1;
-      border: 2px solid #00897b;
+      background: #fdeee5;
+      border: 2px solid #E86B2A;
       border-radius: 16px;
       padding: 16px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.08);
@@ -666,23 +666,23 @@
     #stockInListCard h2 {
       font-size: 1.05rem;
       margin: 0 0 6px;
-      color: #00695c;
+      color: #b4501c;
     }
     #stockInListCount {
       font-size: 1.05rem;
       font-weight: 700;
       margin: 0 0 10px;
-      color: #00695c;
+      color: #b4501c;
     }
     #stockInTodayHead {
       display: flex;
       align-items: baseline;
       gap: 6px;
       padding: 0 0 8px;
-      border-bottom: 1px solid #80cbc4;
+      border-bottom: 1px solid #f3b48f;
       font-size: 0.75rem;
       font-weight: 700;
-      color: #00695c;
+      color: #b4501c;
       text-transform: uppercase;
       letter-spacing: 0.03em;
     }
@@ -697,7 +697,7 @@
     }
     #stockInItemList li {
       padding: 12px 0;
-      border-bottom: 1px solid #80cbc4;
+      border-bottom: 1px solid #f3b48f;
     }
     #stockInItemList li:last-child { border-bottom: 0; }
     #stockInItemList .item-top {
@@ -714,7 +714,7 @@
       flex: 0 0 5.4rem;
       width: 5.4rem;
       font-weight: 700;
-      color: #00695c;
+      color: #b4501c;
     }
     #stockInItemList .item-qty {
       flex: 0 0 2.6rem;
@@ -767,12 +767,12 @@
       text-align: center;
     }
     #stockInPanel .supplier-chip {
-      background: #00897b;
+      background: #E86B2A;
       color: #fff;
     }
     #stockInPanel .supplier-chip.empty {
-      background: #e0f2f1;
-      color: #00695c;
+      background: #fdeee5;
+      color: #b4501c;
       font-weight: 700;
     }
     #wastagePanel .wastage-load {
@@ -807,7 +807,7 @@
     #wastagePanel .scan-wrap {
       position: relative;
       margin-top: 12px;
-      background: #10151a;
+      background: #18342A;
       border-radius: 14px;
       overflow: hidden;
       min-height: 180px;
@@ -817,7 +817,7 @@
       width: 100%;
       max-height: 280px;
       object-fit: cover;
-      background: #10151a;
+      background: #18342A;
     }
     #wastagePanel .scan-frame {
       pointer-events: none;
@@ -998,6 +998,24 @@
       text-align: right;
       color: #7f0000;
     }
+  </style>
+
+  <style id="birkhill-theme">
+    /* Birkhill Stores shared look (restyle only) */
+    :root { --bk-g:#17643F; --bk-gd:#0f4a2e; --bk-o:#E86B2A; --bk-bg:#F4F7F4; --bk-ink:#18342A; --bk-line:#d5e3da; }
+    html, body { background: var(--bk-bg); color: var(--bk-ink); }
+    body { font-family: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { font-size: 16px !important; }
+    button, .btn, a.btn, input[type="text"], input[type="number"], input[type="date"], input[type="search"], select { min-height: 48px; }
+    .card { border-radius: 18px !important; box-shadow: 0 1px 4px rgba(24,52,42,.10) !important; }
+    .bk-logo { display:block; margin: 0 auto 6px; height: 44px; width: auto; }
+    body.bk-has-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+    .bk-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9990; display: grid; grid-template-columns: repeat(5, 1fr);
+              background: #fff; border-top: 1px solid var(--bk-line); box-shadow: 0 -2px 8px rgba(24,52,42,.08); padding-bottom: env(safe-area-inset-bottom); }
+    .bk-nav a { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:58px; color: var(--bk-ink); text-decoration:none;
+                font: 700 12px/1.1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; gap: 3px; }
+    .bk-nav a .i { font-size: 20px; line-height: 1; }
+    .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
   </style>
 </head>
 <body>

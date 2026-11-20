@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#6a1b9a">
+  <meta name="theme-color" content="#17643F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Paper Stock-In">
@@ -13,29 +13,29 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <style>
     :root {
-      --accent: #6a1b9a;
-      --accent-dark: #4a148c;
-      --bg: #f6f3f8;
-      --text: #1a1a1a;
+      --accent: #17643F;
+      --accent-dark: #0f4a2e;
+      --bg: #F4F7F4;
+      --text: #18342A;
       --muted: #5f6b7a;
       --card: #ffffff;
       --danger: #c62828;
-      --line: #e0d6e8;
-      --input-border: #d4c6de;
+      --line: #d5e3da;
+      --input-border: #c3d6ca;
     }
     body.returns {
-      --accent: #e65100;
-      --accent-dark: #bf360c;
+      --accent: #E86B2A;
+      --accent-dark: #b4501c;
       --bg: #fff6f0;
       --line: #f0d8c8;
       --input-border: #e8c8b0;
     }
     body.stocktake {
-      --accent: #2e7d32;
-      --accent-dark: #1b5e20;
-      --bg: #f3f8f3;
-      --line: #cfe0cf;
-      --input-border: #b7d0b7;
+      --accent: #18342A;
+      --accent-dark: #0e221b;
+      --bg: #F4F7F4;
+      --line: #d5e3da;
+      --input-border: #c3d6ca;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -79,27 +79,27 @@
       line-height: 1.2;
     }
     .mode-btn.delivery-btn {
-      color: #4a148c;
-      border: 2px solid #6a1b9a;
+      color: #0f4a2e;
+      border: 2px solid #17643F;
     }
     .mode-btn.delivery-btn.active {
-      background: #6a1b9a;
+      background: #17643F;
       color: #fff;
     }
     .mode-btn.returns-btn {
-      color: #bf360c;
-      border: 2px solid #e65100;
+      color: #b4501c;
+      border: 2px solid #E86B2A;
     }
     .mode-btn.returns-btn.active {
-      background: #e65100;
+      background: #E86B2A;
       color: #fff;
     }
     .mode-btn.stocktake-btn {
-      color: #1b5e20;
-      border: 2px solid #2e7d32;
+      color: #0e221b;
+      border: 2px solid #18342A;
     }
     .mode-btn.stocktake-btn.active {
-      background: #2e7d32;
+      background: #18342A;
       color: #fff;
     }
     .mode-btn:active { opacity: 0.85; }
@@ -194,9 +194,9 @@
       color: var(--accent-dark);
       border: 2px solid var(--accent);
     }
-    .btn.secondary:active { background: #f3eaf8; }
-    body.returns .btn.secondary:active { background: #fff0e6; }
-    body.stocktake .btn.secondary:active { background: #e8f5e9; }
+    .btn.secondary:active { background: #e7f2ec; }
+    body.returns .btn.secondary:active { background: #fdeee5; }
+    body.stocktake .btn.secondary:active { background: #e6ece9; }
     .btn.danger {
       background: #fff;
       color: var(--danger);
@@ -207,7 +207,7 @@
     .scan-wrap {
       position: relative;
       margin-top: 12px;
-      background: #1a1020;
+      background: #18342A;
       border-radius: 14px;
       overflow: hidden;
       min-height: 180px;
@@ -219,7 +219,7 @@
       width: 100%;
       max-height: 280px;
       object-fit: cover;
-      background: #1a1020;
+      background: #18342A;
     }
     .scan-frame {
       pointer-events: none;
@@ -274,7 +274,7 @@
       font-weight: 700;
     }
     .diff-line.negative, .item-value.negative, .item-diff-col.negative { color: var(--danger); }
-    .diff-line.positive, .item-value.positive, .item-diff-col.positive { color: #1b5e20; }
+    .diff-line.positive, .item-value.positive, .item-diff-col.positive { color: #0e221b; }
     .qty-row {
       display: flex;
       align-items: center;
@@ -432,9 +432,9 @@
       cursor: pointer;
       user-select: none;
     }
-    .take-photo:active { background: #f3eaf8; }
-    body.returns .take-photo:active { background: #fff0e6; }
-    body.stocktake .take-photo:active { background: #e8f5e9; }
+    .take-photo:active { background: #e7f2ec; }
+    body.returns .take-photo:active { background: #fdeee5; }
+    body.stocktake .take-photo:active { background: #e6ece9; }
     .take-photo input {
       position: absolute;
       width: 1px;
@@ -461,6 +461,24 @@
       font-size: 0.9rem;
       margin: 0 0 12px;
     }
+  </style>
+
+  <style id="birkhill-theme">
+    /* Birkhill Stores shared look (restyle only) */
+    :root { --bk-g:#17643F; --bk-gd:#0f4a2e; --bk-o:#E86B2A; --bk-bg:#F4F7F4; --bk-ink:#18342A; --bk-line:#d5e3da; }
+    html, body { background: var(--bk-bg); color: var(--bk-ink); }
+    body { font-family: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { font-size: 16px !important; }
+    button, .btn, a.btn, input[type="text"], input[type="number"], input[type="date"], input[type="search"], select { min-height: 48px; }
+    .card { border-radius: 18px !important; box-shadow: 0 1px 4px rgba(24,52,42,.10) !important; }
+    .bk-logo { display:block; margin: 0 auto 6px; height: 44px; width: auto; }
+    body.bk-has-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+    .bk-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9990; display: grid; grid-template-columns: repeat(5, 1fr);
+              background: #fff; border-top: 1px solid var(--bk-line); box-shadow: 0 -2px 8px rgba(24,52,42,.08); padding-bottom: env(safe-area-inset-bottom); }
+    .bk-nav a { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:58px; color: var(--bk-ink); text-decoration:none;
+                font: 700 12px/1.1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; gap: 3px; }
+    .bk-nav a .i { font-size: 20px; line-height: 1; }
+    .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
   </style>
 </head>
 <body>
@@ -1047,7 +1065,7 @@
       document.body.classList.toggle("returns", ret);
       document.body.classList.toggle("stocktake", stock);
       if (themeColor) {
-        themeColor.setAttribute("content", stock ? "#2e7d32" : (ret ? "#e65100" : "#6a1b9a"));
+        themeColor.setAttribute("content", stock ? "#18342A" : (ret ? "#E86B2A" : "#17643F"));
       }
       modeDeliveryBtn.classList.toggle("active", !ret && !stock);
       modeReturnsBtn.classList.toggle("active", ret);

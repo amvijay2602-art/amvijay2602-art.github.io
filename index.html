@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#0d47a1">
+  <meta name="theme-color" content="#17643F">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Birkhill">
@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" href="icon-192.png">
   <script src="secure-data.js"></script>
   <style>
-    :root { --blue:#0d47a1; --blue2:#1565c0; --bg:#eef2f7; --card:#fff; --ink:#1b2430; --muted:#5b6573;
+    :root { --blue:#17643F; --blue2:#1d7a4e; --bg:#F4F7F4; --card:#fff; --ink:#18342A; --muted:#5b6573;
             --red:#c62828; --redbg:#fdecec; --amber:#b45309; --amberbg:#fef3c7; --green:#1b7a3d; --greenbg:#e8f6ec; }
     * { box-sizing: border-box; }
     body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink);
@@ -35,13 +35,13 @@
     .tile .ico { font-size:2rem; line-height:1; }
     .tile .t { font-size:1.2rem; font-weight:800; margin-top:8px; }
     .tile .d { font-size:.82rem; opacity:.92; margin-top:4px; }
-    .tile.paper { background:linear-gradient(135deg,#6a1b9a,#8e24aa); }
-    .tile.chiller { background:linear-gradient(135deg,#1565c0,#1e88e5); }
-    .tile.date { background:linear-gradient(135deg,#2e7d32,#43a047); }
-    .tile.count { background:linear-gradient(135deg,#00695c,#00897b); }
-    .tile.reports { background:linear-gradient(135deg,#e65100,#fb8c00); }
+    .tile.paper { background:linear-gradient(135deg,#17643F,#1f8a57); }
+    .tile.chiller { background:linear-gradient(135deg,#0f4a2e,#17643F); }
+    .tile.date { background:linear-gradient(135deg,#2f7d5b,#3f9a70); }
+    .tile.count { background:linear-gradient(135deg,#E86B2A,#f08a4f); }
+    .tile.reports { background:linear-gradient(135deg,#18342A,#2c5545); }
     .quick { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
-    .quick a { flex:1 1 44%; text-align:center; background:#f3f6fb; color:var(--blue); border:1px solid #d6dce5; border-radius:12px; padding:11px 6px; font-weight:600; text-decoration:none; font-size:.92rem; }
+    .quick a { flex:1 1 44%; text-align:center; background:#eef5f0; color:var(--blue); border:1px solid #d5e3da; border-radius:12px; padding:11px 6px; font-weight:600; text-decoration:none; font-size:.92rem; }
     .lock { background:var(--redbg); color:var(--red); border:1px solid #f5b5b5; border-radius:12px; padding:12px; margin:0 0 14px; font-weight:600; display:none; }
     .install { display:none; width:100%; margin-top:4px; background:var(--blue2); color:#fff; border:0; border-radius:12px; padding:13px; font-size:1rem; font-weight:700; }
     .hint { color:var(--muted); font-size:.85rem; }
@@ -58,7 +58,7 @@
     .s-neg { background:var(--redbg); color:var(--red); } .s-zero { background:#fde7e7; color:#8e1b1b; }
     .s-low { background:var(--amberbg); color:var(--amber); } .s-ok { background:var(--greenbg); color:var(--green); }
     table { width:100%; border-collapse:collapse; font-size:.86rem; }
-    th { text-align:left; color:var(--muted); font-weight:600; font-size:.75rem; border-bottom:1px solid #d6dce5; padding:5px 4px; }
+    th { text-align:left; color:var(--muted); font-weight:600; font-size:.75rem; border-bottom:1px solid #d5e3da; padding:5px 4px; }
     td { padding:7px 4px; border-bottom:1px solid #eef0f4; vertical-align:top; }
     td.n, th.n { text-align:right; white-space:nowrap; }
     .pill { display:inline-block; border-radius:10px; padding:1px 7px; font-size:.72rem; font-weight:700; }
@@ -66,16 +66,37 @@
     .p-low { background:var(--amberbg); color:var(--amber); } .p-ok { background:var(--greenbg); color:var(--green); }
     .p-urgent { background:var(--redbg); color:var(--red); }
     .bar { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:10px; }
-    .box { border-radius:12px; padding:10px; background:#f3f6fb; }
+    .box { border-radius:12px; padding:10px; background:#eef5f0; }
     .box .k { font-size:.78rem; color:var(--muted); font-weight:600; }
     .box .v { font-size:1.3rem; font-weight:800; }
-    .note { background:#f3f6fb; border-left:4px solid var(--blue2); padding:8px 10px; border-radius:8px; font-size:.82rem; color:var(--muted); margin:8px 0; }
+    .note { background:#eef5f0; border-left:4px solid var(--blue2); padding:8px 10px; border-radius:8px; font-size:.82rem; color:var(--muted); margin:8px 0; }
     .empty { color:var(--muted); font-size:.9rem; padding:6px 0; }
   </style>
+
+  <style id="birkhill-theme">
+    /* Birkhill Stores shared look (restyle only) */
+    :root { --bk-g:#17643F; --bk-gd:#0f4a2e; --bk-o:#E86B2A; --bk-bg:#F4F7F4; --bk-ink:#18342A; --bk-line:#d5e3da; }
+    html, body { background: var(--bk-bg); color: var(--bk-ink); }
+    body { font-family: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    input, select, textarea { font-size: 16px !important; }
+    button, .btn, a.btn, input[type="text"], input[type="number"], input[type="date"], input[type="search"], select { min-height: 48px; }
+    .card { border-radius: 18px !important; box-shadow: 0 1px 4px rgba(24,52,42,.10) !important; }
+    .bk-logo { display:block; margin: 0 auto 6px; height: 44px; width: auto; }
+    body.bk-has-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+    .bk-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9990; display: grid; grid-template-columns: repeat(5, 1fr);
+              background: #fff; border-top: 1px solid var(--bk-line); box-shadow: 0 -2px 8px rgba(24,52,42,.08); padding-bottom: env(safe-area-inset-bottom); }
+    .bk-nav a { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:58px; color: var(--bk-ink); text-decoration:none;
+                font: 700 12px/1.1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; gap: 3px; }
+    .bk-nav a .i { font-size: 20px; line-height: 1; }
+    .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
+      .bk-hlogo { display:block; height:54px; width:auto; background:#fff; border-radius:14px; padding:4px 10px; margin:0 0 8px; }
+    .bk-home-nav { grid-template-columns: repeat(5, 1fr); }
+  </style>
 </head>
-<body>
+<body class="bk-has-nav">
   <header>
     <div id="homeHead">
+      <img src="logo.png" alt="" class="bk-hlogo">
       <h1>Birkhill Stores</h1>
       <div class="sub" id="today"></div>
     </div>
@@ -304,5 +325,6 @@
     if (location.hash === "#reports") showReports(true);
   })();
   </script>
+  <nav class="bk-nav" aria-label="Birkhill apps"><a href="./" class="on"><span class="i">&#8962;</span><span>Home</span></a><a href="paper/"><span class="i">&#128240;</span><span>Papers</span></a><a href="chiller/"><span class="i">&#129482;</span><span>Chiller</span></a><a href="date/"><span class="i">&#128247;</span><span>Date</span></a><a href="count/"><span class="i">&#128203;</span><span>Count</span></a></nav>
 </body>
 </html>
