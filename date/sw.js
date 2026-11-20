@@ -1,4 +1,4 @@
-const CACHE_NAME = "birkhill-camera-v5-gh";
+const CACHE_NAME = "birkhill-camera-v6-gh";
 
 self.addEventListener("install", function (event) {
   event.waitUntil(

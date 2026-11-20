@@ -262,6 +262,33 @@
       box-shadow: 0 0 0 999px rgba(0,0,0,0.25);
     }
     .dates-photo-label { margin-top: 18px; font-size: 1.15rem; padding: 16px; }
+
+    .stock-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: start;
+      margin-top: 16px;
+    }
+    .till-box { padding: 8px 4px 0; }
+    .till-stock {
+      font-size: 1.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text);
+      word-break: break-word;
+    }
+    .till-stock.negative { color: var(--danger); }
+    .till-stock.muted { color: var(--muted); font-size: 1.2rem; }
+    .till-when {
+      margin-top: 4px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+    .stock-compare .dc-qty-wrap { margin-top: 0; }
+
     .nf-modal {
       position: fixed;
       inset: 0;
@@ -367,11 +394,17 @@
       <input class="line-date" type="date" aria-label="Best before date 3">
       <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 3">
     </div>
-    <div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty">
-      <button type="button" class="dc-minus" aria-label="One less">&minus;</button>
-      <input id="shelfQty" class="dc-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf">
-      <button type="button" class="dc-plus" aria-label="One more">+</button>
-    </div></div>
+    <div class="stock-compare">
+      <div class="till-box">
+        <div id="tillStock" class="till-stock muted"></div>
+        <div id="tillWhen" class="till-when"></div>
+      </div>
+      <div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty">
+        <button type="button" class="dc-minus" aria-label="One less">&minus;</button>
+        <input id="shelfQty" class="dc-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf">
+        <button type="button" class="dc-plus" aria-label="One more">+</button>
+      </div></div>
+    </div>
     <button id="save" type="button">Save</button>
     <div class="dc-row2">
       <button id="dcSkip" class="dc-btn" type="button">Skip</button>
@@ -412,6 +445,60 @@
     let products = {};
     let by13 = {};
     let currentBarcode = "";
+    let stockMap = null;
+    let stockTaken = "";
+    const tillStockEl = document.getElementById("tillStock");
+    const tillWhenEl = document.getElementById("tillWhen");
+
+    function indexStockcount(data) {
+      const map = {};
+      (data && data.departments || []).forEach(function (dept) {
+        const recount = /recount/i.test((dept && (dept.name || dept.key)) || "");
+        (dept.items || []).forEach(function (it) {
+          const q = (it && it.q != null && !isNaN(Number(it.q))) ? Number(it.q) : null;
+          (it && it.b || []).forEach(function (b) {
+            const code = String(b || "");
+            if (!code) return;
+            if (Object.prototype.hasOwnProperty.call(map, code) && recount) return;
+            map[code] = q;
+          });
+        });
+      });
+      return map;
+    }
+
+    function tillQty(raw) {
+      if (!stockMap) return null;
+      const code = digits(raw);
+      if (!code) return null;
+      if (Object.prototype.hasOwnProperty.call(stockMap, code)) return stockMap[code];
+      if (code.length > 13) {
+        const base = code.slice(0, 13);
+        if (Object.prototype.hasOwnProperty.call(stockMap, base)) return stockMap[base];
+      }
+      if (code.length === 12 && Object.prototype.hasOwnProperty.call(stockMap, "0" + code)) return stockMap["0" + code];
+      if (code.length === 13 && code.charAt(0) === "0" && Object.prototype.hasOwnProperty.call(stockMap, code.slice(1))) {
+        return stockMap[code.slice(1)];
+      }
+      return null;
+    }
+
+    function showTillStock(barcode) {
+      if (!tillStockEl) return;
+      if (!barcode) {
+        tillStockEl.textContent = "";
+        tillStockEl.className = "till-stock muted";
+        if (tillWhenEl) tillWhenEl.textContent = "";
+        return;
+      }
+      const q = tillQty(barcode);
+      tillStockEl.textContent = "Till stock: " + (q === null ? "-" : String(q));
+      tillStockEl.className = "till-stock" + (q !== null && q < 0 ? " negative" : "");
+      if (tillWhenEl) {
+        tillWhenEl.textContent = stockTaken ? ("As at " + stockTaken + " (Europe/London)") :
+          (stockMap === null ? "Till stock snapshot could not be loaded." : "");
+      }
+    }
     let scanSession = null;
     let lastScanCode = "";
     let lastScanAt = 0;
@@ -506,6 +593,7 @@
       if (rec.match === "none") {
         currentBarcode = "";
         updateReadout();
+        showTillStock("");
         showNotFound();
         setStatus("Not found", "error");
         return false;
@@ -515,6 +603,7 @@
       codeInput.value = rec.barcode;
       nameInput.value = rec.name;
       updateReadout();
+      showTillStock(rec.barcode);
       setStatus("Found " + rec.name, "ok");
       goToEntry();
       return true;
@@ -579,6 +668,19 @@
       buildIndexes();
     }).catch(function () {
       products = {};
+    });
+
+    fetch("../count/stockcount.json").then(function (res) {
+      if (!res.ok) throw new Error("stockcount");
+      return res.json();
+    }).then(function (data) {
+      stockMap = indexStockcount(data);
+      stockTaken = (data && (data.taken_display || data.taken_at)) ? (data.taken_display || data.taken_at) : "";
+      if (currentBarcode) showTillStock(currentBarcode);
+    }).catch(function () {
+      stockMap = null;
+      stockTaken = "";
+      if (currentBarcode) showTillStock(currentBarcode);
     });
 
     function todayLondon() {
@@ -741,6 +843,7 @@
       codeInput.value = "";
       currentBarcode = "";
       updateReadout();
+      showTillStock("");
       hideNotFound();
       stopScan();
       document.querySelectorAll(".line-date, .line-qty, #shelfQty").forEach(function (el) {
@@ -798,7 +901,8 @@
       const bc = currentBarcode || "";
       const slug = name.toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
       const key = bc ? "B:" + bc : "N:" + slug;
-      return { key: key, id: key, barcode: bc, name: name, size: "", till: 0, scan: bc ? "ok" : "manual:name only" };
+      const tq = bc ? tillQty(bc) : null;
+      return { key: key, id: key, barcode: bc, name: name, size: "", till: (tq == null ? 0 : tq), scan: bc ? "ok" : "manual:name only" };
     }
     function dcUpdate() {
       const el = document.getElementById("dcProgress");
@@ -823,7 +927,7 @@
     });
     dcUpdate();
 
-    window.__dateCheck = { lookup: lookup, applyCode: applyCode, goToEntry: goToEntry };
+    window.__dateCheck = { lookup: lookup, applyCode: applyCode, goToEntry: goToEntry, tillQty: tillQty, showTillStock: showTillStock };
     restoreScanned();
     renderScanned();
   </script>

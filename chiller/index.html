@@ -461,6 +461,33 @@
       font-size: 1.05rem;
       margin: 0 0 10px;
     }
+
+    .stock-compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: start;
+      margin-top: 16px;
+    }
+    .till-box { padding: 8px 4px 0; }
+    .till-stock {
+      font-size: 1.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text, #18342A);
+      word-break: break-word;
+    }
+    .till-stock.negative { color: var(--danger, #c62828); }
+    .till-stock.muted { color: var(--muted); font-size: 1.2rem; }
+    .till-when {
+      margin-top: 4px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--muted);
+      line-height: 1.3;
+    }
+    .stock-compare .dc-qty-wrap { margin-top: 0; }
+
     .scan-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -1226,11 +1253,17 @@
         <input class="line-date" type="date" aria-label="Use by or best before date 3">
         <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 3">
       </div>
-      <div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty">
-        <button type="button" class="dc-minus" aria-label="One less">&minus;</button>
-        <input id="dcShelfQty" class="dc-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf">
-        <button type="button" class="dc-plus" aria-label="One more">+</button>
-      </div></div>
+      <div class="stock-compare">
+        <div class="till-box">
+          <div id="dcTillStock" class="till-stock muted"></div>
+          <div id="dcTillWhen" class="till-when"></div>
+        </div>
+        <div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty">
+          <button type="button" class="dc-minus" aria-label="One less">&minus;</button>
+          <input id="dcShelfQty" class="dc-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf">
+          <button type="button" class="dc-plus" aria-label="One more">+</button>
+        </div></div>
+      </div>
       <button id="save" class="save-btn" type="button">Save</button>
       <div class="dc-row2">
         <button id="dcSkip" class="dc-btn" type="button">Skip</button>
@@ -1615,6 +1648,7 @@
       checkBarcode = "";
       if (typeof updateCheckBarcodeReadout === "function") updateCheckBarcodeReadout();
       if (typeof hideCheckNotFound === "function") hideCheckNotFound();
+      if (typeof showDcTillStock === "function") showDcTillStock("");
       const typed = document.getElementById("checkCodeInput");
       if (typed) typed.value = "";
       if (typeof stopCheckCamera === "function") stopCheckCamera();
@@ -1861,6 +1895,83 @@
 
     /* Shelf stock count with the date check (20 Nov 2026). Same COUNT rows as the Stock Count app. Never writes to the till. */
     const shelfInput = document.getElementById("dcShelfQty");
+    let dcStockMap = null;
+    let dcStockTaken = "";
+    const dcTillStockEl = document.getElementById("dcTillStock");
+    const dcTillWhenEl = document.getElementById("dcTillWhen");
+
+    function indexStockcount(data) {
+      const map = {};
+      (data && data.departments || []).forEach(function (dept) {
+        const recount = /recount/i.test((dept && (dept.name || dept.key)) || "");
+        (dept.items || []).forEach(function (it) {
+          const q = (it && it.q != null && !isNaN(Number(it.q))) ? Number(it.q) : null;
+          (it && it.b || []).forEach(function (b) {
+            const code = String(b || "");
+            if (!code) return;
+            if (Object.prototype.hasOwnProperty.call(map, code) && recount) return;
+            map[code] = q;
+          });
+        });
+      });
+      return map;
+    }
+
+    function dcTillQty(raw, fallback) {
+      const code = String(raw || "").replace(/\D/g, "");
+      if (dcStockMap && code) {
+        if (Object.prototype.hasOwnProperty.call(dcStockMap, code)) return dcStockMap[code];
+        if (code.length > 13) {
+          const base = code.slice(0, 13);
+          if (Object.prototype.hasOwnProperty.call(dcStockMap, base)) return dcStockMap[base];
+        }
+        if (code.length === 12 && Object.prototype.hasOwnProperty.call(dcStockMap, "0" + code)) return dcStockMap["0" + code];
+        if (code.length === 13 && code.charAt(0) === "0" && Object.prototype.hasOwnProperty.call(dcStockMap, code.slice(1))) {
+          return dcStockMap[code.slice(1)];
+        }
+      }
+      if (fallback != null && fallback !== "" && !isNaN(Number(fallback))) return Number(fallback);
+      return null;
+    }
+
+    function showDcTillStock(barcode, fallback) {
+      if (!dcTillStockEl) return;
+      if (!barcode && (fallback == null || fallback === "")) {
+        dcTillStockEl.textContent = "";
+        dcTillStockEl.className = "till-stock muted";
+        if (dcTillWhenEl) dcTillWhenEl.textContent = "";
+        return;
+      }
+      const q = dcTillQty(barcode, fallback);
+      dcTillStockEl.textContent = "Till stock: " + (q === null ? "-" : String(q));
+      dcTillStockEl.className = "till-stock" + (q !== null && q < 0 ? " negative" : "");
+      if (dcTillWhenEl) {
+        dcTillWhenEl.textContent = dcStockTaken ? ("As at " + dcStockTaken + " (Europe/London)") :
+          (dcStockMap === null ? "Till stock snapshot could not be loaded." : "");
+      }
+    }
+
+    function tillHtml(barcode, fallback) {
+      const q = dcTillQty(barcode, fallback);
+      const cls = "till-stock" + (q !== null && q < 0 ? " negative" : "");
+      const when = dcStockTaken ? ('<div class="till-when">As at ' + String(dcStockTaken).replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + " (Europe/London)</div>") : "";
+      return '<div class="till-box"><div class="' + cls + '">Till stock: ' + (q === null ? "-" : String(q)) + "</div>" + when + "</div>";
+    }
+
+    fetch("../count/stockcount.json").then(function (res) {
+      if (!res.ok) throw new Error("stockcount");
+      return res.json();
+    }).then(function (data) {
+      dcStockMap = indexStockcount(data);
+      dcStockTaken = (data && (data.taken_display || data.taken_at)) ? (data.taken_display || data.taken_at) : "";
+      if (typeof checkBarcode !== "undefined" && checkBarcode) showDcTillStock(checkBarcode);
+      if (typeof p20Render === "function") p20Render();
+    }).catch(function () {
+      dcStockMap = null;
+      dcStockTaken = "";
+      if (typeof checkBarcode !== "undefined" && checkBarcode) showDcTillStock(checkBarcode);
+    });
+
     const dc = window.BirkhillDateCount ? BirkhillDateCount.create({
       app: "chiller", key: "DATECHECK-CHILLER", dept: "Chiller date check",
       total: function () { return (p20Data && Array.isArray(p20Data.items)) ? p20Data.items.length : 0; },
@@ -1868,13 +1979,20 @@
     }) : null;
     function dcKeyP20(it) { return it.barcode ? String(it.barcode) : "N:" + String(it.name || "").toUpperCase(); }
     function dcItemP20(it) {
+      const tq = dcTillQty(it.barcode, it.stock);
       return { key: dcKeyP20(it), id: it.pid != null ? String(it.pid) : (it.barcode || ""), barcode: it.barcode || "", name: it.name || "", size: "",
-               till: Number(it.stock) || 0, inList: true, scan: "list" };
+               till: (tq == null ? 0 : tq), inList: true, scan: "list" };
     }
     function dcItemManual(name, barcode) {
       const bc = String(barcode || "");
       let till = 0;
-      try { const t = bc ? tillStock(bc) : null; if (t !== null && t !== undefined && !isNaN(Number(t))) till = Number(t); } catch (e) {}
+      try {
+        const t = dcTillQty(bc, null);
+        if (t === null && typeof tillStock === "function") {
+          const s = bc ? tillStock(bc) : null;
+          if (s !== null && s !== undefined && !isNaN(Number(s))) till = Number(s);
+        } else if (t !== null) till = Number(t);
+      } catch (e) {}
       const inList = !!(bc && p20Data && Array.isArray(p20Data.items) && p20Data.items.some(function (it) { return String(it.barcode) === bc; }));
       const p = inList ? p20Data.items.filter(function (it) { return String(it.barcode) === bc; })[0] : null;
       return { key: bc || ("N:" + name.toUpperCase()), id: p && p.pid != null ? String(p.pid) : (bc || "N:" + name.toUpperCase()), barcode: bc, name: name, size: "",
@@ -2032,9 +2150,10 @@
           '<input class="p20-date" type="date" aria-label="Use by or best before for ' + String(it.name || "").replace(/"/g, "") + '" value="' + dateVal + '">' +
           '<input class="p20-qty" type="number" inputmode="numeric" min="1" step="1" placeholder="Qty" aria-label="Quantity" value="' + qtyVal + '">' +
           "</div>" +
+          '<div class="stock-compare">' + tillHtml(it.barcode, it.stock) +
           '<div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty"><button type="button" class="dc-minus" aria-label="One less">&minus;</button>' +
           '<input class="dc-shelf p20-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf" value="' + shelfNow + '">' +
-          '<button type="button" class="dc-plus" aria-label="One more">+</button></div></div>' +
+          '<button type="button" class="dc-plus" aria-label="One more">+</button></div></div></div>' +
           '<label class="p20-photo">📷 ' + photoHint + '<input class="p20-photo-input" type="file" accept="image/*" capture="environment"></label>' +
           (p20Photos[key] ? '<img class="p20-photoprev" alt="Date photo" src="' + p20Photos[key] + '" style="display:block">' : '<img class="p20-photoprev" alt="Date photo">') +
           '<div class="p20-actions three">' +
@@ -2321,6 +2440,7 @@
       if (rec.match === "none") {
         checkBarcode = "";
         updateCheckBarcodeReadout();
+        showDcTillStock("");
         showCheckNotFound();
         setStatus("Not found", "error");
         return;
@@ -2330,6 +2450,7 @@
       if (checkCodeInput) checkCodeInput.value = rec.barcode;
       updateCheckBarcodeReadout();
       nameInput.value = rec.name;
+      showDcTillStock(rec.barcode);
       setStatus("Found " + rec.name, "ok");
       goToCheckEntry();
     }
