@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#00695c">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Stock Count">
+  <title>Birkhill Stock Count</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <style>
+    :root { --teal:#00695c; --teal2:#00897b; --bg:#eef4f3; --card:#fff; --ink:#1b2430; --muted:#5b6573;
+            --red:#c62828; --redbg:#fdecec; --amber:#b45309; --amberbg:#fef3c7; --green:#1b7a3d; --greenbg:#e8f6ec; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink);
+           padding:env(safe-area-inset-top) 0 calc(80px + env(safe-area-inset-bottom)); }
+    header { background:linear-gradient(135deg,var(--teal),var(--teal2)); color:#fff; padding:14px 16px 16px; border-radius:0 0 20px 20px; }
+    header h1 { margin:0; font-size:1.35rem; }
+    header .sub { opacity:.92; font-size:.9rem; margin-top:3px; }
+    main { padding:12px; max-width:560px; margin:0 auto; }
+    .card { background:var(--card); border-radius:16px; padding:14px; margin:0 0 12px; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+    .muted { color:var(--muted); font-size:.88rem; }
+    .btn { display:block; width:100%; border:0; border-radius:14px; padding:16px; font-size:1.12rem; font-weight:700; margin-top:10px; cursor:pointer; background:var(--teal); color:#fff; }
+    .btn:active { filter:brightness(.9); }
+    .btn.sec { background:#e3ecea; color:var(--teal); }
+    .btn.warn { background:var(--amberbg); color:var(--amber); }
+    .btn.red { background:var(--redbg); color:var(--red); }
+    .btn:disabled { opacity:.55; }
+    .row2 { display:flex; gap:8px; } .row2 .btn { flex:1; }
+    .prog { height:10px; background:#d7e4e1; border-radius:6px; overflow:hidden; margin:8px 0 2px; }
+    .prog i { display:block; height:100%; background:#ffd54f; width:0; }
+    .pname { font-size:1.5rem; font-weight:800; line-height:1.2; margin:4px 0; }
+    .facts { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+    .fact { background:#f1f5f4; border-radius:10px; padding:6px 10px; font-size:.92rem; }
+    .till { font-size:1.25rem; font-weight:800; background:#e0f2f1; color:var(--teal); border-radius:12px; padding:10px; margin-top:10px; text-align:center; }
+    .till.neg { background:var(--redbg); color:var(--red); }
+    .step { border-top:1px solid #e3e8ee; margin-top:14px; padding-top:12px; }
+    .step h3 { margin:0 0 4px; font-size:1.05rem; }
+    .step.off { opacity:.4; pointer-events:none; }
+    .step.done h3::after { content:"  \2713"; color:var(--green); }
+    .msg { border-radius:12px; padding:10px 12px; margin-top:8px; font-weight:600; }
+    .msg.ok { background:var(--greenbg); color:var(--green); } .msg.bad { background:var(--redbg); color:var(--red); } .msg.info { background:#e8f0fe; color:#174ea6; }
+    input[type=text], input[type=date], input[type=number], input[type=search] { width:100%; padding:14px 12px; font-size:1.1rem; border:1px solid #c5d0cc; border-radius:12px; background:#fff; margin-top:8px; }
+    .qty { display:flex; gap:8px; align-items:center; margin-top:8px; }
+    .qty button { flex:0 0 64px; height:64px; font-size:2rem; font-weight:800; border:0; border-radius:14px; background:#e3ecea; color:var(--teal); }
+    .qty input { flex:1; text-align:center; font-size:2rem; font-weight:800; margin:0; height:64px; }
+    video { width:100%; border-radius:12px; background:#000; margin-top:8px; max-height:260px; object-fit:cover; }
+    .next { margin-top:10px; font-size:.95rem; color:var(--muted); text-align:center; }
+    .overlay { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:10000; display:flex; align-items:center; justify-content:center; padding:16px; }
+    .pop { background:#fff; border-radius:20px; padding:18px; width:100%; max-width:480px; max-height:90vh; overflow:auto; box-shadow:0 10px 30px rgba(0,0,0,.3); }
+    .pop h2 { margin:0 0 6px; font-size:1.2rem; }
+    .big { font-size:1.7rem; font-weight:800; color:var(--teal); margin:8px 0 2px; }
+    .dlist { margin-top:8px; }
+    .ditem { display:flex; justify-content:space-between; align-items:center; gap:8px; width:100%; text-align:left; border:1px solid #d6dfdc; background:#fff; border-radius:12px; padding:11px 12px; margin-top:6px; font-size:1rem; }
+    .ditem b { display:block; } .ditem span { color:var(--muted); font-size:.82rem; }
+    table { width:100%; border-collapse:collapse; font-size:.86rem; margin-top:8px; }
+    th { text-align:left; color:var(--muted); font-size:.76rem; border-bottom:1px solid #d6dce5; padding:4px; }
+    td { padding:5px 4px; border-bottom:1px solid #eef1f4; vertical-align:top; }
+    .neg { color:var(--red); font-weight:700; } .pos { color:var(--green); font-weight:700; }
+    .hidden { display:none !important; }
+    .queue { position:fixed; right:10px; bottom:14px; z-index:9998; background:var(--amber); color:#fff; border-radius:20px; padding:9px 12px; font-weight:700; font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>&#128203; Stock Count</h1>
+    <div class="sub" id="hdrSub">Loading product list...</div>
+    <div class="prog" id="progWrap"><i id="progBar"></i></div>
+  </header>
+  <main>
+    <div class="card hidden" id="lockMsg"><b>Product list locked.</b> Open this app once from the full link Vijay sent (it ends in #k=...).</div>
+
+    <!-- Product screen -->
+    <div class="card hidden" id="scrProduct">
+      <div class="muted" id="pDept"></div>
+      <div class="muted">Go and find:</div>
+      <div class="pname" id="pName"></div>
+      <div class="facts" id="pFacts"></div>
+      <div class="till" id="pTill"></div>
+
+      <div class="step" id="step1">
+        <h3>1. Scan the product</h3>
+        <div class="muted">Scan the barcode on the shelf item to make sure it is the right one.</div>
+        <button class="btn" type="button" id="scanBtn">&#128247; Scan barcode</button>
+        <video id="video" class="hidden" playsinline muted></video>
+        <div class="row2">
+          <button class="btn sec" type="button" id="typeBtn">Type barcode</button>
+          <button class="btn sec" type="button" id="noScanBtn">Can't scan</button>
+        </div>
+        <input type="text" id="typeBc" class="hidden" inputmode="numeric" placeholder="Type the barcode and press Enter">
+        <div id="scanMsg"></div>
+        <div class="row2 hidden" id="mismatchBtns">
+          <button class="btn sec" type="button" id="rescanBtn">Scan again</button>
+          <button class="btn warn" type="button" id="useAnyBtn">It is this product</button>
+        </div>
+        <div class="row2">
+          <button class="btn red" type="button" id="notFoundBtn">Not on shelf (0)</button>
+          <button class="btn sec" type="button" id="skipBtn">Skip for now</button>
+        </div>
+      </div>
+
+      <div class="step off" id="step2">
+        <h3>2. Date check</h3>
+        <div class="muted">Enter the shortest best before or use by date on the shelf.</div>
+        <input type="date" id="bbDate">
+        <div class="row2">
+          <button class="btn sec" type="button" id="noDateBtn">No date on it</button>
+          <button class="btn" type="button" id="dateNextBtn">Next</button>
+        </div>
+        <div id="dateMsg"></div>
+      </div>
+
+      <div class="step off" id="step3">
+        <h3>3. How many are there?</h3>
+        <div class="muted">Count every one on the shelf and in the back. 0 is fine.</div>
+        <div class="qty">
+          <button type="button" id="minusBtn">&minus;</button>
+          <input type="number" id="countIn" inputmode="numeric" min="0" step="1" placeholder="0">
+          <button type="button" id="plusBtn">+</button>
+        </div>
+        <div id="diffMsg"></div>
+        <button class="btn" type="button" id="saveBtn">Save and next</button>
+      </div>
+      <div class="next" id="nextHint"></div>
+      <div class="row2" style="margin-top:6px">
+        <button class="btn sec" type="button" id="backBtn">&#8592; Back</button>
+        <button class="btn sec" type="button" id="menuBtn">Menu</button>
+      </div>
+    </div>
+
+    <!-- Finished screen -->
+    <div class="card hidden" id="scrDone">
+      <h2 style="margin:0 0 6px" id="doneTitle">Department finished</h2>
+      <div id="doneStats"></div>
+      <div id="doneTable"></div>
+      <button class="btn warn hidden" type="button" id="doSkippedBtn"></button>
+      <button class="btn" type="button" id="finishBtn">Finish and send report</button>
+      <div id="finishMsg"></div>
+      <button class="btn sec hidden" type="button" id="newCountBtn">Count another department</button>
+    </div>
+  </main>
+  <div class="queue hidden" id="queueBadge"></div>
+  <div class="overlay hidden" id="overlay"><div class="pop" id="pop"></div></div>
+
+  <script src="../secure-data.js"></script>
+  <script>
+  (function () {
+    var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
+    var STAFF = "birkhill-staff-name", SESS = "birkhill-count-session", QUEUE = "birkhill-count-queue", HIST = "birkhill-count-history";
+    var $ = function (id) { return document.getElementById(id); };
+    var DATA = null, S = null, step = 1, scanStatus = "", scannedCode = "", bbValue = null, ALLBC = {};
+    function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+    function jget(k, d) { try { var x = JSON.parse(ls(k) || "null"); return x == null ? d : x; } catch (e) { return d; } }
+    function jset(k, v) { ls(k, JSON.stringify(v)); }
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    function clean(s) { return String(s == null ? "" : s).replace(/\|/g, "/").trim(); }
+    function today() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
+    function stampNow() { return new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", minute: "2-digit", day: "numeric", month: "short" }).format(new Date()); }
+    function nz(c) { c = String(c || "").replace(/\D/g, ""); return c.replace(/^0+/, ""); }
+    function staff() { return (ls(STAFF) || "").trim(); }
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
+
+    // ---------- sending (queued, retried) ----------
+    var sending = false;
+    function queue(payload) { var q = jget(QUEUE, []); q.push(payload); jset(QUEUE, q); flush(); }
+    function badge() { var n = jget(QUEUE, []).length, b = $("queueBadge"); b.textContent = "Waiting to send: " + n; b.classList.toggle("hidden", !n); }
+    function flush() {
+      badge(); if (sending) return; var q = jget(QUEUE, []); if (!q.length) return;
+      sending = true;
+      fetch(ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(q[0]) })
+        .then(function () { var q2 = jget(QUEUE, []); q2.shift(); jset(QUEUE, q2); sending = false; flush(); })
+        .catch(function () { sending = false; badge(); setTimeout(flush, 15000); });
+    }
+    window.addEventListener("online", flush); setInterval(flush, 30000);
+
+    // ---------- data ----------
+    function dept(key) { for (var i = 0; i < DATA.departments.length; i++) if (DATA.departments[i].key === key) return DATA.departments[i]; return null; }
+    function lastCounted(d) {
+      var h = jget(HIST, {}); return h[d.key] || d.last || "";
+    }
+    function nextDue() {
+      var list = DATA.departments.filter(function (d) { return d.items.length; });
+      var never = list.filter(function (d) { return !lastCounted(d); });
+      if (never.length) return never[0];
+      list.sort(function (a, b) { return String(lastCounted(a)) < String(lastCounted(b)) ? -1 : 1; });
+      return list[0];
+    }
+    fetch("stockcount.json").then(function (r) { if (!r.ok) throw new Error("locked"); return r.json(); }).then(function (d) {
+      DATA = d;
+      d.departments.forEach(function (dp) { dp.items.forEach(function (it) { it.b.forEach(function (b) { var k = nz(b); if (k && !ALLBC[k]) ALLBC[k] = it.n; }); }); });
+      $("hdrSub").textContent = "Till stock as at " + d.taken_display;
+      start();
+    }).catch(function () { $("lockMsg").classList.remove("hidden"); $("hdrSub").textContent = "Product list not loaded"; });
+
+    // ---------- pop-ups ----------
+    function pop(html) { $("pop").innerHTML = html; $("overlay").classList.remove("hidden"); }
+    function closePop() { $("overlay").classList.add("hidden"); }
+    function askStaff(then) {
+      pop('<h2>Who is counting?</h2><div class="muted">Type your name. It is saved with every count.</div>' +
+          '<input type="text" id="checkedBy" placeholder="Your name" value="' + esc(staff()) + '"><button class="btn" id="staffOk">OK</button>');
+      $("staffOk").onclick = function () { var n = $("checkedBy").value.trim(); if (!n) return; ls(STAFF, n); closePop(); then(); };
+    }
+    function start() {
+      if (!staff()) return askStaff(start);
+      S = jget(SESS, null);
+      if (S && !S.finished) {
+        var done = countDone();
+        pop('<h2>Carry on counting?</h2><div class="big">' + esc(S.name) + '</div><div class="muted">' + done + ' of ' + S.items.length + ' done, started ' + esc(S.startedText) + ' by ' + esc(S.staff) + '.</div>' +
+            '<button class="btn" id="resumeBtn">Carry on</button><button class="btn sec" id="newBtn">Start a different department</button>');
+        $("resumeBtn").onclick = function () { closePop(); S.staff = staff(); save(); goNext(true); };
+        $("newBtn").onclick = function () { if (done && !confirm("Stop this count? The " + done + " counts already saved stay in the sheet, but it will not be reported as finished.")) return; ls(SESS, null); S = null; deptPop(); };
+        return;
+      }
+      deptPop();
+    }
+    function deptPop() {
+      var d = nextDue();
+      pop('<h2>&#128226; Count this department now</h2><div class="big">' + esc(d.name) + '</div>' +
+          '<div class="muted">' + d.items.length + ' products, A to Z. ' + (d.note ? esc(d.note) + '. ' : '') + (lastCounted(d) ? 'Last counted ' + esc(lastCounted(d)) : 'Not counted yet') + '.</div>' +
+          '<div class="muted" style="margin-top:6px">Counting as <b>' + esc(staff()) + '</b>. <a href="#" id="chgStaff">Change</a></div>' +
+          '<button class="btn" id="goDept">Start counting ' + esc(d.name) + '</button><button class="btn sec" id="pickDept">Pick another department</button>');
+      $("goDept").onclick = function () { closePop(); begin(d); };
+      $("pickDept").onclick = pickPop;
+      $("chgStaff").onclick = function (e) { e.preventDefault(); ls(STAFF, null); askStaff(deptPop); };
+    }
+    function pickPop() {
+      pop('<h2>Pick a department</h2><input type="search" id="dSearch" placeholder="Search departments"><div class="dlist" id="dList"></div><button class="btn sec" id="pickBack">Back</button>');
+      function render() {
+        var q = $("dSearch").value.trim().toUpperCase();
+        $("dList").innerHTML = DATA.departments.filter(function (d) { return d.items.length && (!q || d.name.toUpperCase().indexOf(q) >= 0); }).map(function (d) {
+          return '<button class="ditem" data-k="' + esc(d.key) + '"><div><b>' + esc(d.name) + '</b><span>' + (lastCounted(d) ? "Last counted " + esc(lastCounted(d)) : "Not counted yet") + '</span></div><span>' + d.items.length + '</span></button>';
+        }).join("");
+        Array.prototype.forEach.call($("dList").querySelectorAll(".ditem"), function (b) { b.onclick = function () { closePop(); begin(dept(b.getAttribute("data-k"))); }; });
+      }
+      $("dSearch").oninput = render; $("pickBack").onclick = deptPop; render();
+    }
+
+    // ---------- session ----------
+    function save() { jset(SESS, S); }
+    function countDone() { var n = 0; for (var k in S.res) if (S.res[k].status !== "skip") n++; return n; }
+    function begin(d) {
+      var t = new Date(), p = function (n) { return (n < 10 ? "0" : "") + n; };
+      S = { id: "SC" + today().replace(/-/g, "") + p(t.getHours()) + p(t.getMinutes()) + Math.random().toString(36).slice(2, 5).toUpperCase(),
+            key: d.key, name: d.name, staff: staff(), started: new Date().toISOString(), startedText: stampNow(), snap: DATA.taken_display,
+            items: d.items, idx: 0, res: {}, revisit: false, finished: false };
+      save(); show(0);
+    }
+    function item() { return S.items[S.idx]; }
+    function pending(i) { var r = S.res[S.items[i].id]; return S.revisit ? (r && r.status === "skip") : !r; }
+    function nextIdx(from) { for (var i = from; i < S.items.length; i++) if (pending(i)) return i; return -1; }
+    function goNext(fromStart) {
+      var i = nextIdx(fromStart ? 0 : S.idx + 1);
+      if (i < 0 && !fromStart) i = nextIdx(0);
+      if (i < 0) { if (S.revisit) { S.revisit = false; save(); } return doneScreen(); }
+      show(i);
+    }
+    function progress() {
+      var n = countDone(), t = S.items.length;
+      $("hdrSub").textContent = S.name + ": " + n + " of " + t + " counted. Till stock as at " + S.snap;
+      $("progBar").style.width = (t ? Math.round(100 * n / t) : 0) + "%";
+    }
+    function setStep(n) {
+      step = n;
+      [1, 2, 3].forEach(function (k) { var el = $("step" + k); el.classList.toggle("off", k !== n); el.classList.toggle("done", k < n); });
+      if (n === 3) { setTimeout(function () { $("countIn").focus(); }, 50); diff(); }
+    }
+    function show(i) {
+      stopCam(); S.idx = i; save();
+      var it = item(), r = S.res[it.id];
+      $("scrDone").classList.add("hidden"); $("scrProduct").classList.remove("hidden");
+      $("pDept").textContent = S.name + "  \u2022  product " + (i + 1) + " of " + S.items.length + (S.revisit ? "  \u2022  skipped ones" : "");
+      $("pName").textContent = it.n;
+      $("pFacts").innerHTML = (it.s ? '<span class="fact">Size: ' + esc(it.s) + '</span>' : "") +
+        '<span class="fact">Barcode: ' + esc(it.b[0] || "none") + '</span>' + (it.p != null ? '<span class="fact">Price: \u00a3' + Number(it.p).toFixed(2) + '</span>' : "") +
+        (it.list ? '<span class="fact">' + esc(it.list) + '</span>' : "");
+      var tl = $("pTill"); tl.textContent = "Till stock: " + it.q; tl.classList.toggle("neg", it.q < 0);
+      scanStatus = ""; scannedCode = ""; bbValue = null;
+      $("scanMsg").innerHTML = ""; $("dateMsg").innerHTML = ""; $("diffMsg").innerHTML = ""; $("mismatchBtns").classList.add("hidden");
+      $("typeBc").classList.add("hidden"); $("typeBc").value = "";
+      $("bbDate").value = r && r.bb && r.bb !== "none" ? r.bb : "";
+      $("countIn").value = r && r.status !== "skip" ? r.count : "";
+      var ni = -1; for (var j = i + 1; j < S.items.length; j++) if (pending(j)) { ni = j; break; }
+      $("nextHint").textContent = ni >= 0 ? "Next: " + S.items[ni].n : "This is the last one on the list";
+      $("backBtn").disabled = i === 0;
+      setStep(1); progress(); window.scrollTo(0, 0);
+    }
+    function record(status, count, bb) {
+      var it = item(), till = Number(it.q) || 0;
+      var r = { status: status, count: count, bb: bb || "none", scan: scanStatus || status, code: scannedCode, at: new Date().toISOString() };
+      S.res[it.id] = r; save();
+      var name = "COUNT: " + [S.id, S.key, clean(S.name), it.id, it.b[0] || "", clean(it.n), clean(it.s), "till " + till,
+        "count " + (status === "skip" ? "SKIP" : count), "bb " + (bb || "none"), "scan " + (r.scan + (scannedCode && r.scan !== "ok" ? ":" + scannedCode : "")), clean(S.staff)].join(" | ");
+      queue({ name: name, photo: "", lines: [{ date: bb && bb !== "none" ? bb : today(), qty: String(status === "skip" ? 0 : count) }] });
+    }
+
+    // ---------- step 1: scan ----------
+    function matches(code) { var k = nz(code); return item().b.some(function (b) { return nz(b) === k; }); }
+    function onCode(code) {
+      code = String(code || "").replace(/\D/g, ""); if (!code) return;
+      stopCam(); beep(); scannedCode = code;
+      if (matches(code)) { scanStatus = "ok"; $("scanMsg").innerHTML = '<div class="msg ok">\u2713 Barcode matches</div>'; $("mismatchBtns").classList.add("hidden"); setStep(2); }
+      else {
+        scanStatus = "mismatch"; var other = ALLBC[nz(code)];
+        $("scanMsg").innerHTML = '<div class="msg bad">Wrong product. ' + (other ? "You scanned " + esc(other) : "Barcode " + esc(code) + " is not on the till") + ', not ' + esc(item().n) + '.</div>';
+        $("mismatchBtns").classList.remove("hidden");
+      }
+    }
+    var cam = { on: false, stream: null, det: null, timer: null, zx: null }, actx = null;
+    function beep() { try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); var o = actx.createOscillator(), g = actx.createGain(); o.frequency.value = 1200; g.gain.value = 0.15; o.connect(g); g.connect(actx.destination); o.start(); o.stop(actx.currentTime + 0.12); if (navigator.vibrate) navigator.vibrate(80); } catch (e) {} }
+    function loadZX() { return new Promise(function (res, rej) { if (window.ZXing) return res(window.ZXing); var s = document.createElement("script"); s.src = "zxing.min.js"; s.onload = function () { window.ZXing ? res(window.ZXing) : rej(); }; s.onerror = rej; document.head.appendChild(s); }); }
+    async function startCam() {
+      var v = $("video");
+      cam.stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+      v.srcObject = cam.stream; v.classList.remove("hidden"); await v.play(); cam.on = true; $("scanBtn").textContent = "Stop scan";
+      if ("BarcodeDetector" in window) {
+        cam.det = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "itf"] });
+        var tick = async function () { if (!cam.on) return; try { if (v.readyState >= 2) { var c = await cam.det.detect(v); if (c && c.length) { onCode(c[0].rawValue); return; } } } catch (e) {} cam.timer = setTimeout(tick, 200); };
+        tick();
+      } else {
+        var Z = await loadZX(), h = new Map();
+        h.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.ITF]);
+        h.set(Z.DecodeHintType.TRY_HARDER, true);
+        cam.zx = new Z.BrowserMultiFormatReader(h, 400);
+        await cam.zx.decodeFromStream(cam.stream, v, function (r) { if (r && cam.on) onCode(r.getText()); });
+      }
+    }
+    function stopCam() {
+      cam.on = false; if (cam.timer) clearTimeout(cam.timer); cam.timer = null;
+      if (cam.zx) { try { cam.zx.reset(); } catch (e) {} cam.zx = null; }
+      if (cam.stream) { cam.stream.getTracks().forEach(function (t) { t.stop(); }); cam.stream = null; }
+      var v = $("video"); v.srcObject = null; v.classList.add("hidden"); $("scanBtn").textContent = "\ud83d\udcf7 Scan barcode";
+    }
+    $("scanBtn").onclick = function () { if (cam.on) return stopCam(); $("scanMsg").innerHTML = ""; startCam().catch(function () { stopCam(); $("scanMsg").innerHTML = '<div class="msg bad">Could not open the camera. Type the barcode or tap Can\'t scan.</div>'; }); };
+    $("typeBtn").onclick = function () { stopCam(); var t = $("typeBc"); t.classList.remove("hidden"); t.focus(); };
+    $("typeBc").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); onCode(this.value); } });
+    $("typeBc").addEventListener("change", function () { if (this.value.trim()) onCode(this.value); });
+    $("noScanBtn").onclick = function () { stopCam(); scanStatus = "manual"; scannedCode = ""; $("scanMsg").innerHTML = '<div class="msg info">No scan. Make sure the name and size match.</div>'; setStep(2); };
+    $("rescanBtn").onclick = function () { $("mismatchBtns").classList.add("hidden"); $("scanMsg").innerHTML = ""; $("scanBtn").click(); };
+    $("useAnyBtn").onclick = function () { scanStatus = "mismatch"; $("mismatchBtns").classList.add("hidden"); $("scanMsg").innerHTML = '<div class="msg info">Saved with a barcode warning.</div>'; setStep(2); };
+    $("notFoundBtn").onclick = function () { stopCam(); scanStatus = "notfound"; record("counted", 0, "none"); goNext(); };
+    $("skipBtn").onclick = function () { stopCam(); scanStatus = "skip"; record("skip", 0, "none"); goNext(); };
+
+    // ---------- step 2: date ----------
+    $("noDateBtn").onclick = function () { bbValue = "none"; $("bbDate").value = ""; $("dateMsg").innerHTML = '<div class="msg info">No date</div>'; setStep(3); };
+    $("dateNextBtn").onclick = function () {
+      var v = $("bbDate").value; if (!v) { $("dateMsg").innerHTML = '<div class="msg bad">Enter the date, or tap No date on it.</div>'; return; }
+      bbValue = v; var days = Math.round((new Date(v) - new Date(today())) / 86400000);
+      $("dateMsg").innerHTML = days < 0 ? '<div class="msg bad">OUT OF DATE. Take it off the shelf and tell Vijay.</div>' : days <= 3 ? '<div class="msg bad">Short date: ' + days + ' day(s) left. Reduce or tell Vijay.</div>' : '<div class="msg ok">Date OK</div>';
+      setStep(3);
+    };
+    // ---------- step 3: count ----------
+    function diff() {
+      var v = $("countIn").value; if (v === "") { $("diffMsg").innerHTML = ""; return; }
+      var c = Number(v), t = Number(item().q) || 0, d = c - t;
+      $("diffMsg").innerHTML = '<div class="msg ' + (d === 0 ? "ok" : "info") + '">Till ' + t + ', you counted ' + c + (d === 0 ? ". Matches." : d < 0 ? ". " + (-d) + " short." : ". " + d + " extra.") + '</div>';
+    }
+    $("countIn").oninput = diff;
+    $("countIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); $("saveBtn").click(); } });
+    $("minusBtn").onclick = function () { var n = Math.max(0, (Number($("countIn").value) || 0) - 1); $("countIn").value = n; diff(); };
+    $("plusBtn").onclick = function () { $("countIn").value = (Number($("countIn").value) || 0) + 1; diff(); };
+    $("saveBtn").onclick = function () {
+      var v = $("countIn").value.trim();
+      if (v === "" || !/^\d+(\.\d+)?$/.test(v)) { $("diffMsg").innerHTML = '<div class="msg bad">Type how many (0 if none).</div>'; return; }
+      var c = Number(v);
+      if (c > 500 && !confirm(c + " is a lot. Is that right?")) return;
+      record("counted", c, bbValue || "none"); goNext();
+    };
+    $("backBtn").onclick = function () { if (S.idx > 0) { S.revisit = false; show(S.idx - 1); } };
+    $("menuBtn").onclick = function () {
+      pop('<h2>' + esc(S.name) + '</h2><div class="muted">' + countDone() + ' of ' + S.items.length + ' counted.</div>' +
+          '<input type="search" id="jumpQ" placeholder="Find a product in this list"><div class="dlist" id="jumpList"></div>' +
+          '<button class="btn" id="mDone">Go to summary</button><button class="btn sec" id="mClose">Close</button>');
+      $("jumpQ").oninput = function () {
+        var q = this.value.trim().toUpperCase(); if (q.length < 2) { $("jumpList").innerHTML = ""; return; }
+        var out = []; S.items.forEach(function (it, i) { if (out.length < 30 && (it.n.toUpperCase().indexOf(q) >= 0 || it.b.join(" ").indexOf(q) >= 0)) out.push(i); });
+        $("jumpList").innerHTML = out.map(function (i) { var it = S.items[i], r = S.res[it.id]; return '<button class="ditem" data-i="' + i + '"><div><b>' + esc(it.n) + '</b><span>' + (r ? (r.status === "skip" ? "Skipped" : "Counted " + r.count) : "Not counted") + '</span></div></button>'; }).join("");
+        Array.prototype.forEach.call($("jumpList").querySelectorAll(".ditem"), function (b) { b.onclick = function () { closePop(); S.revisit = false; show(Number(b.getAttribute("data-i"))); }; });
+      };
+      $("mDone").onclick = function () { closePop(); doneScreen(); };
+      $("mClose").onclick = closePop;
+    };
+
+    // ---------- finished ----------
+    function doneScreen() {
+      stopCam(); $("scrProduct").classList.add("hidden"); $("scrDone").classList.remove("hidden"); progress();
+      var counted = 0, skipped = 0, left = 0, diffs = [], shortD = [], t0 = today();
+      S.items.forEach(function (it) {
+        var r = S.res[it.id];
+        if (!r) { left++; return; } if (r.status === "skip") { skipped++; return; }
+        counted++; var d = r.count - (Number(it.q) || 0); if (d !== 0) diffs.push({ it: it, r: r, d: d });
+        if (r.bb && r.bb !== "none") { var days = Math.round((new Date(r.bb) - new Date(t0)) / 86400000); if (days <= 7) shortD.push({ it: it, days: days, bb: r.bb }); }
+      });
+      $("doneTitle").textContent = S.finished ? S.name + ": report sent" : (left ? S.name + ": not finished yet" : S.name + ": list finished");
+      $("doneStats").innerHTML = '<div class="msg ok">Counted ' + counted + ' of ' + S.items.length + '</div>' +
+        (skipped ? '<div class="msg info">Skipped ' + skipped + '</div>' : "") + (left ? '<div class="msg bad">Not done yet: ' + left + '</div>' : "") +
+        '<div class="msg ' + (diffs.length ? "info" : "ok") + '">Different from till: ' + diffs.length + '</div>' +
+        (shortD.length ? '<div class="msg bad">Short or out of date: ' + shortD.length + '</div>' : "");
+      diffs.sort(function (a, b) { return Math.abs(b.d) - Math.abs(a.d); });
+      $("doneTable").innerHTML = diffs.length ? '<table><tr><th>Product</th><th>Till</th><th>Count</th><th>Diff</th></tr>' + diffs.slice(0, 40).map(function (x) {
+        return '<tr><td>' + esc(x.it.n) + '</td><td>' + x.it.q + '</td><td>' + x.r.count + '</td><td class="' + (x.d < 0 ? "neg" : "pos") + '">' + (x.d > 0 ? "+" : "") + x.d + '</td></tr>'; }).join("") + '</table>' +
+        (diffs.length > 40 ? '<div class="muted">and ' + (diffs.length - 40) + ' more in the report</div>' : "") : "";
+      var sb = $("doSkippedBtn"); sb.classList.toggle("hidden", !(skipped || left) || S.finished);
+      sb.textContent = left ? "Carry on counting (" + left + " left)" : "Count the skipped ones now (" + skipped + ")";
+      sb.onclick = function () { S.revisit = !left; save(); goNext(true); };
+      $("finishBtn").classList.toggle("hidden", !!S.finished);
+      $("newCountBtn").classList.toggle("hidden", !S.finished);
+      $("finishMsg").innerHTML = S.finished ? '<div class="msg ok">Finished. The report goes to the Vijay office WhatsApp group shortly.</div>' : "";
+    }
+    $("finishBtn").onclick = function () {
+      var left = S.items.filter(function (it) { return !S.res[it.id]; }).length;
+      if (left && !confirm(left + " products are not counted yet. Finish anyway? They will show as not counted.")) return;
+      var counted = countDone(), skipped = S.items.length - counted - left;
+      queue({ name: "COUNTDONE: " + [S.id, S.key, clean(S.name), "counted " + counted + " of " + S.items.length, "skipped " + (skipped + left), clean(S.staff)].join(" | "), photo: "", lines: [{ date: today(), qty: String(counted) }] });
+      S.finished = true; save();
+      var h = jget(HIST, {}); h[S.key] = today(); jset(HIST, h);
+      doneScreen();
+    };
+    $("newCountBtn").onclick = function () { ls(SESS, null); S = null; $("scrDone").classList.add("hidden"); deptPop(); };
+    flush();
+  })();
+  </script>
+  <script src="../nav.js"></script>
+</body>
+</html>

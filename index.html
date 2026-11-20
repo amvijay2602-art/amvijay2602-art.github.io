@@ -38,6 +38,7 @@
     .tile.paper { background:linear-gradient(135deg,#6a1b9a,#8e24aa); }
     .tile.chiller { background:linear-gradient(135deg,#1565c0,#1e88e5); }
     .tile.date { background:linear-gradient(135deg,#2e7d32,#43a047); }
+    .tile.count { background:linear-gradient(135deg,#00695c,#00897b); }
     .tile.reports { background:linear-gradient(135deg,#e65100,#fb8c00); }
     .quick { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .quick a { flex:1 1 44%; text-align:center; background:#f3f6fb; color:var(--blue); border:1px solid #d6dce5; border-radius:12px; padding:11px 6px; font-weight:600; text-decoration:none; font-size:.92rem; }
@@ -97,6 +98,7 @@
         <a class="tile paper" href="paper/" id="tilePaper"><span class="ico">&#128240;</span><span><span class="t">Newspapers</span><span class="d" style="display:block">Delivery In, Returns, Stock Take</span></span></a>
         <a class="tile chiller" href="chiller/" id="tileChiller"><span class="ico">&#129482;</span><span><span class="t">Chiller</span><span class="d" style="display:block">Date, Gaps, Stock In, Waste</span></span></a>
         <a class="tile date" href="date/" id="tileDate"><span class="ico">&#128247;</span><span><span class="t">Date Check</span><span class="d" style="display:block">Camera date check</span></span></a>
+        <a class="tile count" href="count/" id="tileCount"><span class="ico">&#128203;</span><span><span class="t">Stock Count</span><span class="d" style="display:block">Count a department, one by one</span></span></a>
         <button class="tile reports" type="button" id="tileReports"><span class="ico">&#128202;</span><span><span class="t">Reports</span><span class="d" style="display:block" id="tileRepSub">Chiller, papers, today's scans</span></span></button>
       </div>
       <div class="card" style="margin-top:14px">
@@ -106,6 +108,7 @@
           <a href="paper/?open=modeReturns,kindMags">Magazine returns</a>
           <a href="paper/?open=modeDelivery,kindNews">Newspaper delivery</a>
           <a href="paper/?open=modeDelivery,kindMags">Magazine delivery</a>
+          <a href="count/">Stock count</a>
           <a href="chiller/?open=modeDate">Chiller date check</a>
           <a href="chiller/?open=modeGap">Gap check</a>
           <a href="chiller/?open=modeStockIn">Chiller stock in</a>
