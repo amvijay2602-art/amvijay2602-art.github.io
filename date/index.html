@@ -156,6 +156,148 @@
       font-size: 0.9rem;
       text-align: center;
     }
+
+    .hidden { display: none !important; }
+    .find-block { margin-bottom: 16px; }
+    .find-label {
+      display: block;
+      font-weight: 800;
+      font-size: 1.05rem;
+      margin: 0 0 10px;
+    }
+    .scan-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .scan-btn, .photo-barcode {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 58px;
+      background: var(--green);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 800;
+      text-align: center;
+      padding: 14px 10px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .scan-btn:active, .photo-barcode:active { background: var(--green-dark); }
+    .scan-btn.secondary {
+      background: #fff;
+      color: var(--green-dark);
+      border: 2px solid var(--green);
+    }
+    .photo-barcode input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+    }
+    .code-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      align-items: stretch;
+    }
+    .code-row input { margin-top: 0; flex: 1 1 auto; min-width: 0; font-size: 1.15rem !important; }
+    .code-row button {
+      flex: 0 0 auto;
+      min-height: 48px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--green);
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .barcode-readout {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 1rem;
+      font-weight: 700;
+      word-break: break-all;
+    }
+    .barcode-readout button {
+      margin-left: 8px;
+      background: none;
+      border: 0;
+      color: var(--danger);
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .scan-wrap {
+      position: relative;
+      margin-top: 12px;
+      background: #18342A;
+      border-radius: 14px;
+      overflow: hidden;
+      min-height: 180px;
+    }
+    #scanVideo {
+      display: block;
+      width: 100%;
+      max-height: 280px;
+      object-fit: cover;
+      background: #18342A;
+    }
+    .scan-wrap .scan-frame {
+      pointer-events: none;
+      position: absolute;
+      left: 12%;
+      right: 12%;
+      top: 30%;
+      bottom: 30%;
+      border: 3px solid #fff;
+      border-radius: 10px;
+      box-shadow: 0 0 0 999px rgba(0,0,0,0.25);
+    }
+    .dates-photo-label { margin-top: 18px; font-size: 1.15rem; padding: 16px; }
+    .nf-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10060;
+      background: rgba(24,52,42,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .nf-box {
+      background: #fff;
+      border-radius: 18px;
+      max-width: 420px;
+      width: 100%;
+      padding: 22px 18px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    .nf-box p {
+      margin: 0 0 16px;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--danger);
+    }
+    .nf-box button {
+      width: 100%;
+      min-height: 56px;
+      border: 0;
+      border-radius: 14px;
+      background: var(--green);
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
   </style>
 
   <style id="birkhill-theme">
@@ -180,8 +322,29 @@
 <body>
   <h1>Birkhill Date Check</h1>
   <div class="card">
-    <label class="take-photo">
-      📷 Take Photo
+    <div class="find-block">
+      <span class="find-label">Find the product</span>
+      <div class="scan-actions">
+        <button id="scanBtn" class="scan-btn" type="button">Scan barcode</button>
+        <label class="photo-barcode">
+          Take photo
+          <input id="barcodePhotoInput" type="file" accept="image/*" capture="environment">
+        </label>
+      </div>
+      <div id="scanWrap" class="scan-wrap hidden">
+        <video id="scanVideo" playsinline muted autoplay></video>
+        <div class="scan-frame" aria-hidden="true"></div>
+      </div>
+      <label class="field" for="code">Or type the barcode
+        <div class="code-row">
+          <input id="code" type="text" inputmode="numeric" autocomplete="off" placeholder="Barcode on the pack">
+          <button id="lookupBtn" type="button">Look up</button>
+        </div>
+      </label>
+      <p id="barcodeReadout" class="barcode-readout hidden"></p>
+    </div>
+    <label class="take-photo dates-photo-label">
+      Photo of dates
       <input id="photoInput" type="file" accept="image/*" capture="environment">
     </label>
     <div id="previewWrap">
@@ -224,9 +387,16 @@
     </div>
   </div>
   <p class="hint">Add this page to your home screen for one-tap access.</p>
+  <div id="notFound" class="nf-modal hidden" role="dialog" aria-label="Not found">
+    <div class="nf-box">
+      <p>Not found</p>
+      <button id="notFoundCancel" type="button">Cancel</button>
+    </div>
+  </div>
   <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
   <script src="../datecount.js"></script>
+  <script src="../barcode-scan.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
     const photoInput = document.getElementById("photoInput");
@@ -236,8 +406,180 @@
     const saveBtn = document.getElementById("save");
     const statusEl = document.getElementById("status");
     const SCANNED_KEY = "birkhill-date-check-scanned-v1";
+    const ZXING_SRC = "zxing.min.js";
     let photoDataUrl = "";
     let scannedItems = [];
+    let products = {};
+    let by13 = {};
+    let currentBarcode = "";
+    let scanSession = null;
+    let lastScanCode = "";
+    let lastScanAt = 0;
+    const codeInput = document.getElementById("code");
+    const scanBtn = document.getElementById("scanBtn");
+    const barcodePhotoInput = document.getElementById("barcodePhotoInput");
+    const scanWrap = document.getElementById("scanWrap");
+    const scanVideo = document.getElementById("scanVideo");
+    const barcodeReadout = document.getElementById("barcodeReadout");
+    const notFoundEl = document.getElementById("notFound");
+
+    function digits(raw) { return String(raw || "").replace(/\D/g, ""); }
+
+    function buildIndexes() {
+      by13 = {};
+      Object.keys(products).forEach(function (code) {
+        const rec = { code: code, name: products[code] };
+        if (code.length >= 13) {
+          const p13 = code.slice(0, 13);
+          if (!by13[p13] || (code.length === 13 && by13[p13].code.length !== 13)) by13[p13] = rec;
+        } else if (code.length === 12) {
+          const p13 = "0" + code;
+          if (!by13[p13]) by13[p13] = rec;
+        }
+      });
+    }
+
+    function lookup(raw) {
+      const code = digits(raw);
+      if (!code) return null;
+      if (products[code]) return { barcode: code, name: products[code], match: "exact" };
+      if (code.length > 13) {
+        const base = code.slice(0, 13);
+        if (products[base]) return { barcode: base, name: products[base], match: "base13" };
+        if (by13[base]) return { barcode: by13[base].code, name: by13[base].name, match: "base13" };
+      }
+      if (by13[code]) return { barcode: by13[code].code, name: by13[code].name, match: "base13" };
+      if (code.length === 12 && products["0" + code]) return { barcode: "0" + code, name: products["0" + code], match: "upc" };
+      if (code.length === 13 && code.charAt(0) === "0" && products[code.slice(1)]) {
+        return { barcode: code.slice(1), name: products[code.slice(1)], match: "upc" };
+      }
+      return { barcode: code, name: "", match: "none" };
+    }
+
+    function hideNotFound() { notFoundEl.classList.add("hidden"); }
+
+    function showNotFound() { notFoundEl.classList.remove("hidden"); }
+
+    function updateReadout() {
+      if (!currentBarcode) {
+        barcodeReadout.textContent = "";
+        barcodeReadout.classList.add("hidden");
+        return;
+      }
+      barcodeReadout.textContent = "";
+      barcodeReadout.appendChild(document.createTextNode("Barcode " + currentBarcode + " "));
+      const clearBtn = document.createElement("button");
+      clearBtn.type = "button";
+      clearBtn.textContent = "Clear";
+      clearBtn.addEventListener("click", function () {
+        currentBarcode = "";
+        updateReadout();
+      });
+      barcodeReadout.appendChild(clearBtn);
+      barcodeReadout.classList.remove("hidden");
+    }
+
+    function goToEntry() {
+      const dateEl = document.querySelector(".line-date");
+      try { document.querySelector(".lines-label").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+      if (dateEl) dateEl.focus();
+    }
+
+    function stopScan() {
+      if (scanSession && scanSession.stop) scanSession.stop();
+      scanSession = null;
+      scanBtn.textContent = "Scan barcode";
+      scanBtn.classList.remove("secondary");
+    }
+
+    function applyCode(raw, opts) {
+      opts = opts || {};
+      const rec = lookup(raw);
+      if (!rec) return false;
+      if (!opts.fromType) {
+        const now = Date.now();
+        if (rec.barcode === lastScanCode && now - lastScanAt < 1500) return false;
+        lastScanCode = rec.barcode;
+        lastScanAt = now;
+      }
+      stopScan();
+      if (rec.match === "none") {
+        currentBarcode = "";
+        updateReadout();
+        showNotFound();
+        setStatus("Not found", "error");
+        return false;
+      }
+      hideNotFound();
+      currentBarcode = rec.barcode;
+      codeInput.value = rec.barcode;
+      nameInput.value = rec.name;
+      updateReadout();
+      setStatus("Found " + rec.name, "ok");
+      goToEntry();
+      return true;
+    }
+
+    function lookupTyped() {
+      const raw = codeInput.value.trim();
+      if (!raw) { setStatus("Type a barcode, or use Scan or Take photo.", "error"); codeInput.focus(); return; }
+      applyCode(raw, { fromType: true });
+    }
+
+    document.getElementById("lookupBtn").addEventListener("click", lookupTyped);
+    codeInput.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); lookupTyped(); }
+    });
+    document.getElementById("notFoundCancel").addEventListener("click", function () {
+      hideNotFound();
+      currentBarcode = "";
+      updateReadout();
+      setStatus("", "");
+    });
+
+    scanBtn.addEventListener("click", function () {
+      if (scanSession) { stopScan(); return; }
+      if (!window.BirkhillBarcode) { setStatus("Barcode scanner is not available. Type the barcode instead.", "error"); return; }
+      scanBtn.disabled = true;
+      setStatus("", "");
+      BirkhillBarcode.startLive({
+        video: scanVideo,
+        wrap: scanWrap,
+        zxingSrc: ZXING_SRC,
+        onCode: function (raw) { applyCode(raw); }
+      }).then(function (session) {
+        scanSession = session;
+        scanBtn.textContent = "Stop scan";
+        scanBtn.classList.add("secondary");
+      }).catch(function () {
+        stopScan();
+        setStatus("Could not open the camera. Take a photo of the barcode, or type the number.", "error");
+      }).then(function () { scanBtn.disabled = false; });
+    });
+
+    barcodePhotoInput.addEventListener("change", function () {
+      const file = barcodePhotoInput.files && barcodePhotoInput.files[0];
+      barcodePhotoInput.value = "";
+      if (!file) return;
+      if (!window.BirkhillBarcode) { setStatus("Barcode reader is not available. Type the barcode instead.", "error"); return; }
+      setStatus("Reading barcode...", "");
+      BirkhillBarcode.decodeFromFile(file, ZXING_SRC).then(function (raw) {
+        if (!raw) { setStatus("Could not read a barcode in that photo. Try again or type the number.", "error"); return; }
+        applyCode(raw, { fromType: true });
+      }).catch(function () {
+        setStatus("Could not read a barcode in that photo. Try again or type the number.", "error");
+      });
+    });
+
+    fetch("../chiller/products.json").then(function (res) {
+      if (!res.ok) throw new Error("products");
+      return res.json();
+    }).then(function (data) {
+      products = data || {};
+      buildIndexes();
+    }).catch(function () {
+      products = {};
+    });
 
     function todayLondon() {
       return new Intl.DateTimeFormat("en-CA", {
@@ -396,6 +738,11 @@
       preview.src = "";
       previewWrap.style.display = "none";
       nameInput.value = "";
+      codeInput.value = "";
+      currentBarcode = "";
+      updateReadout();
+      hideNotFound();
+      stopScan();
       document.querySelectorAll(".line-date, .line-qty, #shelfQty").forEach(function (el) {
         el.value = "";
       });
@@ -424,7 +771,7 @@
       }).then(function () {
         scannedItems.unshift({
           name: name,
-          barcode: "",
+          barcode: currentBarcode || "",
           lines: lines,
           at: Date.now()
         });
@@ -448,8 +795,10 @@
     const shelfInput = document.getElementById("shelfQty");
     const dc = window.BirkhillDateCount ? BirkhillDateCount.create({ app: "date", key: "DATECHECK", dept: "Date check", total: function () { return 0; } }) : null;
     function dcItem(name) {
+      const bc = currentBarcode || "";
       const slug = name.toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
-      return { key: "N:" + slug, id: "N:" + slug, barcode: "", name: name, size: "", till: 0, scan: "manual:name only" };
+      const key = bc ? "B:" + bc : "N:" + slug;
+      return { key: key, id: key, barcode: bc, name: name, size: "", till: 0, scan: bc ? "ok" : "manual:name only" };
     }
     function dcUpdate() {
       const el = document.getElementById("dcProgress");
@@ -474,6 +823,7 @@
     });
     dcUpdate();
 
+    window.__dateCheck = { lookup: lookup, applyCode: applyCode, goToEntry: goToEntry };
     restoreScanned();
     renderScanned();
   </script>

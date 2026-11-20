@@ -454,10 +454,107 @@
       color: var(--blue-dark);
       border: 2px solid var(--blue);
     }
+    .find-block { margin-bottom: 14px; }
+    .find-label {
+      display: block;
+      font-weight: 800;
+      font-size: 1.05rem;
+      margin: 0 0 10px;
+    }
+    .scan-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .photo-barcode {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      min-height: 58px;
+      background: var(--blue, #17643F);
+      color: #fff;
+      font-size: 1.15rem;
+      font-weight: 800;
+      text-align: center;
+      padding: 14px 10px;
+      border-radius: 14px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .photo-barcode:active { filter: brightness(0.92); }
+    .photo-barcode input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+    }
+    .scan-actions .scan-name-btn {
+      min-height: 58px;
+      font-size: 1.15rem;
+      border-radius: 14px;
+    }
+    .code-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      align-items: stretch;
+    }
+    .code-row input { margin-top: 0; flex: 1 1 auto; min-width: 0; font-size: 1.15rem !important; }
+    .code-row button {
+      flex: 0 0 auto;
+      min-height: 48px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 10px;
+      background: var(--green, #17643F);
+      color: #fff;
+      font-size: 1.05rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .nf-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10060;
+      background: rgba(24,52,42,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .nf-box {
+      background: #fff;
+      border-radius: 18px;
+      max-width: 420px;
+      width: 100%;
+      padding: 22px 18px;
+      text-align: center;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+    .nf-box p {
+      margin: 0 0 16px;
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: var(--danger, #c62828);
+    }
+    .nf-box button {
+      width: 100%;
+      min-height: 56px;
+      border: 0;
+      border-radius: 14px;
+      background: var(--green, #17643F);
+      color: #fff;
+      font-size: 1.2rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
     .check-barcode {
       margin: 6px 0 0;
       color: var(--muted);
-      font-size: 0.9rem;
+      font-size: 1rem;
+      font-weight: 700;
       word-break: break-all;
     }
     .check-barcode button {
@@ -1083,8 +1180,24 @@
   </div>
   <div class="card">
     <div id="checkFields">
+    <div class="find-block">
+      <span class="find-label">Find the product</span>
+      <div class="scan-actions">
+        <button id="checkScanBtn" class="scan-name-btn" type="button">Scan barcode</button>
+        <label class="photo-barcode">
+          Take photo
+          <input id="checkBarcodePhotoInput" type="file" accept="image/*" capture="environment">
+        </label>
+      </div>
+      <label class="field" for="checkCodeInput">Or type the barcode
+        <div class="code-row">
+          <input id="checkCodeInput" type="text" inputmode="numeric" autocomplete="off" placeholder="Barcode on the pack">
+          <button id="checkLookupBtn" type="button">Look up</button>
+        </div>
+      </label>
+    </div>
     <label class="take-photo" id="photoLabel">
-      <span id="photoLabelText">📷 Take Photo</span>
+      <span id="photoLabelText">Photo of dates</span>
       <input id="photoInput" type="file" accept="image/*" capture="environment">
     </label>
     <div id="previewWrap">
@@ -1093,7 +1206,6 @@
     <label class="field" for="name">Product name</label>
     <div class="name-row">
       <input id="name" type="text" autocomplete="off" autocapitalize="words" placeholder="e.g. Semi Skimmed Milk">
-      <button id="checkScanBtn" class="scan-name-btn" type="button">Scan barcode</button>
     </div>
     <p id="checkBarcodeReadout" class="check-barcode hidden"></p>
     <div id="checkScanWrap" class="check-scan-wrap hidden">
@@ -1324,9 +1436,16 @@
     <div id="status"></div>
   </div>
   <p class="hint">Add this page to your home screen for one-tap access.</p>
+  <div id="checkNotFound" class="nf-modal hidden" role="dialog" aria-label="Not found">
+    <div class="nf-box">
+      <p>Not found</p>
+      <button id="checkNotFoundCancel" type="button">Cancel</button>
+    </div>
+  </div>
   <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
   <script src="../datecount.js"></script>
+  <script src="../barcode-scan.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
     const photoInput = document.getElementById("photoInput");
@@ -1494,7 +1613,10 @@
       shelfQtyInput.value = "0";
       noteInput.value = "";
       checkBarcode = "";
-      updateCheckBarcodeReadout();
+      if (typeof updateCheckBarcodeReadout === "function") updateCheckBarcodeReadout();
+      if (typeof hideCheckNotFound === "function") hideCheckNotFound();
+      const typed = document.getElementById("checkCodeInput");
+      if (typed) typed.value = "";
       if (typeof stopCheckCamera === "function") stopCheckCamera();
     }
 
@@ -2167,23 +2289,49 @@
       } catch (e) {}
     }
 
-    function checkOnScan(raw) {
+    const checkNotFoundEl = document.getElementById("checkNotFound");
+    const checkCodeInput = document.getElementById("checkCodeInput");
+    function hideCheckNotFound() { if (checkNotFoundEl) checkNotFoundEl.classList.add("hidden"); }
+    function showCheckNotFound() { if (checkNotFoundEl) checkNotFoundEl.classList.remove("hidden"); }
+    function goToCheckEntry() {
+      const datePanel = document.getElementById("datePanel");
+      const gapPanel = document.getElementById("gapPanel");
+      if (datePanel && !datePanel.classList.contains("hidden")) {
+        const dateEl = datePanel.querySelector(".line-date");
+        try { datePanel.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+        if (dateEl) dateEl.focus();
+      } else if (gapPanel && !gapPanel.classList.contains("hidden")) {
+        const qty = document.getElementById("shelfQty");
+        try { gapPanel.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+        if (qty) qty.focus();
+      }
+    }
+    function checkOnScan(raw, opts) {
+      opts = opts || {};
       const rec = checkLookup(raw);
       if (!rec) return;
-      const now = Date.now();
-      if (rec.barcode === checkLastScanCode && now - checkLastScanAt < 1500) return;
-      checkLastScanCode = rec.barcode;
-      checkLastScanAt = now;
-      checkBeep();
-      checkBarcode = rec.barcode;
-      updateCheckBarcodeReadout();
-      if (rec.match === "none") {
-        setStatus("Unknown barcode, type the name.", "error");
-      } else {
-        nameInput.value = rec.name;
-        setStatus("Found " + rec.name, "ok");
+      if (!opts.fromType) {
+        const now = Date.now();
+        if (rec.barcode === checkLastScanCode && now - checkLastScanAt < 1500) return;
+        checkLastScanCode = rec.barcode;
+        checkLastScanAt = now;
+        checkBeep();
       }
       stopCheckCamera();
+      if (rec.match === "none") {
+        checkBarcode = "";
+        updateCheckBarcodeReadout();
+        showCheckNotFound();
+        setStatus("Not found", "error");
+        return;
+      }
+      hideCheckNotFound();
+      checkBarcode = rec.barcode;
+      if (checkCodeInput) checkCodeInput.value = rec.barcode;
+      updateCheckBarcodeReadout();
+      nameInput.value = rec.name;
+      setStatus("Found " + rec.name, "ok");
+      goToCheckEntry();
     }
 
     function loadCheckZXing() {
@@ -2310,11 +2458,50 @@
       checkScanBtn.disabled = true;
       startCheckCamera().catch(function () {
         stopCheckCamera();
-        setStatus("Could not open the camera. You can type the name instead.", "error");
+        setStatus("Could not open the camera. Take a photo of the barcode, or type the number.", "error");
       }).then(function () {
         checkScanBtn.disabled = false;
       });
     });
+
+    function checkLookupTyped() {
+      if (!checkCodeInput) return;
+      const raw = checkCodeInput.value.trim();
+      if (!raw) { setStatus("Type a barcode, or use Scan or Take photo.", "error"); checkCodeInput.focus(); return; }
+      checkOnScan(raw, { fromType: true });
+    }
+    const checkLookupBtn = document.getElementById("checkLookupBtn");
+    if (checkLookupBtn) checkLookupBtn.addEventListener("click", checkLookupTyped);
+    if (checkCodeInput) {
+      checkCodeInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") { ev.preventDefault(); checkLookupTyped(); }
+      });
+    }
+    const checkNotFoundCancel = document.getElementById("checkNotFoundCancel");
+    if (checkNotFoundCancel) {
+      checkNotFoundCancel.addEventListener("click", function () {
+        hideCheckNotFound();
+        checkBarcode = "";
+        updateCheckBarcodeReadout();
+        setStatus("", "");
+      });
+    }
+    const checkBarcodePhotoInput = document.getElementById("checkBarcodePhotoInput");
+    if (checkBarcodePhotoInput) {
+      checkBarcodePhotoInput.addEventListener("change", function () {
+        const file = checkBarcodePhotoInput.files && checkBarcodePhotoInput.files[0];
+        checkBarcodePhotoInput.value = "";
+        if (!file) return;
+        if (!window.BirkhillBarcode) { setStatus("Barcode reader is not available. Type the barcode instead.", "error"); return; }
+        setStatus("Reading barcode...", "");
+        BirkhillBarcode.decodeFromFile(file, "zxing.min.js").then(function (raw) {
+          if (!raw) { setStatus("Could not read a barcode in that photo. Try again or type the number.", "error"); return; }
+          checkOnScan(raw, { fromType: true });
+        }).catch(function () {
+          setStatus("Could not read a barcode in that photo. Try again or type the number.", "error");
+        });
+      });
+    }
 
     fetch("products.json").then(function (res) {
       if (!res.ok) throw new Error("products");
