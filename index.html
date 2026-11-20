@@ -40,6 +40,7 @@
     .tile.chiller { background:linear-gradient(135deg,#0f4a2e,#17643F); }
     .tile.date { background:linear-gradient(135deg,#2f7d5b,#3f9a70); }
     .tile.count { background:linear-gradient(135deg,#E86B2A,#f08a4f); }
+    .tile.shelf { background:linear-gradient(135deg,#c2551c,#E86B2A); }
     .tile.reports { background:linear-gradient(135deg,#18342A,#2c5545); }
     .quick { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
     .quick a { flex:1 1 44%; text-align:center; background:#eef5f0; color:var(--blue); border:1px solid #d5e3da; border-radius:12px; padding:11px 6px; font-weight:600; text-decoration:none; font-size:.92rem; }
@@ -84,7 +85,7 @@
     .card { border-radius: 18px !important; box-shadow: 0 1px 4px rgba(24,52,42,.10) !important; }
     .bk-logo { display:block; margin: 0 auto 6px; height: 44px; width: auto; }
     body.bk-has-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
-    .bk-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9990; display: grid; grid-template-columns: repeat(5, 1fr);
+    .bk-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9990; display: grid; grid-template-columns: repeat(6, 1fr);
               background: #fff; border-top: 1px solid var(--bk-line); box-shadow: 0 -2px 8px rgba(24,52,42,.08); padding-bottom: env(safe-area-inset-bottom); }
     .bk-nav a { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:58px; color: var(--bk-ink); text-decoration:none;
                 font: 700 12px/1.1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; gap: 3px; }
@@ -135,6 +136,7 @@
         <a class="tile chiller" href="chiller/" id="tileChiller"><span class="ico">&#129482;</span><span><span class="t">Chiller</span><span class="d" style="display:block">Date, Gaps, Stock In, Waste</span></span></a>
         <a class="tile date" href="date/" id="tileDate"><span class="ico">&#128247;</span><span><span class="t">Date Check</span><span class="d" style="display:block">Camera date check</span></span></a>
         <a class="tile count" href="count/" id="tileCount"><span class="ico">&#128203;</span><span><span class="t">Stock Count</span><span class="d" style="display:block">Count a department, one by one</span></span></a>
+        <a class="tile shelf" href="shelf/" id="tileShelf"><span class="ico">&#127991;&#65039;</span><span><span class="t">Shelf Scan</span><span class="d" style="display:block">Find a product, where it lives, mark gaps</span></span></a>
         <button class="tile reports" type="button" id="tileReports"><span class="ico">&#128202;</span><span><span class="t">Reports</span><span class="d" style="display:block" id="tileRepSub">Chiller, papers, today's scans</span></span></button>
       </div>
       <div class="card" id="returnSheetHomeCard" style="margin-top:14px">
@@ -460,6 +462,6 @@
     if (location.hash === "#reports") showReports(true);
   })();
   </script>
-  <nav class="bk-nav" aria-label="Birkhill apps"><a href="./" class="on"><span class="i">&#8962;</span><span>Home</span></a><a href="paper/"><span class="i">&#128240;</span><span>Papers</span></a><a href="chiller/"><span class="i">&#129482;</span><span>Chiller</span></a><a href="date/"><span class="i">&#128247;</span><span>Date</span></a><a href="count/"><span class="i">&#128203;</span><span>Count</span></a></nav>
+  <nav class="bk-nav" aria-label="Birkhill apps"><a href="./" class="on"><span class="i">&#8962;</span><span>Home</span></a><a href="paper/"><span class="i">&#128240;</span><span>Papers</span></a><a href="chiller/"><span class="i">&#129482;</span><span>Chiller</span></a><a href="date/"><span class="i">&#128247;</span><span>Date</span></a><a href="count/"><span class="i">&#128203;</span><span>Count</span></a><a href="shelf/"><span class="i">&#127991;&#65039;</span><span>Shelf</span></a></nav>
 </body>
 </html>

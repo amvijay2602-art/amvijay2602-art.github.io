@@ -3,7 +3,7 @@
   var STAFF = "birkhill-staff-name";
   function staff() { try { return localStorage.getItem(STAFF) || ""; } catch (e) { return ""; } }
   function ready(fn) { if (document.readyState !== "loading") fn(); else document.addEventListener("DOMContentLoaded", fn); }
-  var APPS = [["../", "\u2302", "Home"], ["../paper/", "\ud83d\udcf0", "Papers"], ["../chiller/", "\ud83e\uddca", "Chiller"], ["../date/", "\ud83d\udcf7", "Date"], ["../count/", "\ud83d\udccb", "Count"]];
+  var APPS = [["../", "\u2302", "Home"], ["../paper/", "\ud83d\udcf0", "Papers"], ["../chiller/", "\ud83e\uddca", "Chiller"], ["../date/", "\ud83d\udcf7", "Date"], ["../count/", "\ud83d\udccb", "Count"], ["../shelf/", "\ud83c\udff7\ufe0f", "Shelf"]];
   ready(function () {
     var here = location.pathname.replace(/index\.html$/, "");
     if (/\/count\/$/.test(here)) return;   // Stock Count has its own bottom bar
@@ -12,7 +12,7 @@
       var img = document.createElement("img"); img.src = "../logo.png"; img.alt = "Birkhill Stores"; img.className = "bk-logo";
       h1.parentNode.insertBefore(img, h1);
     }
-    var nav = document.createElement("nav"); nav.className = "bk-nav"; nav.setAttribute("aria-label", "Birkhill apps");
+    var nav = document.createElement("nav"); nav.className = "bk-nav"; nav.style.gridTemplateColumns = "repeat(" + APPS.length + ", 1fr)"; nav.setAttribute("aria-label", "Birkhill apps");
     APPS.forEach(function (a) {
       var el = document.createElement("a"); el.href = a[0];
       var seg = a[0].replace("../", "");
