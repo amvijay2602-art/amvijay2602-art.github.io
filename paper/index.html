@@ -546,6 +546,84 @@
     }
     .confirm-note.is-ready { color: #17643F; }
     #confirmReturnBtn { margin-top: 12px; }
+
+    .confirm-anyway {
+      position: fixed;
+      inset: 0;
+      z-index: 10070;
+      background: rgba(24,52,42,0.45);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 12px;
+      padding-bottom: max(12px, env(safe-area-inset-bottom));
+    }
+    .confirm-anyway-box {
+      background: #fff;
+      border-radius: 18px 18px 16px 16px;
+      width: 100%;
+      max-width: 480px;
+      max-height: min(88vh, 720px);
+      overflow: auto;
+      padding: 18px 16px 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      color: #18342A;
+    }
+    .confirm-anyway-box h3 {
+      margin: 0 0 8px;
+      font-size: 1.25rem;
+      color: #17643F;
+    }
+    .confirm-anyway-box .ca-lead {
+      margin: 0 0 12px;
+      font-size: 1.05rem;
+      font-weight: 700;
+      line-height: 1.35;
+    }
+    .ca-list { list-style: none; margin: 0 0 14px; padding: 0; }
+    .ca-list li {
+      border: 1px solid #d5e3da;
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 8px;
+      background: #fff8f8;
+    }
+    .ca-list .ca-title { font-weight: 800; font-size: 1.08rem; }
+    .ca-list .ca-scan { margin-top: 2px; font-weight: 700; font-size: 1rem; color: #8a3b12; }
+    .ca-reason-label { display:block; font-weight: 800; font-size: 1.02rem; margin: 8px 0 8px; }
+    .ca-reasons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    .ca-reasons button {
+      min-height: 48px;
+      border-radius: 12px;
+      border: 2px solid #17643F;
+      background: #fff;
+      color: #17643F;
+      font-weight: 800;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .ca-reasons button.on { background: #17643F; color: #fff; }
+    .ca-reason-other {
+      width: 100%;
+      margin-top: 8px;
+      min-height: 48px;
+      font-size: 1.05rem;
+      padding: 12px;
+      border: 1px solid #c3d6ca;
+      border-radius: 10px;
+    }
+    .ca-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+    .ca-actions button {
+      min-height: 56px;
+      border-radius: 14px;
+      font-weight: 800;
+      font-size: 1.08rem;
+      cursor: pointer;
+      border: 2px solid #17643F;
+    }
+    .ca-back { background: #fff; color: #17643F; }
+    .ca-go { background: #17643F; color: #fff; border-color: #17643F; }
+
     body.returns .qty-row,
     body.returns #addBtn,
     body.returns #qtyLabel { display: none !important; }
@@ -573,7 +651,7 @@
     <ul id="returnSheetToday" class="rs-list"></ul>
     <p id="returnSheetTodayEmpty" class="hint hidden">Nothing to scan today</p>
     <p id="confirmReturnHint" class="confirm-note"></p>
-    <button id="confirmReturnBtn" class="btn" type="button" disabled>Confirm return</button>
+    <button id="confirmReturnBtn" class="btn" type="button">Confirm return</button>
     <div id="returnSheetTonight" class="rs-tonight hidden">
       <h3 class="rs-sec">Tonight: count at close</h3>
       <p class="rs-meta" id="returnSheetTonightMeta"></p>
@@ -658,6 +736,24 @@
     <p id="todayEmpty" class="hint">Nothing saved yet today.</p>
   </div>
   <p class="hint">Add this page to your home screen for one-tap access.</p>
+  <div id="confirmAnyway" class="confirm-anyway hidden" role="dialog" aria-label="Confirm return anyway">
+    <div class="confirm-anyway-box">
+      <h3>Items still to scan</h3>
+      <p class="ca-lead" id="confirmAnywayLead">These titles are unscanned or short.</p>
+      <ul id="confirmAnywayList" class="ca-list"></ul>
+      <span class="ca-reason-label" id="confirmAnywayReasonLabel">Reason (optional)</span>
+      <div class="ca-reasons" role="group" aria-labelledby="confirmAnywayReasonLabel">
+        <button type="button" class="ca-reason" data-reason="sold">Sold</button>
+        <button type="button" class="ca-reason" data-reason="missing">Missing</button>
+        <button type="button" class="ca-reason" data-reason="damaged">Damaged</button>
+      </div>
+      <input id="confirmAnywayOther" class="ca-reason-other" type="text" autocomplete="off" placeholder="Or type another reason">
+      <div class="ca-actions">
+        <button type="button" class="ca-back" id="confirmAnywayBack">Back</button>
+        <button type="button" class="ca-go" id="confirmAnywayGo">Confirm anyway</button>
+      </div>
+    </div>
+  </div>
   <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
   <script>
@@ -1951,6 +2047,60 @@
       return { done: done, total: due.length, ready: due.length > 0 && done === due.length, hasSheet: true };
     }
 
+    function missingDueLines() {
+      if (!returnSheetData) return [];
+      var localMap = localReturnScanMap();
+      var rt = returnSheetData.return_today || {};
+      var lines = (rt.newspapers || []).concat(rt.magazines || []);
+      return lines.filter(function (it) { return Number(it.qty) > 0; }).map(function (it) {
+        return mergeSheetItem(it, localMap);
+      }).filter(function (it) { return !it.done; });
+    }
+
+    function cleanField(s) {
+      return String(s == null ? "" : s).replace(/[|\n\r]+/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function hideConfirmAnyway() {
+      var el = document.getElementById("confirmAnyway");
+      if (el) el.classList.add("hidden");
+    }
+
+    function showConfirmAnyway() {
+      var missing = missingDueLines();
+      var box = document.getElementById("confirmAnyway");
+      var list = document.getElementById("confirmAnywayList");
+      var lead = document.getElementById("confirmAnywayLead");
+      if (!box || !list) return;
+      var prog = todayReturnProgress();
+      if (lead) lead.textContent = "Scanned " + prog.done + " of " + prog.total + ". These titles are still unscanned or short.";
+      list.innerHTML = "";
+      missing.forEach(function (it) {
+        var li = document.createElement("li");
+        var title = document.createElement("div");
+        title.className = "ca-title";
+        title.textContent = it.title || it.full_title || "Unknown";
+        var scan = document.createElement("div");
+        scan.className = "ca-scan";
+        scan.textContent = "scanned " + (Number(it.scanned) || 0) + " of " + (Number(it.qty) || 0);
+        li.appendChild(title);
+        li.appendChild(scan);
+        list.appendChild(li);
+      });
+      document.querySelectorAll(".ca-reason").forEach(function (b) { b.classList.remove("on"); });
+      var other = document.getElementById("confirmAnywayOther");
+      if (other) other.value = "";
+      box.classList.remove("hidden");
+    }
+
+    function selectedConfirmReason() {
+      var on = document.querySelector(".ca-reason.on");
+      var chip = on ? cleanField(on.getAttribute("data-reason") || on.textContent) : "";
+      var other = document.getElementById("confirmAnywayOther");
+      var typed = other ? cleanField(other.value) : "";
+      return typed || chip;
+    }
+
     function updateConfirmLock() {
       var ret = isReturns();
       var hint = document.getElementById("confirmReturnHint");
@@ -1960,29 +2110,32 @@
         if (hint) { hint.textContent = ""; hint.classList.add("hidden"); }
         if (note) { note.textContent = ""; note.classList.add("hidden"); }
         if (topBtn) topBtn.classList.add("hidden");
+        hideConfirmAnyway();
         saveDelivery.disabled = false;
         return;
       }
-      if (topBtn) topBtn.classList.remove("hidden");
+      if (topBtn) {
+        topBtn.classList.remove("hidden");
+        topBtn.disabled = false;
+      }
       var prog = todayReturnProgress();
       var unsaved = allReturnItems().length;
+      var missing = missingDueLines();
       var msg = "";
-      var ready = false;
-      if (prog.hasSheet && prog.total > 0 && !prog.ready) {
-        msg = "Scan all items to confirm (" + prog.done + " of " + prog.total + " done)";
+      var ready = true;
+      if (prog.hasSheet && prog.total > 0 && missing.length) {
+        msg = "Scanned " + prog.done + " of " + prog.total + ". Confirm return is available. If anything is still short you can confirm anyway.";
         ready = false;
       } else if (prog.hasSheet && prog.ready && unsaved === 0) {
         msg = "All items scanned";
-        ready = false;
+        ready = true;
       } else if (prog.hasSheet && prog.ready && unsaved > 0) {
         msg = "All items scanned. Tap Confirm return.";
         ready = true;
       } else if (!prog.hasSheet) {
         msg = unsaved ? "Today's return sheet could not be loaded. You can still confirm scanned returns." : "";
-        ready = unsaved > 0;
       } else {
         msg = unsaved ? "Nothing due on today's list. You can still confirm scanned returns." : "Nothing to scan today";
-        ready = unsaved > 0;
       }
       [hint, note].forEach(function (el) {
         if (!el) return;
@@ -1990,8 +2143,7 @@
         el.classList.toggle("hidden", !msg);
         el.classList.toggle("is-ready", ready);
       });
-      saveDelivery.disabled = !ready;
-      if (topBtn) topBtn.disabled = !ready;
+      saveDelivery.disabled = false;
     }
 
     function postCancelRow(item, qty, modeHint, kindHint) {
@@ -2046,12 +2198,21 @@
       if (typeof updateConfirmLock === "function") updateConfirmLock();
     }
 
-    function saveCurrent() {
+    function saveCurrent(opts) {
+      opts = opts || {};
       const date = deliveryDate.value.trim();
       const who = checkedBy.value.trim();
       const ret = isReturns();
       const stock = isStockTake();
       var list = ret ? allReturnItems() : items();
+      if (ret && !opts.anyway) {
+        var prog0 = todayReturnProgress();
+        var missing0 = missingDueLines();
+        if (prog0.hasSheet && prog0.total > 0 && missing0.length) {
+          showConfirmAnyway();
+          return;
+        }
+      }
       if (!date) {
         setStatus(stock ? "Please enter the stock take date." : (ret ? "Please enter the return date." : "Please enter the delivery date."), "error");
         return;
@@ -2061,15 +2222,7 @@
         checkedBy.focus();
         return;
       }
-      if (ret) {
-        var prog = todayReturnProgress();
-        if (prog.hasSheet && prog.total > 0 && !prog.ready) {
-          setStatus("Scan all items to confirm (" + prog.done + " of " + prog.total + " done).", "error");
-          updateConfirmLock();
-          return;
-        }
-      }
-      if (!list.length) {
+      if (!list.length && !(ret && opts.anyway)) {
         setStatus("Add at least one title before saving.", "error");
         return;
       }
@@ -2097,6 +2250,37 @@
           });
         });
       });
+      if (ret) {
+        chain = chain.then(function () {
+          var prog = todayReturnProgress();
+          var missing = missingDueLines();
+          var reason = cleanField(opts.reason || "");
+          var status = missing.length ? "PARTIAL" : "COMPLETE";
+          var missText = missing.map(function (it) {
+            return cleanField(it.title || it.full_title) + " scanned " + (Number(it.scanned) || 0) + " of " + (Number(it.qty) || 0);
+          }).join("; ");
+          var leftTotal = missing.reduce(function (a, it) { return a + (Number(it.left) || 0); }, 0);
+          setStatus("Saving confirmation...", "");
+          var confirmName = "PAPERRETURNCONFIRM: " + status + " | " + prog.done + " of " + prog.total + " done | " + missText + " | reason " + reason + " | " + who;
+          var jobs = [postPayload({
+            name: confirmName,
+            photo: saved.length ? "" : photo,
+            lines: [{ date: date, qty: String(leftTotal) }]
+          })];
+          missing.forEach(function (it) {
+            var typ = it.kind || paperType(it.barcode, it.title || it.full_title) || saveKind;
+            var missName = "PAPERRETURNMISS: " + cleanField(it.barcode) + " | " + cleanField(it.title || it.full_title) + " | scanned " + (Number(it.scanned) || 0) + " of " + (Number(it.qty) || 0) + " | " + (reason || "-") + " | " + who + " | " + typ;
+            jobs.push(postPayload({
+              name: missName,
+              photo: "",
+              lines: [{ date: date, qty: String(Number(it.left) || 0) }]
+            }));
+          });
+          return jobs.reduce(function (seq, job) {
+            return seq.then(function () { return job; });
+          }, Promise.resolve());
+        });
+      }
       chain.then(function () {
         if (mode !== saveMode) {
           if (saveMode === "stocktake") setMode("stocktake");
@@ -2118,8 +2302,10 @@
           barcodeInput.value = "";
           renderList();
           renderTodayList();
+          hideConfirmAnyway();
           renderReturnSheet();
-          setStatus("Returns confirmed", "ok");
+          var leftover = missingDueLines();
+          setStatus(leftover.length ? "Return confirmed anyway" : "Returns confirmed", "ok");
         } else {
           if (kind() !== saveKind && saveMode !== "stocktake") setKind(saveKind);
           appendToday(saved);
@@ -2138,10 +2324,40 @@
     (function () {
       var topBtn = document.getElementById("confirmReturnBtn");
       if (topBtn) topBtn.addEventListener("click", function () { saveCurrent(); });
+      document.querySelectorAll(".ca-reason").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".ca-reason").forEach(function (b) { b.classList.remove("on"); });
+          btn.classList.add("on");
+        });
+      });
+      var back = document.getElementById("confirmAnywayBack");
+      if (back) back.addEventListener("click", function () { hideConfirmAnyway(); });
+      var go = document.getElementById("confirmAnywayGo");
+      if (go) go.addEventListener("click", function () {
+        hideConfirmAnyway();
+        saveCurrent({ anyway: true, reason: selectedConfirmReason() });
+      });
     })();
 
 
     var returnSheetData = null;
+    window.__paperReturns = {
+      todayReturnProgress: todayReturnProgress,
+      missingDueLines: missingDueLines,
+      showConfirmAnyway: showConfirmAnyway,
+      hideConfirmAnyway: hideConfirmAnyway,
+      updateConfirmLock: updateConfirmLock,
+      saveCurrent: saveCurrent,
+      seedItems: function (kind, list) {
+        if (!baskets.returns[kind]) baskets.returns[kind] = { items: [], photo: "" };
+        baskets.returns[kind].items = list || [];
+        persistBasket();
+        renderList();
+        renderReturnSheet();
+        updateConfirmLock();
+      }
+    };
+
 
     function codeKey(bc) {
       return String(bc || "").replace(/\D/g, "").slice(0, 13);
