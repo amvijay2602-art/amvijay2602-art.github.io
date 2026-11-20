@@ -373,6 +373,32 @@
       new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).forEach(function (x) { p[x.type] = x.value; });
       return { day: p.year + "-" + p.month + "-" + p.day, hm: p.hour + ":" + p.minute };
     }
+    function localMagReturnsDone(mag, day) {
+      try {
+        var key = "birkhill-paper-stockin-today-returns-v1-magazine";
+        var v = JSON.parse(localStorage.getItem(key) || "null");
+        if (v && v.date === day && v.items && mag && mag.items) {
+          var by = {};
+          v.items.forEach(function (it) {
+            var k = String(it.barcode || "");
+            var n = String(it.name || "").toUpperCase();
+            if (k) by[k] = (by[k] || 0) + (Number(it.qty) || 0);
+            if (n) by["n:" + n] = (by["n:" + n] || 0) + (Number(it.qty) || 0);
+          });
+          var left = 0;
+          (mag.items || []).forEach(function (it) {
+            var need = Number(it.outstanding) || 0;
+            if (need <= 0) return;
+            var got = 0;
+            if (it.barcode && by[it.barcode]) got = by[it.barcode];
+            else if (it.title && by["n:" + String(it.title).toUpperCase()]) got = by["n:" + String(it.title).toUpperCase()];
+            if (got < need) left += (need - got);
+          });
+          return left <= 0;
+        }
+      } catch (e) {}
+      return false;
+    }
     function localPaperDone(prefix, day) {
       try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf(prefix) !== 0) continue; var v = JSON.parse(localStorage.getItem(k) || "null"); if (v && v.date === day && v.items && v.items.length) return true; } } catch (e) {}
       return false;
@@ -413,6 +439,10 @@
         var dl = P.delivery_last ? P.delivery_last.slice(0, 10) : "", rl = P.returns_last ? P.returns_last.slice(0, 10) : "";
         if (f && f.day === now.day && now.hm >= "07:00" && f.hm >= "07:00" && dl !== now.day && !localPaperDone("birkhill-paper-stockin-today-delivery-v1", now.day)) pj.push("Morning delivery not saved");
         if (f && f.day === now.day && now.hm >= "20:00" && f.hm >= "20:00" && rl !== now.day && !localPaperDone("birkhill-paper-stockin-today-returns-v1", now.day)) pj.push("Evening returns not done");
+        var mag = P.mag_returns, mleft = mag && mag.date === now.day ? (Number(mag.outstanding) || 0) : 0;
+        if (now.hm >= "07:00" && mleft > 0 && !localMagReturnsDone(mag, now.day)) {
+          pj.push(mleft + " magazine return" + (mleft === 1 ? "" : "s") + " to do");
+        }
         setBadge("tilePaper", pj.length, pj.join(", "));
       }
       var seen = ls("birkhill-reports-seen") || "";

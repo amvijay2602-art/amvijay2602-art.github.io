@@ -509,6 +509,14 @@
     .rs-tick { display: none; margin-left: 4px; }
     .rs-item.is-done .rs-tick { display: inline; }
     .rs-tonight { margin-top: 16px; padding-top: 4px; }
+
+    .rs-item.is-due { border-color: #f5b5b5; background: #fff8f8; box-shadow: inset 4px 0 0 #c62828; }
+    .rs-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .rs-btn { min-height: 48px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; border: 2px solid #E86B2A; background: #E86B2A; color: #fff; }
+    .rs-btn.scan { background: #fff; color: #E86B2A; }
+    .rs-btn:disabled { opacity: 0.55; cursor: default; }
+    .rs-err { display: none; margin-top: 8px; color: #c62828; font-weight: 700; font-size: 0.85rem; }
+    .rs-err.show { display: block; }
   </style>
   <link rel="stylesheet" href="../scanned-list.css">
 </head>
@@ -529,12 +537,12 @@
     <p class="rs-total" id="returnSheetTotal"></p>
     <p class="rs-instruct" id="returnSheetInstruct"></p>
     <p class="rs-meta" id="returnSheetMeta"></p>
+    <h3 class="rs-sec">Magazines to return today</h3>
+    <ul id="returnSheetMags" class="rs-list"></ul>
+    <p id="returnSheetMagsEmpty" class="hint hidden">No magazine returns today</p>
     <h3 class="rs-sec">Newspapers</h3>
     <ul id="returnSheetNews" class="rs-list"></ul>
     <p id="returnSheetNewsEmpty" class="hint hidden">No newspaper returns today</p>
-    <h3 class="rs-sec">Magazines</h3>
-    <ul id="returnSheetMags" class="rs-list"></ul>
-    <p id="returnSheetMagsEmpty" class="hint hidden">No magazine returns today</p>
     <div id="returnSheetTonight" class="rs-tonight hidden">
       <h3 class="rs-sec">Tonight: count at close</h3>
       <p class="rs-meta" id="returnSheetTonightMeta"></p>
@@ -1464,6 +1472,7 @@
       const rec = lookup(code);
       if (!rec) return;
       beep();
+      if (typeof magOnScan === "function") magOnScan(rec);
       barcodeInput.value = rec.barcode;
       const list = items();
       const existing = list.find(function (it) {
@@ -1984,9 +1993,32 @@
         li.appendChild(thumb);
         li.appendChild(col);
         li.appendChild(badge);
-        if (!tonight && kind) {
+        if (!tonight && kind === "MAGAZINE" && !sold && !item.done) {
+          var actions = document.createElement("div");
+          actions.className = "rs-actions";
+          actions.innerHTML = '<button type="button" class="rs-btn scan" data-act="scan">Scan</button>' +
+            '<button type="button" class="rs-btn" data-act="ok">Confirm ' + (item.left || item.qty || "") + "</button>";
+          var err = document.createElement("div");
+          err.className = "rs-err";
+          col.appendChild(actions);
+          col.appendChild(err);
+          li.classList.add("is-due");
+          li.addEventListener("click", function (e) {
+            if (e.target && e.target.closest && e.target.closest("button")) return;
+            if (typeof startMagReturn === "function") startMagReturn(item, true);
+          });
+          actions.querySelector('[data-act="scan"]').addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (typeof startMagReturn === "function") startMagReturn(item, true);
+          });
+          actions.querySelector('[data-act="ok"]').addEventListener("click", function (e) {
+            e.stopPropagation();
+            if (typeof confirmMagReturn === "function") confirmMagReturn(item, err, e.currentTarget);
+          });
+        } else if (!tonight && kind) {
           li.addEventListener("click", function () {
             if (typeof setKind === "function") setKind(kind);
+            if (kind === "MAGAZINE" && typeof startMagReturn === "function") startMagReturn(item, false);
           });
         }
         listEl.appendChild(li);
@@ -2032,6 +2064,91 @@
         dummy.className = "hidden";
         renderSheetList(tlist, dummy, (tn.newspapers || []).concat(tn.magazines || []), "", true);
       }
+    }
+
+
+    var magAwaiting = null;
+
+    function startMagReturn(item, startCam) {
+      if (!item) return;
+      if (!isReturns()) setMode("returns");
+      setKind("MAGAZINE");
+      magAwaiting = item.barcode || item.title || "mag";
+      var qty = Number(item.left) || Number(item.qty) || 1;
+      if (item.barcode) {
+        var rec = lookup(item.barcode) || { barcode: item.barcode, name: item.title || item.full_title || "", price: 0, match: "none" };
+        if (!rec.name) rec.name = item.title || item.full_title || "";
+        current = rec;
+        showFound(rec, qty);
+        foundName.value = item.title || item.full_title || rec.name || "";
+        barcodeInput.value = item.barcode;
+      } else {
+        hideFound();
+        barcodeInput.value = "";
+        setStatus("Scan the barcode for " + (item.title || "this magazine") + ".", "");
+        barcodeInput.focus();
+      }
+      if (startCam && !cameraOn) {
+        cameraBtn.disabled = true;
+        startCamera().catch(function () {
+          stopCamera();
+          setStatus("Could not open the camera. You can type the barcode instead.", "error");
+        }).then(function () { cameraBtn.disabled = false; });
+      }
+      var box = document.getElementById("scannedBox");
+      if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function confirmMagReturn(item, errEl, btn) {
+      var who = checkedBy.value.trim();
+      function showErr(msg) {
+        if (errEl) { errEl.textContent = msg || ""; errEl.classList.toggle("show", !!msg); }
+        if (msg) setStatus(msg, "error");
+      }
+      if (!who) { showErr("Enter your name in Checked by first."); checkedBy.focus(); return; }
+      if (!deliveryDate.value) deliveryDate.value = todayLondon();
+      var left = Number(item.left) || 0;
+      if (left <= 0) { renderReturnSheet(); return; }
+      if (!item.barcode) {
+        showErr("Scan the barcode first, then tap Confirm.");
+        startMagReturn(item, true);
+        return;
+      }
+      if (btn) btn.disabled = true;
+      showErr("");
+      setStatus("Saving " + (item.title || "") + "...", "");
+      var name = "PAPERRETURN: " + item.barcode + " | " + (item.title || item.full_title) + " | " + String(left) + " | " + who + " | MAGAZINE";
+      postPayload({
+        name: name,
+        photo: "",
+        lines: [{ date: deliveryDate.value || todayLondon(), qty: String(left) }]
+      }).then(function () {
+        appendToday([{ barcode: item.barcode, name: item.title || item.full_title, qty: left }]);
+        magAwaiting = null;
+        hideFound();
+        setStatus("Saved " + (item.title || "") + " return", "ok");
+        renderReturnSheet();
+      }).catch(function () {
+        showErr("Could not save. Check your connection and try again.");
+        if (btn) btn.disabled = false;
+      });
+    }
+
+    function magOnScan(rec) {
+      if (!magAwaiting || !rec) return;
+      var code = rec.barcode || "";
+      current = rec.name ? rec : { barcode: code, name: rec.name || "", price: rec.price || 0, match: rec.match || "none" };
+      // If we were waiting because the barcode was missing, keep the scanned code on the found panel.
+      if (current && !current.name && returnSheetData) {
+        var mags = ((returnSheetData.return_today || {}).magazines || []);
+        mags.forEach(function (it) {
+          if (!it.barcode && (magAwaiting === it.title || magAwaiting === "mag")) {
+            it.barcode = code;
+            if (!current.name) current.name = it.title;
+          }
+        });
+      }
+      if (!foundName.value && current.name) foundName.value = current.name;
     }
 
     function loadReturnSheet() {
