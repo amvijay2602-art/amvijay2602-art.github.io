@@ -533,16 +533,12 @@
     <button type="button" id="kindMags" class="kind-btn" role="tab" aria-selected="false">Magazines<span class="kind-n" id="kindMagsN"></span></button>
   </div>
   <div class="card hidden" id="returnSheetCard">
-    <h2>Today's return sheet</h2>
+    <h2>What to scan today</h2>
     <p class="rs-total" id="returnSheetTotal"></p>
     <p class="rs-instruct" id="returnSheetInstruct"></p>
     <p class="rs-meta" id="returnSheetMeta"></p>
-    <h3 class="rs-sec">Magazines to return today</h3>
-    <ul id="returnSheetMags" class="rs-list"></ul>
-    <p id="returnSheetMagsEmpty" class="hint hidden">No magazine returns today</p>
-    <h3 class="rs-sec">Newspapers</h3>
-    <ul id="returnSheetNews" class="rs-list"></ul>
-    <p id="returnSheetNewsEmpty" class="hint hidden">No newspaper returns today</p>
+    <ul id="returnSheetToday" class="rs-list"></ul>
+    <p id="returnSheetTodayEmpty" class="hint hidden">Nothing to scan today</p>
     <div id="returnSheetTonight" class="rs-tonight hidden">
       <h3 class="rs-sec">Tonight: count at close</h3>
       <p class="rs-meta" id="returnSheetTonightMeta"></p>
@@ -1906,13 +1902,13 @@
       } else {
         out.status = "Scan " + left;
       }
-      out.line_text = (item.title || item.full_title || "") + ": scanned " + scanned + " of " + qty + ", " + left + " left to scan";
+      out.line_text = qty === 0 ? "Sold out" : ("scanned " + scanned + " of " + qty);
       return out;
     }
 
-    function phraseItems(items, listName) {
+    function phraseItems(items) {
       if (!items.length) return "";
-      return items.map(function (it) { return it.title + " x" + it.left; }).join(", ") + " (" + listName + ")";
+      return items.map(function (it) { return it.title + " x" + it.left; }).join(", ");
     }
 
     function liveScanCopy(news, mags, data) {
@@ -1922,18 +1918,14 @@
       var packM = mags.filter(function (x) { return x.qty > 0; });
       var totalLeft = 0, totalQty = 0;
       news.concat(mags).forEach(function (x) { totalLeft += Number(x.left) || 0; totalQty += Number(x.qty) || 0; });
-      var bits = [];
-      if (leftM.length) bits.push(phraseItems(leftM, "Magazines list"));
-      if (leftN.length) bits.push(phraseItems(leftN, "Newspapers list"));
+      var left = leftM.concat(leftN);
+      var pack = packM.concat(packN);
       var scanNow;
-      if (bits.length) scanNow = "SCAN NOW: " + bits.join(". ") + ".";
-      else if (packN.length || packM.length) {
-        var pack = [];
-        if (packM.length) pack.push(packM.map(function (x) { return x.title + " x" + x.qty; }).join(", ") + " (Magazines list)");
-        if (packN.length) pack.push(packN.map(function (x) { return x.title + " x" + x.qty; }).join(", ") + " (Newspapers list)");
-        scanNow = "All scanned. Pack today: " + pack.join(". ") + ".";
+      if (left.length) scanNow = "What to scan today: " + phraseItems(left) + ".";
+      else if (pack.length) {
+        scanNow = "All scanned. Pack today: " + pack.map(function (x) { return x.title + " x" + x.qty; }).join(", ") + ".";
       } else {
-        scanNow = (data && data.scan_now) || "No newspaper or magazine returns today.";
+        scanNow = (data && data.scan_now) || "Nothing to scan today.";
       }
       var totalLine = totalLeft === 1 ? "1 item left to return" : (totalLeft + " items left to return");
       if (totalQty > 0 && totalLeft === 0) totalLine = "All " + totalQty + " items scanned";
@@ -1941,10 +1933,12 @@
     }
 
     function renderSheetList(listEl, emptyEl, items, kind, tonight) {
+      if (!listEl) return;
       listEl.innerHTML = "";
       var showEmpty = !tonight && items.length === 0;
       if (emptyEl) emptyEl.classList.toggle("hidden", !showEmpty);
       items.forEach(function (item) {
+        var lineKind = item.kind || kind;
         var li = document.createElement("li");
         var sold = !tonight && Number(item.qty) === 0;
         li.className = "rs-item" + (tonight ? " is-tonight" : (item.done ? (sold ? " is-done is-soldout" : " is-done") : ""));
@@ -1993,7 +1987,7 @@
         li.appendChild(thumb);
         li.appendChild(col);
         li.appendChild(badge);
-        if (!tonight && kind === "MAGAZINE" && !sold && !item.done) {
+        if (!tonight && lineKind === "MAGAZINE" && !sold && !item.done) {
           var actions = document.createElement("div");
           actions.className = "rs-actions";
           actions.innerHTML = '<button type="button" class="rs-btn scan" data-act="scan">Scan</button>' +
@@ -2015,10 +2009,10 @@
             e.stopPropagation();
             if (typeof confirmMagReturn === "function") confirmMagReturn(item, err, e.currentTarget);
           });
-        } else if (!tonight && kind) {
+        } else if (!tonight && lineKind) {
           li.addEventListener("click", function () {
-            if (typeof setKind === "function") setKind(kind);
-            if (kind === "MAGAZINE" && typeof startMagReturn === "function") startMagReturn(item, false);
+            if (typeof setKind === "function") setKind(lineKind);
+            if (lineKind === "MAGAZINE" && typeof startMagReturn === "function") startMagReturn(item, false);
           });
         }
         listEl.appendChild(li);
@@ -2039,15 +2033,22 @@
       var metaEl = document.getElementById("returnSheetMeta");
       totalEl.textContent = copy.total_line;
       totalEl.classList.toggle("is-done", copy.total_left === 0);
-      instEl.textContent = copy.scan_now;
+      // The list is the instruction. Only show a line when everything is scanned, or nothing is due.
+      var hasItems = news.length + mags.length > 0;
+      if (copy.total_left === 0 && hasItems) instEl.textContent = copy.scan_now;
+      else instEl.textContent = "";
+      instEl.style.display = instEl.textContent ? "" : "none";
       var meta = [];
       if (rt.issue_display) meta.push(rt.issue_display + " issues");
       if (rt.pickup_display) meta.push("pickup " + rt.pickup_display);
       if (rt.recall_ref) meta.push("ref " + rt.recall_ref);
       if (data.generated_display) meta.push("updated " + data.generated_display);
       metaEl.textContent = meta.join("  ·  ");
-      renderSheetList(document.getElementById("returnSheetNews"), document.getElementById("returnSheetNewsEmpty"), news, "NEWSPAPER", false);
-      renderSheetList(document.getElementById("returnSheetMags"), document.getElementById("returnSheetMagsEmpty"), mags, "MAGAZINE", false);
+      var todayItems = mags.filter(function (x) { return x.qty > 0 && x.left > 0; })
+        .concat(news.filter(function (x) { return x.qty > 0 && x.left > 0; }))
+        .concat(mags.filter(function (x) { return !(x.qty > 0 && x.left > 0); }))
+        .concat(news.filter(function (x) { return !(x.qty > 0 && x.left > 0); }));
+      renderSheetList(document.getElementById("returnSheetToday"), document.getElementById("returnSheetTodayEmpty"), todayItems, "", false);
       var tn = data.tonight;
       var box = document.getElementById("returnSheetTonight");
       if (!tn || (!(tn.newspapers || []).length && !(tn.magazines || []).length)) {
