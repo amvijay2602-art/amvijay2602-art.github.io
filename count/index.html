@@ -57,6 +57,13 @@ label.f { display:block; font-weight:700; margin-top:10px; }
 .opts { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .opt { min-height:52px; border:2px solid #b9c9bf; border-radius:12px; background:#fff; font-weight:700; color:var(--ink); padding:8px; }
 .opt.on { border-color:var(--g); background:var(--okbg); color:var(--g); }
+.dphotos { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+.dph { position:relative; width:72px; height:72px; border-radius:10px; overflow:hidden; background:#f1f4f2; border:1px solid var(--line); }
+.dph img { width:100%; height:100%; object-fit:cover; display:block; }
+.dph span { position:absolute; left:0; right:0; bottom:0; background:rgba(24,52,42,.75); color:#fff; font-size:.68rem; font-weight:700; text-align:center; padding:1px 0; }
+.dph button { position:absolute; top:0; right:0; width:48px; height:48px; border:0; background:transparent; color:#fff; font-size:1.1rem; font-weight:900; text-shadow:0 0 3px #000; display:flex; align-items:flex-start; justify-content:flex-end; padding:2px 6px; }
+.rvph { display:flex; gap:4px; margin-top:4px; }
+.rvph img { width:36px; height:36px; object-fit:cover; border-radius:6px; }
 .batch { display:grid; grid-template-columns:1fr 84px 48px 48px; gap:6px; margin-top:8px; align-items:center; }
 .batch button { min-height:52px; border:0; border-radius:12px; background:#e5efe9; color:var(--g); font-weight:800; font-size:1.1rem; }
 .qty { display:grid; grid-template-columns:64px 1fr 64px; gap:8px; margin-top:8px; }
@@ -161,6 +168,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
         <div id="batches"></div>
         <button class="btn sec" id="addBatch">+ Add another date batch</button>
       </div>
+      <div id="dpBox"><div id="dpHint"></div><button class="btn sec" id="datePhotoBtn">&#128247; Take photo of date</button><div id="datePhotos" class="dphotos"></div></div>
       <input type="date" id="nativeDate" class="hidden" aria-hidden="true">
       <div id="dateMsg"></div>
     </div>
@@ -233,20 +241,32 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   var sending = false, lastFail = false, savedLocal = false;
   function pill() {
     var n = jget(K.queue, []).length, p = $("syncPill");
-    if (lastFail && n) { p.textContent = "Save failed, retrying (" + n + ")"; p.className = "pill fail"; }
+    if (lastFail && n && navigator.onLine !== false) { p.textContent = "Save failed, retrying (" + n + ")"; p.className = "pill fail"; }
+    else if (n && navigator.onLine === false) { p.textContent = "Offline, saved on this device (" + n + ")"; p.className = "pill pend"; }
     else if (n) { p.textContent = (savedLocal ? "Saved on this device, sync pending (" : "Sync pending (") + n + ")"; p.className = "pill pend"; }
     else if (savedLocal) { p.textContent = "Synced"; p.className = "pill"; }
     else { p.textContent = "Ready"; p.className = "pill"; }
   }
+  var IDB = null, idbDead = false;
+  try { var oq = indexedDB.open("birkhill-count-photos", 1); oq.onupgradeneeded = function () { oq.result.createObjectStore("p"); }; oq.onsuccess = function () { IDB = oq.result; flush(); }; oq.onerror = function () { idbDead = true; }; } catch (e) { idbDead = true; }
+  function idbPut(k, v, cb) { if (!IDB) { cb(false); return; } try { var t = IDB.transaction("p", "readwrite"); t.objectStore("p").put(v, k); t.oncomplete = function () { cb(true); }; t.onerror = function () { cb(false); }; } catch (e) { cb(false); } }
+  function idbGet(k, cb) { if (!IDB) { cb(null); return; } try { var rq = IDB.transaction("p").objectStore("p").get(k); rq.onsuccess = function () { cb(rq.result || null); }; rq.onerror = function () { cb(null); }; } catch (e) { cb(null); } }
+  function idbDel(k) { if (!IDB) return; try { IDB.transaction("p", "readwrite").objectStore("p").delete(k); } catch (e) {} }
   function queue(payload) { var q = jget(K.queue, []); q.push(payload); jset(K.queue, q); savedLocal = true; pill(); flush(); }
   function flush() {
     pill(); if (sending) return; var q = jget(K.queue, []); if (!q.length) return; sending = true;
-    fetch(ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(q[0]) })
-      .then(function () { var q2 = jget(K.queue, []); q2.shift(); jset(K.queue, q2); lastFail = false; sending = false; flush(); })
-      .catch(function () { lastFail = true; sending = false; pill(); setTimeout(flush, 15000); });
+    var it0 = q[0];
+    if (it0.pref && !IDB && !idbDead) { sending = false; setTimeout(flush, 2000); return; }
+    var send = function (photo) {
+      var body = { name: it0.name, photo: photo != null ? photo : (it0.photo || ""), lines: it0.lines };
+      fetch(ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(body) })
+        .then(function () { var q2 = jget(K.queue, []); q2.shift(); jset(K.queue, q2); if (it0.pref) idbDel(it0.pref); lastFail = false; sending = false; flush(); })
+        .catch(function () { lastFail = true; sending = false; pill(); setTimeout(flush, 15000); });
+    };
+    if (it0.pref) idbGet(it0.pref, function (v) { send(v || ""); }); else send(null);
   }
-  window.addEventListener("online", flush); setInterval(flush, 30000);
-  function row(kind, fields, qty, date, photo) { queue({ name: kind + ": " + fields.map(clean).join(" | "), photo: photo || "", lines: [{ date: date || londonISO(), qty: String(qty == null ? 0 : qty) }] }); }
+  window.addEventListener("online", flush); window.addEventListener("offline", pill); setInterval(flush, 30000);
+  function row(kind, fields, qty, date, photo, pref) { var o = { name: kind + ": " + fields.map(clean).join(" | "), photo: photo || "", lines: [{ date: date || londonISO(), qty: String(qty == null ? 0 : qty) }] }; if (pref) o.pref = pref; queue(o); }
 
   function dept(key) { if (!DATA) return null; for (var i = 0; i < DATA.departments.length; i++) if (DATA.departments[i].key === key) return DATA.departments[i]; return null; }
   Promise.all([
@@ -376,7 +396,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     if (!S || S.finished) { go("home"); return; }
     if (S.idx >= S.items.length) S.idx = 0;
     var it = item(), r = S.res[it.id];
-    cur = { scan: r ? r.scan : "", code: r ? r.code : "", dtype: r ? r.dtype : "", batches: r && r.batches ? JSON.parse(JSON.stringify(r.batches)) : [] };
+    cur = { scan: r ? r.scan : "", code: r ? r.code : "", dtype: r ? r.dtype : "", batches: r && r.batches ? JSON.parse(JSON.stringify(r.batches)) : [], photos: r && r.photos ? JSON.parse(JSON.stringify(r.photos)) : [] };
+    cur.batches.forEach(function (b) { if (!b.u) b.u = uid(); });
     $("cDept").textContent = S.name;
     $("cProg").textContent = "Product " + (S.idx + 1) + " of " + S.items.length + "  \u00b7  " + counted(S) + " of " + S.items.length + " counted";
     $("cBar").style.width = Math.round(100 * counted(S) / S.items.length) + "%";
@@ -468,23 +489,61 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     if ($("aMain") && step === 1) $("aMain").innerHTML = "&#128247; Scan barcode";
   }
   // date
+  function uid() { return Math.random().toString(36).slice(2, 8); }
+  function batchNo(u) { for (var i = 0; i < cur.batches.length; i++) if (cur.batches[i].u === u) return i + 1; return 0; }
+  function renderPhotos() {
+    var un = cur.dtype === "unreadable";
+    $("dpHint").innerHTML = un ? "<div class='msg warn'>Can't read the date? Take a clear photo of it so a manager can check. You can take more than one.</div>" : "";
+    $("datePhotoBtn").className = "btn " + (un ? "o" : "sec");
+    $("datePhotoBtn").innerHTML = "&#128247; " + (cur.photos.length ? "Take another photo of date" : "Take photo of date") + (un ? " (recommended)" : "");
+    $("datePhotos").innerHTML = cur.photos.map(function (ph, i) { var n = batchNo(ph.u); return "<div class='dph'><img src='" + ph.th + "' alt='Date photo " + (i + 1) + "'><span>" + (n ? "Batch " + n : "Product") + "</span>" + (ph.nw ? "<button data-i='" + i + "' aria-label='Remove photo'>&times;</button>" : "") + "</div>"; }).join("");
+    each($("datePhotos").querySelectorAll("button"), function (b) { b.onclick = function () { var ph = cur.photos.splice(+b.getAttribute("data-i"), 1)[0]; if (ph) idbDel(ph.p); renderPhotos(); }; });
+  }
+  function shrink(file, max, q, cb) {
+    var rd = new FileReader();
+    rd.onload = function () { var img = new Image(); img.onload = function () { var w = img.width, h = img.height, k = Math.min(1, max / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k); var cv = document.createElement("canvas"); cv.width = w; cv.height = h; cv.getContext("2d").drawImage(img, 0, 0, w, h); cb(cv.toDataURL("image/jpeg", q)); }; img.onerror = function () { cb(null); }; img.src = rd.result; };
+    rd.onerror = function () { cb(null); }; rd.readAsDataURL(file);
+  }
+  function addDatePhotos(files, u) {
+    Array.prototype.forEach.call(files, function (f) {
+      shrink(f, 1000, 0.6, function (full) {
+        if (!full) { $("dateMsg").innerHTML = "<div class='msg err'>That photo could not be read. Try again.</div>"; return; }
+        var img = new Image(); img.onload = function () { var k = 120 / Math.max(img.width, img.height), cv = document.createElement("canvas"); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k); cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+          var ph = { p: "DP" + Date.now().toString(36) + uid(), u: u || "", th: cv.toDataURL("image/jpeg", 0.5), nw: true, at: londonTime() };
+          idbPut(ph.p, full, function (ok) { if (!ok) ph.full = full; cur.photos.push(ph); renderPhotos(); });
+        }; img.src = full;
+      });
+    });
+  }
+  function pickPhotoFiles(u) {
+    var inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; inp.multiple = true; inp.setAttribute("capture", "environment");
+    inp.onchange = function () { if (inp.files && inp.files.length) addDatePhotos(inp.files, u); }; inp.click();
+  }
+  window.__stockCountDatePhoto = function (dataUrls, u) { dataUrls.forEach(function (d) { var b = atob(d.split(",")[1]), a = new Uint8Array(b.length); for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i); addDatePhotos([new Blob([a], { type: "image/jpeg" })], u); }); };
+  $("datePhotoBtn").onclick = function () {
+    var need = cur.dtype === "useby" || cur.dtype === "bestbefore";
+    if (need && cur.batches.length > 1) {
+      pop("<h2>Photo for which batch?</h2>" + cur.batches.map(function (b, i) { return "<button class='btn sec pb' data-u='" + b.u + "'>Batch " + (i + 1) + (b.d ? ", " + dmy(b.d) : "") + (b.q ? " (" + esc(b.q) + ")" : "") + "</button>"; }).join("") + "<button class='btn sec pb' data-u=''>Whole product</button><button class='btn ghost' id='pbNo'>Back</button>");
+      each(".pb", function (b) { b.onclick = function () { closePop(); pickPhotoFiles(b.getAttribute("data-u")); }; }); $("pbNo").onclick = closePop;
+    } else pickPhotoFiles(need && cur.batches[0] ? cur.batches[0].u : "");
+  };
   function renderDate() {
     each($("dtOpts").querySelectorAll(".opt"), function (b) { b.classList.toggle("on", b.getAttribute("data-t") === cur.dtype); });
     var need = cur.dtype === "useby" || cur.dtype === "bestbefore";
     $("batchBox").classList.toggle("hidden", !need);
     if (need) {
-      if (!cur.batches.length) cur.batches = [{ d: "", q: "" }];
+      if (!cur.batches.length) cur.batches = [{ d: "", q: "", u: uid() }];
       $("batches").innerHTML = cur.batches.map(function (b, i) { return "<div class='batch'><input type='text' inputmode='numeric' class='bd' data-i='" + i + "' placeholder='DD/MM/YYYY' value='" + esc(b.d ? dmy(b.d) : (b.t || "")) + "' aria-label='Date " + (i + 1) + "'><input type='text' inputmode='numeric' class='bq' data-i='" + i + "' placeholder='Qty' value='" + esc(b.q) + "' aria-label='Qty with this date'><button class='cal' data-i='" + i + "' aria-label='Pick date'>&#128197;</button><button class='rm' data-i='" + i + "' aria-label='Remove batch'>&times;</button></div>"; }).join("");
       each($("batches").querySelectorAll(".bd"), function (el) { el.oninput = function () { var v = el.value.replace(/[^\d]/g, "").slice(0, 8); if (v.length > 4) v = v.slice(0, 2) + "/" + v.slice(2, 4) + "/" + v.slice(4); else if (v.length > 2) v = v.slice(0, 2) + "/" + v.slice(2); el.value = v; var b = cur.batches[+el.getAttribute("data-i")]; b.t = v; b.d = parseDMY(v) || ""; dateAlerts(); }; });
       each($("batches").querySelectorAll(".bq"), function (el) { el.oninput = function () { el.value = el.value.replace(/[^\d]/g, ""); cur.batches[+el.getAttribute("data-i")].q = el.value; }; });
       each($("batches").querySelectorAll(".rm"), function (el) { el.onclick = function () { cur.batches.splice(+el.getAttribute("data-i"), 1); renderDate(); }; });
       each($("batches").querySelectorAll(".cal"), function (el) { el.onclick = function () { var nd = $("nativeDate"); nd.dataset.i = el.getAttribute("data-i"); nd.classList.remove("hidden"); try { nd.showPicker(); } catch (e) { nd.focus(); } }; });
     }
-    dateAlerts();
+    dateAlerts(); renderPhotos();
   }
   $("nativeDate").onchange = function () { var i = +this.dataset.i, v = this.value; if (v && cur.batches[i]) { cur.batches[i].d = v; cur.batches[i].t = dmy(v); } this.classList.add("hidden"); renderDate(); };
   each($("dtOpts").querySelectorAll(".opt"), function (b) { b.onclick = function () { cur.dtype = b.getAttribute("data-t"); if (cur.dtype !== "useby" && cur.dtype !== "bestbefore") cur.batches = []; renderDate(); }; });
-  $("addBatch").onclick = function () { cur.batches.push({ d: "", q: "" }); renderDate(); };
+  $("addBatch").onclick = function () { cur.batches.push({ d: "", q: "", u: uid() }); renderDate(); };
   function alertFor(dtype, iso) {
     if (!iso) return null; var t = londonISO(), soon = addDays(t, soonDays());
     if (iso < t) return dtype === "useby" ? { k: "err", t: "Past use-by" } : { k: "warn", t: "Past best-before" };
@@ -503,6 +562,10 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       if (!cur.batches.length || cur.batches.some(function (b) { return !b.d; })) { $("dateMsg").innerHTML = "<div class='msg err'>Enter a real date as DD/MM/YYYY for every batch, or remove the empty batch.</div>"; return; }
       if (cur.batches.some(function (b) { return !/^\d+$/.test(String(b.q)); })) { $("dateMsg").innerHTML = "<div class='msg err'>Enter how many have each date.</div>"; return; }
       cur.batches.sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+    }
+    if (cur.dtype === "unreadable" && !cur.photos.length && !cur.noPhotoOk) {
+      confirmPop("No photo of the date", "The date can't be read. A photo lets a manager check it later. Take one now?", "Take photo", "Continue without", function (y) { if (y) pickPhotoFiles(""); else { cur.noPhotoOk = true; dateNext(); } });
+      return;
     }
     setStep(3);
     if (cur.dtype === "nounits") $("countMsg").innerHTML = "<div class='msg info'>No units to check: enter 0 if there are none.</div>";
@@ -540,7 +603,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     if (busy) return; busy = true;
     var it = item(), prevR = S.res[it.id];
     r.scan = cur.scan || "skip"; r.code = cur.code || ""; r.dtype = r.status === "skip" ? "" : cur.dtype;
-    r.batches = r.status === "skip" ? [] : cur.batches.filter(function (b) { return b.d; }).map(function (b) { return { d: b.d, q: b.q }; });
+    r.batches = r.status === "skip" ? [] : cur.batches.filter(function (b) { return b.d; }).map(function (b) { return { d: b.d, q: b.q, u: b.u }; });
     r.till = Number(it.q) || 0; r.at = new Date().toISOString(); r.atText = londonTime(); r.staff = S.staff;
     if (prevR) S.hist.push({ id: it.id, was: prevR, at: r.at });
     S.res[it.id] = r; save();
@@ -548,6 +611,14 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     row("COUNT", [S.id, S.key, S.name, it.id, it.b[0] || "", it.n, it.s, "till " + r.till, "count " + (r.status === "skip" ? "SKIP" : r.count), "bb " + (first ? first.d : "none"),
       "scan " + r.scan + (r.code && r.scan !== "ok" ? "@" + r.code : ""), S.staff, "dtype " + (r.dtype || "-"), "batches " + r.batches.map(function (b) { return b.d + ":" + b.q; }).join(";"),
       "held " + (r.held || 0), "note " + (r.note || ""), "edit " + (prevR ? "yes" : "no"), "v2"], r.status === "skip" ? 0 : r.count, first ? first.d : londonISO());
+    var bn = function (u) { for (var i = 0; i < r.batches.length; i++) if (r.batches[i].u === u) return i + 1; return 0; };
+    r.photos = (r.status === "skip" ? cur.photos.filter(function (ph) { return !ph.nw; }) : cur.photos).map(function (ph) {
+      if (ph.nw) { var n = bn(ph.u), b = n ? r.batches[n - 1] : null;
+        row("COUNTDATEPHOTO", [S.id, S.key, S.name, it.id, it.b[0] || "", it.n, "batch " + (n || "all"), "date " + (b ? b.d : "none"), "type " + (r.dtype || "-"), "photo " + ph.p, S.staff, "v2"], b ? b.q : 0, b ? b.d : londonISO(), ph.full || "", ph.full ? null : ph.p); }
+      return { p: ph.p, u: ph.u, th: ph.th, at: ph.at };
+    });
+    if (r.status === "skip") cur.photos.forEach(function (ph) { if (ph.nw) idbDel(ph.p); });
+    save();
     setTimeout(function () { busy = false; }, 350);
     var n = nextIndex();
     if (n < 0) { go("review"); return; }
@@ -620,7 +691,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     var pick = { all: L, short: sh, over: ov, dates: dt, skip: sk, pending: pe, exc: ex }[rvTab];
     $("rvList").innerHTML = pick.slice(0, 300).map(function (l) {
       var right = l.kind === "pending" ? "<span class='muted'>Pending</span>" : l.kind === "skip" ? "<span class='muted'>Skipped</span>" : "<b style='color:" + (l.d < 0 ? "var(--red)" : l.d > 0 ? "var(--amber)" : "var(--g)") + "'>" + (l.d === 0 ? "Match" : l.d < 0 ? "Short " + (-l.d) : "Over " + l.d) + "</b>";
-      var sub = l.kind === "counted" ? "Till " + l.r.till + ", counted " + l.r.count + (l.alert ? " \u00b7 " + l.alert : "") + (l.exc ? " \u00b7 " + esc(l.exc) : "") : (l.r && l.r.note ? esc(l.r.note) : "Till " + esc(l.it.q));
+      var sub = l.kind === "counted" ? "Till " + l.r.till + ", counted " + l.r.count + (l.alert ? " \u00b7 " + l.alert : "") + (l.exc ? " \u00b7 " + esc(l.exc) : "") + (l.r.photos && l.r.photos.length ? " \u00b7 &#128247; " + l.r.photos.length + " date photo" + (l.r.photos.length > 1 ? "s" : "") + "<div class='rvph'>" + l.r.photos.slice(0, 4).map(function (ph) { return "<img src='" + ph.th + "' alt=''>"; }).join("") + "</div>" : "") : (l.r && l.r.note ? esc(l.r.note) : "Till " + esc(l.it.q));
       return "<button class='line' data-i='" + l.i + "'><div class='thumb'>" + (l.it.i ? "<img loading='lazy' src='img/" + esc(l.it.i) + "' alt=''>" : "Photo missing") + "</div><div><b>" + esc(l.it.n) + "</b><div class='muted'>" + sub + "</div></div>" + right + "</button>";
     }).join("") + (pick.length > 300 ? "<div class='muted'>Showing 300 of " + pick.length + ".</div>" : "") + (pick.length ? "" : "<div class='muted' style='padding:10px'>None</div>");
     each($("rvList").querySelectorAll(".line"), function (b) { b.onclick = function () { if (S.finished) return; S.idx = +b.getAttribute("data-i"); save(); go("count"); }; });
@@ -652,7 +723,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   $("csvBtn").onclick = function () {
     var q = function (x) { x = String(x == null ? "" : x); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
     var out = [["Product", "Size", "Barcode", "Unit", "Till qty", "Counted", "Difference", "Date type", "Earliest date", "Batch qty", "Held", "Status", "Notes", "Time", "Staff"].join(",")];
-    lines().forEach(function (l) { var r = l.r || {}, b = r.batches && r.batches[0]; out.push([l.it.n, l.it.s, l.it.b[0] || "", "each", r.till != null ? r.till : l.it.q, l.kind === "counted" ? r.count : "", l.kind === "counted" ? l.d : "", r.dtype || "", b ? dmy(b.d) : "", b ? b.q : "", r.held || "", l.kind, [r.note, l.exc, l.alert].filter(Boolean).join("; "), r.atText || "", r.staff || ""].map(q).join(",")); });
+    lines().forEach(function (l) { var r = l.r || {}, b = r.batches && r.batches[0]; out.push([l.it.n, l.it.s, l.it.b[0] || "", "each", r.till != null ? r.till : l.it.q, l.kind === "counted" ? r.count : "", l.kind === "counted" ? l.d : "", r.dtype || "", b ? dmy(b.d) : "", b ? b.q : "", r.held || "", l.kind, [r.note, l.exc, l.alert, r.photos && r.photos.length ? r.photos.length + " date photo(s)" : ""].filter(Boolean).join("; "), r.atText || "", r.staff || ""].map(q).join(",")); });
     var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([out.join("\n")], { type: "text/csv" })); a.download = "Stock_Count_" + S.name.replace(/\W+/g, "_") + "_" + londonISO() + ".csv"; document.body.appendChild(a); a.click(); a.remove();
   };
   // previous
