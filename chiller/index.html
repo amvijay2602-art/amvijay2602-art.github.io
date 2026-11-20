@@ -1000,6 +1000,44 @@
     }
   </style>
 
+
+  <style id="p20-styles">
+    /* Today's 20 priority date checks */
+    .p20-card { margin: 0 0 14px; }
+    .p20-card h2 { margin: 0 0 4px; font-size: 1.15rem; color: var(--bk-ink, #18342A); }
+    .p20-lead { margin: 0 0 12px; color: var(--muted); font-size: 0.92rem; font-weight: 600; }
+    .p20-lead #p20Progress { color: #17643F; }
+    .p20-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+    .p20-item { border: 1px solid #d5e3da; border-radius: 14px; padding: 12px; background: #fff; }
+    .p20-item.is-short { border-color: #f5b5b5; background: #fff8f8; box-shadow: inset 4px 0 0 #c62828; }
+    .p20-item.is-done { background: #e8f6ec; border-color: #b7e0c2; }
+    .p20-item.is-removed { background: #fdecec; border-color: #f5b5b5; }
+    .p20-top { display: flex; gap: 10px; align-items: flex-start; }
+    .p20-thumb { flex: 0 0 72px; width: 72px; height: 72px; border-radius: 10px; background: #eef5f0; overflow: hidden; }
+    .p20-thumb img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+    .p20-thumb.is-empty { background: #eef5f0; }
+    .p20-meta { flex: 1 1 auto; min-width: 0; }
+    .p20-name { margin: 0; font-weight: 800; font-size: 1.02rem; line-height: 1.25; }
+    .p20-cat { margin: 2px 0 0; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+    .p20-reason { margin: 6px 0 0; font-size: 0.88rem; font-weight: 700; color: #18342A; }
+    .p20-item.is-short .p20-reason { color: #c62828; }
+    .p20-done-flag { display: inline-block; margin-top: 6px; font-size: 0.8rem; font-weight: 800; color: #17643F; }
+    .p20-item.is-removed .p20-done-flag { color: #c62828; }
+    .p20-fields { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
+    .p20-fields input[type="date"] { flex: 1 1 auto; width: auto; min-width: 0; margin-top: 0; }
+    .p20-fields input[type="number"] { flex: 0 0 5.6rem; width: 5.6rem; margin-top: 0; text-align: center; }
+    .p20-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .p20-btn { min-height: 48px; border-radius: 12px; font-weight: 800; font-size: 1rem; cursor: pointer; border: 2px solid #17643F; background: #17643F; color: #fff; }
+    .p20-btn.remove { background: #fff; color: #c62828; border-color: #c62828; }
+    .p20-item.is-short .p20-btn.remove { background: #c62828; color: #fff; }
+    .p20-btn:disabled { opacity: 0.55; cursor: default; }
+    .p20-photo { display: block; margin-top: 8px; font-size: 0.85rem; font-weight: 700; color: #17643F; cursor: pointer; }
+    .p20-photo input { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+    .p20-photoprev { display: none; margin-top: 8px; max-width: 100%; max-height: 120px; border-radius: 8px; }
+    .p20-err { display: none; margin-top: 8px; color: #c62828; font-weight: 700; font-size: 0.85rem; }
+    .p20-err.show { display: block; }
+  </style>
+
   <style id="birkhill-theme">
     /* Birkhill Stores shared look (restyle only) */
     :root { --bk-g:#17643F; --bk-gd:#0f4a2e; --bk-o:#E86B2A; --bk-bg:#F4F7F4; --bk-ink:#18342A; --bk-line:#d5e3da; }
@@ -1028,6 +1066,13 @@
     <button type="button" id="modeWaste" class="mode-btn" role="tab" aria-selected="false">P&amp;P Waste</button>
     <button type="button" id="modeStockIn" class="mode-btn" role="tab" aria-selected="false">Stock In</button>
     <button type="button" id="modeWastage" class="mode-btn" role="tab" aria-selected="false">Waste</button>
+  </div>
+
+  <div id="priority20Card" class="card p20-card">
+    <h2>Today's 20 priority checks</h2>
+    <p class="p20-lead">Short dates (3 days or less) must be removed. <span id="p20Progress"></span></p>
+    <ul id="priority20List" class="p20-list"></ul>
+    <p id="p20Empty" class="hint hidden">Today's list could not be loaded. You can still scan below.</p>
   </div>
   <div class="card">
     <div id="checkFields">
@@ -1330,6 +1375,8 @@
       wastageListCard.classList.toggle("hidden", !isWastage);
       const checkListCard = document.getElementById("checkListCard");
       if (checkListCard) checkListCard.classList.toggle("hidden", isWaste || isStockIn || isWastage);
+      const p20Card = document.getElementById("priority20Card");
+      if (p20Card) p20Card.classList.toggle("hidden", !isDate);
       datePanel.classList.toggle("hidden", !isDate);
       gapPanel.classList.toggle("hidden", !isGap);
       document.getElementById("photoLabelText").textContent = isGap ? "📷 Take Photo (optional)" : "📷 Take Photo";
@@ -1657,6 +1704,228 @@
         }
       });
     }
+
+
+
+
+    const P20_KEY = "birkhill-chiller-priority20-v1";
+    let p20Data = null;
+    let p20Results = {};
+    let p20Photos = {};
+
+    function p20LoadResults() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(P20_KEY) || "null");
+        if (raw && raw.date === todayLondon() && raw.results) p20Results = raw.results;
+        else p20Results = {};
+      } catch (e) { p20Results = {}; }
+    }
+
+    function p20SaveResults() {
+      try { localStorage.setItem(P20_KEY, JSON.stringify({ date: todayLondon(), results: p20Results })); } catch (e) {}
+    }
+
+    function p20Thumb(item) {
+      const urls = [];
+      if (item.img) urls.push("img/" + item.img);
+      const d = String(item.barcode || "").replace(/\D/g, "");
+      const codes = [];
+      if (d) {
+        codes.push(d);
+        if (d.length < 13) codes.push(("0000000000000" + d).slice(-13));
+        if (d.length > 13) codes.push(d.slice(0, 13));
+      }
+      codes.forEach(function (c) {
+        urls.push("img/" + c + ".jpg");
+        urls.push("../count/img/" + c + ".jpg");
+      });
+      const uniq = [];
+      urls.forEach(function (u) { if (u && uniq.indexOf(u) < 0) uniq.push(u); });
+      if (!uniq.length) return '<div class="p20-thumb is-empty" aria-hidden="true"></div>';
+      return '<div class="p20-thumb"><img alt="" src="' + uniq[0].replace(/"/g, "") + '" data-cands="' + uniq.join("|").replace(/"/g, "") + '"></div>';
+    }
+
+    function p20BindThumbs(root) {
+      if (!root) return;
+      root.querySelectorAll(".p20-thumb img").forEach(function (img) {
+        const cands = (img.getAttribute("data-cands") || "").split("|").filter(Boolean);
+        let ix = Math.max(0, cands.indexOf(img.getAttribute("src")));
+        img.addEventListener("error", function () {
+          ix += 1;
+          if (ix < cands.length) img.src = cands[ix];
+          else {
+            img.style.display = "none";
+            if (img.parentNode) img.parentNode.classList.add("is-empty");
+          }
+        });
+      });
+    }
+
+    function p20DaysLeft(iso) {
+      if (!iso) return null;
+      const today = todayLondon();
+      const t = Date.parse(iso + "T00:00:00");
+      const d0 = Date.parse(today + "T00:00:00");
+      if (isNaN(t) || isNaN(d0)) return null;
+      return Math.round((t - d0) / 86400000);
+    }
+
+    function p20UpdateProgress() {
+      const el = document.getElementById("p20Progress");
+      if (!el || !p20Data || !p20Data.items) { if (el) el.textContent = ""; return; }
+      const n = p20Data.items.length;
+      const done = p20Data.items.filter(function (it) { return p20Results[String(it.n)]; }).length;
+      el.textContent = done ? (done + " of " + n + " done.") : (n + " to check.");
+    }
+
+    function p20Render() {
+      const list = document.getElementById("priority20List");
+      const empty = document.getElementById("p20Empty");
+      if (!list) return;
+      const items = (p20Data && Array.isArray(p20Data.items)) ? p20Data.items : [];
+      if (!items.length) {
+        list.innerHTML = "";
+        if (empty) empty.classList.remove("hidden");
+        p20UpdateProgress();
+        return;
+      }
+      if (empty) empty.classList.add("hidden");
+      list.innerHTML = items.map(function (it) {
+        const key = String(it.n);
+        const saved = p20Results[key];
+        const dateVal = (saved && saved.date) || it.use_by || "";
+        const qtyVal = (saved && saved.qty) || (it.qty_known ? String(it.qty_known) : "1");
+        const left = p20DaysLeft(dateVal);
+        const isShort = (it.action_hint === "remove") || (left !== null && left <= 3);
+        const done = saved && saved.result;
+        let cls = "p20-item";
+        if (done === "REMOVE") cls += " is-removed";
+        else if (done) cls += " is-done";
+        if (isShort && !done) cls += " is-short";
+        const flag = done ? ('<div class="p20-done-flag">' + (done === "REMOVE" ? "Removed" : "OK") + (saved.date ? "  ·  " + formatUkDate(saved.date) : "") + "</div>") : "";
+        const photoHint = p20Photos[key] ? "Date photo attached" : "Optional: photo of the date";
+        return '<li class="' + cls + '" data-n="' + key + '">' +
+          '<div class="p20-top">' + p20Thumb(it) +
+          '<div class="p20-meta"><p class="p20-name">' + String(it.n) + ". " + String(it.name || "").replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + "</p>" +
+          '<p class="p20-cat">' + String(it.category || "").replace(/^./, function (c) { return c.toUpperCase(); }) + (it.barcode ? "  ·  " + it.barcode : "") + "</p>" +
+          '<p class="p20-reason">' + String(it.reason || "").replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + "</p>" +
+          flag + "</div></div>" +
+          '<div class="p20-fields">' +
+          '<input class="p20-date" type="date" aria-label="Use by or best before for ' + String(it.name || "").replace(/"/g, "") + '" value="' + dateVal + '">' +
+          '<input class="p20-qty" type="number" inputmode="numeric" min="1" step="1" placeholder="Qty" aria-label="Quantity" value="' + qtyVal + '">' +
+          "</div>" +
+          '<label class="p20-photo">📷 ' + photoHint + '<input class="p20-photo-input" type="file" accept="image/*" capture="environment"></label>' +
+          (p20Photos[key] ? '<img class="p20-photoprev" alt="Date photo" src="' + p20Photos[key] + '" style="display:block">' : '<img class="p20-photoprev" alt="Date photo">') +
+          '<div class="p20-actions">' +
+          '<button type="button" class="p20-btn ok" data-result="OK">OK</button>' +
+          '<button type="button" class="p20-btn remove" data-result="REMOVE">Remove</button>' +
+          "</div><p class="p20-err"></p></li>";
+      }).join("");
+      p20BindThumbs(list);
+      p20UpdateProgress();
+    }
+
+    function p20SetErr(li, msg) {
+      const err = li.querySelector(".p20-err");
+      if (!err) return;
+      err.textContent = msg || "";
+      err.classList.toggle("show", !!msg);
+    }
+
+    function p20SaveLine(li, result) {
+      if (!p20Data) return;
+      const n = li.getAttribute("data-n");
+      const item = (p20Data.items || []).filter(function (it) { return String(it.n) === n; })[0];
+      if (!item) return;
+      const dateEl = li.querySelector(".p20-date");
+      const qtyEl = li.querySelector(".p20-qty");
+      const dateVal = dateEl ? dateEl.value.trim() : "";
+      const qtyVal = (qtyEl && qtyEl.value.trim()) ? qtyEl.value.trim() : "1";
+      if (!dateVal) {
+        p20SetErr(li, "Please enter the use-by or best-before date.");
+        if (dateEl) dateEl.focus();
+        return;
+      }
+      p20SetErr(li, "");
+      const btns = li.querySelectorAll(".p20-btn");
+      btns.forEach(function (b) { b.disabled = true; });
+      setStatus("Saving...", "");
+      let savedName = "CHILLER: " + item.name;
+      if (item.barcode) savedName += " [" + item.barcode + "]";
+      savedName += " | " + result;
+      postPayload({ name: savedName, photo: p20Photos[n] || "", lines: [{ date: dateVal, qty: String(qtyVal) }] }).then(function () {
+        p20Results[n] = { result: result, date: dateVal, qty: qtyVal, time: nowLondonTime(), at: Date.now() };
+        p20SaveResults();
+        addDateListItem({
+          name: item.name,
+          barcode: item.barcode || "",
+          lines: [{ date: dateVal, qty: String(qtyVal) }],
+          result: result,
+          time: nowLondonTime(),
+          at: Date.now()
+        });
+        setStatus(result === "REMOVE" ? "Saved as Remove." : "Saved as OK.", "ok");
+        p20Render();
+      }).catch(function () {
+        p20SetErr(li, "Could not save. Check your connection and try again.");
+        setStatus("Could not save. Check your connection and try again.", "error");
+        btns.forEach(function (b) { b.disabled = false; });
+      });
+    }
+
+    (function initPriority20() {
+      const list = document.getElementById("priority20List");
+      if (list) {
+        list.addEventListener("click", function (ev) {
+          const btn = ev.target.closest(".p20-btn");
+          if (!btn || !list.contains(btn)) return;
+          const li = btn.closest(".p20-item");
+          if (li) p20SaveLine(li, btn.getAttribute("data-result"));
+        });
+        list.addEventListener("change", function (ev) {
+          const input = ev.target;
+          if (!input.classList.contains("p20-photo-input")) return;
+          const li = input.closest(".p20-item");
+          if (!li) return;
+          const n = li.getAttribute("data-n");
+          const file = input.files && input.files[0];
+          if (!file) return;
+          downscale(file).then(function (dataUrl) {
+            p20Photos[n] = dataUrl;
+            const prev = li.querySelector(".p20-photoprev");
+            if (prev) { prev.src = dataUrl; prev.style.display = "block"; }
+            const lab = li.querySelector(".p20-photo");
+            if (lab) lab.childNodes[0].textContent = "📷 Date photo attached ";
+          }).catch(function () {
+            p20SetErr(li, "Could not use that photo. Please try again.");
+          });
+        });
+        list.addEventListener("input", function (ev) {
+          if (!ev.target.classList.contains("p20-date")) return;
+          const li = ev.target.closest(".p20-item");
+          if (!li || p20Results[li.getAttribute("data-n")]) return;
+          const left = p20DaysLeft(ev.target.value);
+          li.classList.toggle("is-short", left !== null && left <= 3);
+        });
+      }
+      p20LoadResults();
+      fetch("priority20.json").then(function (res) {
+        if (!res.ok) throw new Error("priority20");
+        return res.json();
+      }).then(function (data) {
+        if (!data || data.date !== todayLondon() || !Array.isArray(data.items)) {
+          p20Data = data && Array.isArray(data.items) ? data : null;
+        } else {
+          p20Data = data;
+        }
+        p20Render();
+      }).catch(function () {
+        p20Data = null;
+        p20Render();
+        const empty = document.getElementById("p20Empty");
+        if (empty) empty.classList.remove("hidden");
+      });
+    })();
 
 
     restoreCheckLists();

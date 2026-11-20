@@ -367,7 +367,12 @@
         var cd = due("chiller"), dd = due("date");
         var gl = (J.gaps || []).filter(function (g) { return String(g.t).slice(0, 10) === now.day; });
         var parts = []; if (cd.length) parts.push(cd.length + " use-by due or past"); if (gl.length) parts.push(gl.length + " gap" + (gl.length > 1 ? "s" : "") + " to fill");
-        setBadge("tileChiller", cd.length + gl.length, parts.join(", "));
+        var p20 = J.priority20, p20left = 0;
+        if (p20 && p20.date === now.day && now.hm >= "07:00") {
+          p20left = Math.max(0, (p20.total || 20) - (p20.checked || 0));
+          if (p20left > 0) parts.push(p20left + " of " + p20.total + " priority checks");
+        }
+        setBadge("tileChiller", cd.length + gl.length + p20left, parts.join(", "));
         setBadge("tileDate", dd.length, dd.length + " date" + (dd.length > 1 ? "s" : "") + " due or past");
         // Newspapers: only when the snapshot is fresh enough to know
         var f = londonOf(J.fetched_iso), P = J.paper || {}, pj = [];
