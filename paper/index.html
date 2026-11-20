@@ -1956,9 +1956,16 @@
         name.textContent = item.title || item.full_title || "";
         var issue = document.createElement("p");
         issue.className = "rs-issue";
-        issue.textContent = tonight
-          ? ((item.issue_display ? ("Issue " + item.issue_display) : "") + (item.delivered != null ? "  ·  delivered " + item.delivered : ""))
-          : (item.issue_display ? ("Issue " + item.issue_display) : "");
+        var d = item.issue_display || "";
+        if (tonight) {
+          issue.textContent = (d ? ("Issue " + d) : "") + (item.delivered != null ? ((d ? "  ·  " : "") + "delivered " + item.delivered) : "");
+        } else if (!d) {
+          issue.textContent = "";
+        } else if (/issue/i.test(d)) {
+          issue.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+        } else {
+          issue.textContent = "Issue " + d;
+        }
         var line = document.createElement("p");
         line.className = "rs-line";
         line.textContent = item.line_text || "";
