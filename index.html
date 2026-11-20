@@ -91,6 +91,12 @@
     .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
       .bk-hlogo { display:block; height:54px; width:auto; background:#fff; border-radius:14px; padding:4px 10px; margin:0 0 8px; }
     .bk-home-nav { grid-template-columns: repeat(5, 1fr); }
+    .tile { position:relative; }
+    .bk-badge { position:absolute; top:10px; right:10px; min-width:30px; height:30px; padding:0 8px; border-radius:15px; background:#c62828; color:#fff; font-weight:900; font-size:.95rem;
+                display:flex; align-items:center; justify-content:center; border:2px solid #fff; box-shadow:0 0 0 0 rgba(198,40,40,.7); animation:bkPulse 1.2s infinite; }
+    .bk-job { display:block; margin-top:6px; background:#fff; color:#b71c1c; border-radius:8px; padding:3px 7px; font-size:.78rem; font-weight:800; line-height:1.25; }
+    @keyframes bkPulse { 0% { opacity:1; box-shadow:0 0 0 0 rgba(198,40,40,.7); } 50% { opacity:.45; box-shadow:0 0 0 8px rgba(198,40,40,0); } 100% { opacity:1; box-shadow:0 0 0 0 rgba(198,40,40,0); } }
+    @media (prefers-reduced-motion: reduce) { .bk-badge { animation:none; } }
   </style>
 </head>
 <body class="bk-has-nav">
@@ -205,7 +211,7 @@
       $("homeView").classList.toggle("hidden", on); $("homeHead").classList.toggle("hidden", on);
       $("repView").classList.toggle("hidden", !on); $("repHead").classList.toggle("hidden", !on);
       window.scrollTo(0, 0);
-      if (on) render();
+      if (on) { render(); if (R && R.generated_iso) { ls("birkhill-reports-seen", R.generated_iso); badges(); } }
     }
     $("tileReports").addEventListener("click", function () { history.pushState({ r: 1 }, "", "#reports"); showReports(true); });
     $("backBtn").addEventListener("click", function () { history.back(); });
@@ -315,12 +321,69 @@
         R = d;
         $("repUpdated").textContent = "Last updated " + d.generated_at + " (UK time). Snapshot, not live.";
         $("tileRepSub").textContent = "Updated " + d.generated_at.split(",")[0];
-        if (!$("repView").classList.contains("hidden")) render();
+        if (!$("repView").classList.contains("hidden")) { render(); ls("birkhill-reports-seen", d.generated_iso || ""); }
+        badges();
       }).catch(function () {
         $("repUpdated").textContent = ls("birkhill-data-key") ? "Reports could not be loaded." : "Locked on this phone.";
         if (!$("repView").classList.contains("hidden")) render();
       });
     }
+    // ---- job outstanding badges (red dot + label; cleared when the job is done) ----
+    function londonNow() {
+      var p = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+        .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+      return { day: p.year + "-" + p.month + "-" + p.day, hm: (p.hour === "24" ? "00" : p.hour) + ":" + p.minute };
+    }
+    function londonOf(iso) { // ISO with offset -> London day + time
+      var d = new Date(iso); if (isNaN(d)) return null; var p = {};
+      new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(d).forEach(function (x) { p[x.type] = x.value; });
+      return { day: p.year + "-" + p.month + "-" + p.day, hm: p.hour + ":" + p.minute };
+    }
+    function localPaperDone(prefix, day) {
+      try { for (var i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k.indexOf(prefix) !== 0) continue; var v = JSON.parse(localStorage.getItem(k) || "null"); if (v && v.date === day && v.items && v.items.length) return true; } } catch (e) {}
+      return false;
+    }
+    function setBadge(tileId, n, label) {
+      var t = $(tileId); if (!t) return;
+      var b = t.querySelector(".bk-badge"), j = t.querySelector(".bk-job");
+      if (!n) { if (b) b.remove(); if (j) j.remove(); t.removeAttribute("data-job"); return; }
+      if (!b) { b = el("span", { "class": "bk-badge", "aria-hidden": "true" }); t.appendChild(b); }
+      b.textContent = n > 99 ? "99+" : String(n);
+      if (!j) { j = el("span", { "class": "bk-job" }); var d = t.querySelector(".d"); (d ? d.parentNode : t).appendChild(j); }
+      j.textContent = "\u25CF To do: " + label; t.setAttribute("data-job", label);
+    }
+    var SYNC = null;
+    function badges() {
+      var now = londonNow(), J = R && R.jobs && R.jobs.available ? R.jobs : null;
+      // Stock Count: unfinished counts (all phones via sessions.json, plus this phone)
+      var open = {};
+      (SYNC && SYNC.open || []).forEach(function (o) { open[o.id] = o; });
+      var fin = {}; (SYNC && SYNC.finished || []).forEach(function (f) { fin[f.id] = 1; });
+      try { var S = JSON.parse(ls("birkhill-count-session-v2") || "null"); if (S && S.id && !S.finished && !fin[S.id] && S.res && Object.keys(S.res).length) open[S.id] = { dept: S.name }; } catch (e) {}
+      var ol = Object.keys(open).map(function (k) { return open[k]; });
+      setBadge("tileCount", ol.length, ol.length === 1 ? (ol[0].dept || "A count") + " not finished" : ol.length + " counts not finished");
+      if (J) {
+        var due = function (src) { return (J.short_dates || []).filter(function (x) { return x.src === src && x.use_by && x.use_by <= now.day; }); };
+        var cd = due("chiller"), dd = due("date");
+        var gl = (J.gaps || []).filter(function (g) { return String(g.t).slice(0, 10) === now.day; });
+        var parts = []; if (cd.length) parts.push(cd.length + " use-by due or past"); if (gl.length) parts.push(gl.length + " gap" + (gl.length > 1 ? "s" : "") + " to fill");
+        setBadge("tileChiller", cd.length + gl.length, parts.join(", "));
+        setBadge("tileDate", dd.length, dd.length + " date" + (dd.length > 1 ? "s" : "") + " due or past");
+        // Newspapers: only when the snapshot is fresh enough to know
+        var f = londonOf(J.fetched_iso), P = J.paper || {}, pj = [];
+        var dl = P.delivery_last ? P.delivery_last.slice(0, 10) : "", rl = P.returns_last ? P.returns_last.slice(0, 10) : "";
+        if (f && f.day === now.day && now.hm >= "07:00" && f.hm >= "07:00" && dl !== now.day && !localPaperDone("birkhill-paper-stockin-today-delivery-v1", now.day)) pj.push("Morning delivery not saved");
+        if (f && f.day === now.day && now.hm >= "20:00" && f.hm >= "20:00" && rl !== now.day && !localPaperDone("birkhill-paper-stockin-today-returns-v1", now.day)) pj.push("Evening returns not done");
+        setBadge("tilePaper", pj.length, pj.join(", "));
+      }
+      var seen = ls("birkhill-reports-seen") || "";
+      setBadge("tileReports", R && R.generated_iso && R.generated_iso > seen ? 1 : 0, "New report to read");
+    }
+    window.__bkBadges = badges;
+    fetch("count/sessions.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) { SYNC = d; badges(); }).catch(function () { badges(); });
+    setInterval(badges, 60000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) badges(); });
+
     loadReports();
     if (location.hash === "#reports") showReports(true);
   })();
