@@ -480,6 +480,36 @@
     .bk-nav a .i { font-size: 20px; line-height: 1; }
     .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
   </style>
+
+  <style id="return-sheet-styles">
+    /* Today's return sheet on the Returns tab */
+    #returnSheetCard { margin: 0 0 16px; }
+    #returnSheetCard h2 { margin: 0 0 6px; font-size: 1.15rem; }
+    .rs-total { margin: 0 0 8px; font-size: 1.15rem; font-weight: 800; color: #c62828; }
+    .rs-total.is-done { color: #17643F; }
+    .rs-instruct { margin: 0 0 8px; font-size: 0.98rem; font-weight: 800; line-height: 1.35; color: var(--text); }
+    .rs-meta { margin: 0 0 12px; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+    .rs-sec { margin: 14px 0 8px; font-size: 0.95rem; font-weight: 800; }
+    .rs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+    .rs-item { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: #fff; cursor: pointer; }
+    .rs-item.is-done { background: #e8f6ec; border-color: #b7e0c2; }
+    .rs-item.is-soldout { background: #f5f7f5; cursor: default; }
+    .rs-item.is-tonight { background: #fff8e8; border-color: #f0d8a8; cursor: default; }
+    .rs-thumb { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 10px; background: #eef5f0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #5f6b7a; font-weight: 800; font-size: 0.75rem; text-align: center; padding: 4px; }
+    .rs-thumb img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+    .rs-meta-col { flex: 1 1 auto; min-width: 0; }
+    .rs-name { margin: 0; font-weight: 800; font-size: 1.02rem; line-height: 1.25; }
+    .rs-issue { margin: 2px 0 0; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+    .rs-line { margin: 6px 0 0; font-size: 0.9rem; font-weight: 700; color: #18342A; }
+    .rs-note { margin: 4px 0 0; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+    .rs-badge { flex: 0 0 auto; align-self: center; min-width: 4.6rem; text-align: center; font-weight: 800; font-size: 0.85rem; border-radius: 999px; padding: 8px 10px; background: #E86B2A; color: #fff; }
+    .rs-item.is-done .rs-badge { background: #17643F; }
+    .rs-item.is-soldout .rs-badge { background: #5b6573; }
+    .rs-item.is-tonight .rs-badge { background: #b45309; }
+    .rs-tick { display: none; margin-left: 4px; }
+    .rs-item.is-done .rs-tick { display: inline; }
+    .rs-tonight { margin-top: 16px; padding-top: 4px; }
+  </style>
   <link rel="stylesheet" href="../scanned-list.css">
 </head>
 <body>
@@ -493,6 +523,23 @@
   <div class="kinds" id="kindRow" role="tablist" aria-label="Paper type">
     <button type="button" id="kindNews" class="kind-btn active" role="tab" aria-selected="true">Newspapers<span class="kind-n" id="kindNewsN"></span></button>
     <button type="button" id="kindMags" class="kind-btn" role="tab" aria-selected="false">Magazines<span class="kind-n" id="kindMagsN"></span></button>
+  </div>
+  <div class="card hidden" id="returnSheetCard">
+    <h2>Today's return sheet</h2>
+    <p class="rs-total" id="returnSheetTotal"></p>
+    <p class="rs-instruct" id="returnSheetInstruct"></p>
+    <p class="rs-meta" id="returnSheetMeta"></p>
+    <h3 class="rs-sec">Newspapers</h3>
+    <ul id="returnSheetNews" class="rs-list"></ul>
+    <p id="returnSheetNewsEmpty" class="hint hidden">No newspaper returns today</p>
+    <h3 class="rs-sec">Magazines</h3>
+    <ul id="returnSheetMags" class="rs-list"></ul>
+    <p id="returnSheetMagsEmpty" class="hint hidden">No magazine returns today</p>
+    <div id="returnSheetTonight" class="rs-tonight hidden">
+      <h3 class="rs-sec">Tonight: count at close</h3>
+      <p class="rs-meta" id="returnSheetTonightMeta"></p>
+      <ul id="returnSheetTonightList" class="rs-list"></ul>
+    </div>
   </div>
   <p id="loadState">Loading titles...</p>
   <div class="card">
@@ -1123,6 +1170,9 @@
       applyKindLabels();
       renderList();
       renderTodayList();
+      var rsCard = document.getElementById("returnSheetCard");
+      if (rsCard) rsCard.classList.toggle("hidden", !ret);
+      renderReturnSheet();
     }
 
     function renderList() {
@@ -1221,6 +1271,7 @@
           scannedTotals.textContent = list.length ? (list.length + " lines") : "";
         }
       }
+      renderReturnSheet();
     }
 
     function renderTodayList() {
@@ -1792,6 +1843,207 @@
       });
     });
 
+
+    var returnSheetData = null;
+
+    function codeKey(bc) {
+      return String(bc || "").replace(/\D/g, "").slice(0, 13);
+    }
+
+    function localReturnScanMap() {
+      var map = {};
+      function add(it) {
+        if (!it) return;
+        var q = Number(it.qty) || 0;
+        var k = codeKey(it.barcode);
+        var n = String(it.name || it.title || "").toLowerCase();
+        if (k) map[k] = (map[k] || 0) + q;
+        if (n) map["n:" + n] = (map["n:" + n] || 0) + q;
+      }
+      try {
+        KINDS.forEach(function (k) {
+          ((baskets.returns[k] && baskets.returns[k].items) || []).forEach(add);
+          (todays.returns[k] || []).forEach(add);
+        });
+      } catch (e) {}
+      return map;
+    }
+
+    function sheetScanned(item, localMap) {
+      var server = Number(item.scanned) || 0;
+      var local = 0;
+      var k = codeKey(item.barcode);
+      if (k && localMap[k]) local = localMap[k];
+      var n = "n:" + String(item.title || item.full_title || "").toLowerCase();
+      if (!k && localMap[n]) local = localMap[n];
+      return Math.max(server, local);
+    }
+
+    function mergeSheetItem(item, localMap) {
+      var out = {};
+      Object.keys(item).forEach(function (k) { out[k] = item[k]; });
+      if (item.count_at_close) return out;
+      var qty = Number(item.qty) || 0;
+      var scanned = sheetScanned(item, localMap);
+      var left = Math.max(0, qty - scanned);
+      out.scanned = scanned;
+      out.left = left;
+      out.done = left === 0;
+      if (qty === 0) {
+        out.status = "Sold out";
+        out.done = true;
+      } else if (left === 0) {
+        out.status = "Done";
+      } else {
+        out.status = "Scan " + left;
+      }
+      out.line_text = (item.title || item.full_title || "") + ": return " + qty + ", scanned " + scanned + ", " + left + " left to scan";
+      return out;
+    }
+
+    function phraseItems(items, listName) {
+      if (!items.length) return "";
+      return items.map(function (it) { return it.title + " " + it.left; }).join(", ") + " (" + listName + ")";
+    }
+
+    function liveScanCopy(news, mags, data) {
+      var leftN = news.filter(function (x) { return x.qty > 0 && x.left > 0; });
+      var leftM = mags.filter(function (x) { return x.qty > 0 && x.left > 0; });
+      var packN = news.filter(function (x) { return x.qty > 0; });
+      var packM = mags.filter(function (x) { return x.qty > 0; });
+      var totalLeft = 0, totalQty = 0;
+      news.concat(mags).forEach(function (x) { totalLeft += Number(x.left) || 0; totalQty += Number(x.qty) || 0; });
+      var bits = [];
+      if (leftN.length) bits.push(phraseItems(leftN, "Newspapers list"));
+      if (leftM.length) bits.push(phraseItems(leftM, "Magazines list"));
+      var scanNow;
+      if (bits.length) scanNow = "Scan these now: " + bits.join(", ") + ".";
+      else if (packN.length || packM.length) {
+        var pack = [];
+        if (packN.length) pack.push(packN.map(function (x) { return x.title + " " + x.qty; }).join(", ") + " (Newspapers list)");
+        if (packM.length) pack.push(packM.map(function (x) { return x.title + " " + x.qty; }).join(", ") + " (Magazines list)");
+        scanNow = "All scanned. Pack today: " + pack.join(", ") + ".";
+      } else {
+        scanNow = (data && data.scan_now) || "No newspaper or magazine returns today.";
+      }
+      var totalLine = totalLeft === 1 ? "1 item left to return" : (totalLeft + " items left to return");
+      if (totalQty > 0 && totalLeft === 0) totalLine = "All " + totalQty + " items scanned";
+      return { scan_now: scanNow, total_line: totalLine, total_left: totalLeft };
+    }
+
+    function renderSheetList(listEl, emptyEl, items, kind, tonight) {
+      listEl.innerHTML = "";
+      var showEmpty = !tonight && items.length === 0;
+      if (emptyEl) emptyEl.classList.toggle("hidden", !showEmpty);
+      items.forEach(function (item) {
+        var li = document.createElement("li");
+        var sold = !tonight && Number(item.qty) === 0;
+        li.className = "rs-item" + (tonight ? " is-tonight" : (item.done ? (sold ? " is-done is-soldout" : " is-done") : ""));
+        var thumb = document.createElement("div");
+        thumb.className = "rs-thumb";
+        if (item.image) {
+          var img = document.createElement("img");
+          img.src = item.image;
+          img.alt = "";
+          thumb.appendChild(img);
+        } else {
+          thumb.textContent = (item.title || "?").slice(0, 3);
+        }
+        var col = document.createElement("div");
+        col.className = "rs-meta-col";
+        var name = document.createElement("p");
+        name.className = "rs-name";
+        name.textContent = item.title || item.full_title || "";
+        var issue = document.createElement("p");
+        issue.className = "rs-issue";
+        issue.textContent = tonight
+          ? ((item.issue_display ? ("Issue " + item.issue_display) : "") + (item.delivered != null ? "  ·  delivered " + item.delivered : ""))
+          : (item.issue_display ? ("Issue " + item.issue_display) : "");
+        var line = document.createElement("p");
+        line.className = "rs-line";
+        line.textContent = item.line_text || "";
+        col.appendChild(name);
+        if (issue.textContent) col.appendChild(issue);
+        col.appendChild(line);
+        if (item.note) {
+          var note = document.createElement("p");
+          note.className = "rs-note";
+          note.textContent = item.note;
+          col.appendChild(note);
+        }
+        var badge = document.createElement("div");
+        badge.className = "rs-badge";
+        badge.innerHTML = (item.status || "") + '<span class="rs-tick"> \u2713</span>';
+        li.appendChild(thumb);
+        li.appendChild(col);
+        li.appendChild(badge);
+        if (!tonight && kind) {
+          li.addEventListener("click", function () {
+            if (typeof setKind === "function") setKind(kind);
+          });
+        }
+        listEl.appendChild(li);
+      });
+    }
+
+    function renderReturnSheet() {
+      var card = document.getElementById("returnSheetCard");
+      if (!card || !returnSheetData) return;
+      var data = returnSheetData;
+      var localMap = localReturnScanMap();
+      var rt = data.return_today || {};
+      var news = (rt.newspapers || []).map(function (it) { return mergeSheetItem(it, localMap); });
+      var mags = (rt.magazines || []).map(function (it) { return mergeSheetItem(it, localMap); });
+      var copy = liveScanCopy(news, mags, data);
+      var totalEl = document.getElementById("returnSheetTotal");
+      var instEl = document.getElementById("returnSheetInstruct");
+      var metaEl = document.getElementById("returnSheetMeta");
+      totalEl.textContent = copy.total_line;
+      totalEl.classList.toggle("is-done", copy.total_left === 0);
+      instEl.textContent = copy.scan_now;
+      var meta = [];
+      if (rt.issue_display) meta.push(rt.issue_display + " issues");
+      if (rt.pickup_display) meta.push("pickup " + rt.pickup_display);
+      if (rt.recall_ref) meta.push("ref " + rt.recall_ref);
+      if (data.generated_display) meta.push("updated " + data.generated_display);
+      metaEl.textContent = meta.join("  ·  ");
+      renderSheetList(document.getElementById("returnSheetNews"), document.getElementById("returnSheetNewsEmpty"), news, "NEWSPAPER", false);
+      renderSheetList(document.getElementById("returnSheetMags"), document.getElementById("returnSheetMagsEmpty"), mags, "MAGAZINE", false);
+      var tn = data.tonight;
+      var box = document.getElementById("returnSheetTonight");
+      if (!tn || (!(tn.newspapers || []).length && !(tn.magazines || []).length)) {
+        box.classList.add("hidden");
+      } else {
+        box.classList.remove("hidden");
+        var tmeta = [];
+        if (tn.pickup_display) tmeta.push("for pickup " + tn.pickup_display);
+        if (tn.recall_ref) tmeta.push("ref " + tn.recall_ref);
+        if (tn.sold_as_at) tmeta.push("sold so far as at " + tn.sold_as_at);
+        document.getElementById("returnSheetTonightMeta").textContent = tmeta.join("  ·  ");
+        var tlist = document.getElementById("returnSheetTonightList");
+        var dummy = document.createElement("p");
+        dummy.className = "hidden";
+        renderSheetList(tlist, dummy, (tn.newspapers || []).concat(tn.magazines || []), "", true);
+      }
+    }
+
+    function loadReturnSheet() {
+      fetch("returns_today.json").then(function (res) {
+        if (!res.ok) throw new Error("returns");
+        return res.json();
+      }).then(function (data) {
+        returnSheetData = data || null;
+        renderReturnSheet();
+      }).catch(function () {
+        if (!returnSheetData) {
+          var inst = document.getElementById("returnSheetInstruct");
+          var total = document.getElementById("returnSheetTotal");
+          if (total) total.textContent = "";
+          if (inst) inst.textContent = "Today's return sheet could not be loaded. You can still scan returns below.";
+        }
+      });
+    }
+
     restore();
     deliveryDate.setAttribute("data-prev", deliveryDate.value || todayLondon());
     applyKindLabels();
@@ -1844,6 +2096,7 @@
       migrateLegacy();
       if (current) updateKindWarn(current, foundName.value);
     });
+    loadReturnSheet();
   </script>
   <script src="../nav.js"></script>
 </body>

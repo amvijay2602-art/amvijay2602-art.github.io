@@ -98,6 +98,13 @@
     @keyframes bkPulse { 0% { opacity:1; box-shadow:0 0 0 0 rgba(198,40,40,.7); } 50% { opacity:.45; box-shadow:0 0 0 8px rgba(198,40,40,0); } 100% { opacity:1; box-shadow:0 0 0 0 rgba(198,40,40,0); } }
     @media (prefers-reduced-motion: reduce) { .bk-badge { animation:none; } }
   </style>
+
+  <style id="return-sheet-home">
+    #returnSheetHomeCard .rs-total { margin: 0 0 8px; font-size: 1.1rem; font-weight: 800; color: #c62828; }
+    #returnSheetHomeCard .rs-total.is-done { color: #17643F; }
+    #returnSheetHomeCard .rs-instruct { margin: 0 0 8px; font-weight: 800; line-height: 1.35; }
+    #returnSheetHomeCard .rs-home-sum { margin: 0 0 10px; color: var(--muted); font-size: .92rem; }
+  </style>
 </head>
 <body class="bk-has-nav">
   <header>
@@ -127,6 +134,15 @@
         <a class="tile date" href="date/" id="tileDate"><span class="ico">&#128247;</span><span><span class="t">Date Check</span><span class="d" style="display:block">Camera date check</span></span></a>
         <a class="tile count" href="count/" id="tileCount"><span class="ico">&#128203;</span><span><span class="t">Stock Count</span><span class="d" style="display:block">Count a department, one by one</span></span></a>
         <button class="tile reports" type="button" id="tileReports"><span class="ico">&#128202;</span><span><span class="t">Reports</span><span class="d" style="display:block" id="tileRepSub">Chiller, papers, today's scans</span></span></button>
+      </div>
+      <div class="card" id="returnSheetHomeCard" style="margin-top:14px">
+        <h2>Today's return sheet</h2>
+        <p class="rs-total" id="returnSheetHomeTotal">Loading today's return sheet...</p>
+        <p class="rs-instruct" id="returnSheetHomeInstruct"></p>
+        <p class="rs-home-sum" id="returnSheetHomeSummary"></p>
+        <div class="quick">
+          <a href="paper/?open=modeReturns">Open today's returns</a>
+        </div>
       </div>
       <div class="card" style="margin-top:14px">
         <h2>Quick start</h2>
@@ -328,6 +344,24 @@
         if (!$("repView").classList.contains("hidden")) render();
       });
     }
+
+    function loadReturnSheetHome() {
+      var total = $("returnSheetHomeTotal"), inst = $("returnSheetHomeInstruct"), sum = $("returnSheetHomeSummary");
+      if (!total) return;
+      fetch("paper/returns_today.json").then(function (res) {
+        if (!res.ok) throw new Error("returns");
+        return res.json();
+      }).then(function (d) {
+        if (!d) throw new Error("empty");
+        total.textContent = d.total_line || "";
+        total.classList.toggle("is-done", !d.total_left);
+        inst.textContent = d.scan_now || "";
+        sum.textContent = d.home_summary || "";
+      }).catch(function () {
+        total.textContent = ls("birkhill-data-key") ? "Today's return sheet could not be loaded." : "Open the full link with #k= once to see today's returns.";
+      });
+    }
+    loadReturnSheetHome();
     // ---- job outstanding badges (red dot + label; cleared when the job is done) ----
     function londonNow() {
       var p = {}; new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
