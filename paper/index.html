@@ -1906,13 +1906,13 @@
       } else {
         out.status = "Scan " + left;
       }
-      out.line_text = (item.title || item.full_title || "") + ": return " + qty + ", scanned " + scanned + ", " + left + " left to scan";
+      out.line_text = (item.title || item.full_title || "") + ": scanned " + scanned + " of " + qty + ", " + left + " left to scan";
       return out;
     }
 
     function phraseItems(items, listName) {
       if (!items.length) return "";
-      return items.map(function (it) { return it.title + " " + it.left; }).join(", ") + " (" + listName + ")";
+      return items.map(function (it) { return it.title + " x" + it.left; }).join(", ") + " (" + listName + ")";
     }
 
     function liveScanCopy(news, mags, data) {
@@ -1923,15 +1923,15 @@
       var totalLeft = 0, totalQty = 0;
       news.concat(mags).forEach(function (x) { totalLeft += Number(x.left) || 0; totalQty += Number(x.qty) || 0; });
       var bits = [];
-      if (leftN.length) bits.push(phraseItems(leftN, "Newspapers list"));
       if (leftM.length) bits.push(phraseItems(leftM, "Magazines list"));
+      if (leftN.length) bits.push(phraseItems(leftN, "Newspapers list"));
       var scanNow;
-      if (bits.length) scanNow = "Scan these now: " + bits.join(", ") + ".";
+      if (bits.length) scanNow = "SCAN NOW: " + bits.join(". ") + ".";
       else if (packN.length || packM.length) {
         var pack = [];
-        if (packN.length) pack.push(packN.map(function (x) { return x.title + " " + x.qty; }).join(", ") + " (Newspapers list)");
-        if (packM.length) pack.push(packM.map(function (x) { return x.title + " " + x.qty; }).join(", ") + " (Magazines list)");
-        scanNow = "All scanned. Pack today: " + pack.join(", ") + ".";
+        if (packM.length) pack.push(packM.map(function (x) { return x.title + " x" + x.qty; }).join(", ") + " (Magazines list)");
+        if (packN.length) pack.push(packN.map(function (x) { return x.title + " x" + x.qty; }).join(", ") + " (Newspapers list)");
+        scanNow = "All scanned. Pack today: " + pack.join(". ") + ".";
       } else {
         scanNow = (data && data.scan_now) || "No newspaper or magazine returns today.";
       }
