@@ -480,6 +480,7 @@
     .bk-nav a .i { font-size: 20px; line-height: 1; }
     .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
   </style>
+  <link rel="stylesheet" href="../scanned-list.css">
 </head>
 <body>
   <h1>Birkhill Paper Stock-In</h1>
@@ -543,15 +544,17 @@
       </div>
       <button id="addBtn" class="btn" type="button" style="margin-top:14px">Add</button>
     </div>
-  </div>
-  <div class="card">
-    <h2 id="basketTitle">This delivery</h2>
-    <ul id="itemList"></ul>
-    <p id="emptyList" class="hint">No titles added yet. Scan each newspaper or magazine, enter how many arrived, then add it.</p>
-    <div id="totals" class="totals hidden"></div>
-    <button id="saveDelivery" class="btn" type="button">Save delivery</button>
-    <button id="clearDelivery" class="btn danger" type="button">Clear list</button>
-    <div id="status"></div>
+    <div id="scannedBox" class="bk-scanned">
+      <h2>Scanned items</h2>
+      <p id="basketTitle" class="hidden">This delivery</p>
+      <p id="scannedTotals" class="bk-scan-totals hidden"></p>
+      <ul id="itemList" class="bk-scan-list"></ul>
+      <p id="emptyList" class="hint">No titles added yet. Scan each newspaper or magazine and it will appear here.</p>
+      <div id="totals" class="totals hidden"></div>
+      <button id="saveDelivery" class="btn" type="button">Save delivery</button>
+      <button id="clearDelivery" class="btn danger" type="button">Clear list</button>
+      <div id="status"></div>
+    </div>
   </div>
   <div class="card" id="todayCard">
     <h2 id="todayTitle">Today's deliveries</h2>
@@ -569,6 +572,7 @@
   </div>
   <p class="hint">Add this page to your home screen for one-tap access.</p>
   <script src="../secure-data.js"></script>
+  <script src="../scanned-list.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
     const DELIVERY_KEY = "birkhill-paper-stockin-v1";
@@ -717,7 +721,25 @@
     }
 
     function basketKey() {
-      return basketKeyFor(mode, kind());
+      return basketKeyFor(mode, kind()) + "-" + (deliveryDate.value || todayLondon());
+    }
+
+    function loadCurrentBasket() {
+      const b = readBasket(basketKey());
+      if (b && Array.isArray(b.items)) {
+        slot().items = b.items;
+        slot().photo = b.photo || "";
+      } else {
+        // Older builds stored one basket per mode, with the date inside the payload.
+        const legacy = readBasket(basketKeyFor(mode, kind()));
+        if (legacy && Array.isArray(legacy.items) && (!legacy.date || legacy.date === (deliveryDate.value || todayLondon()))) {
+          slot().items = legacy.items;
+          slot().photo = legacy.photo || "";
+        } else {
+          slot().items = [];
+          slot().photo = "";
+        }
+      }
     }
 
     const NEWS_NAME = /^(THE )?(DAILY (MAIL|MIRROR|EXPRESS|STAR|TELEGRAPH|RECORD)|SUNDAY (EXPRESS|MIRROR|PEOPLE|SPORT|TIMES|TELEGRAPH|POST|SUN|MAIL|MERCURY|WORLD|INDEPENDENT)|SUN( ON SUNDAY| SAT| FRI| MON| STAR)?( |\(|$)|MAIL( ON (SUNDAY|SATURDAY))?( |\(|$)|MIRROR( SAT| NEWS| \(|$)|STAR( SAT| SHEFF\w*)?$|SHEF+I?E?L?D? ?STAR|THE S STRA|DERBYSHIRE ?TIMES|GUARDIAN$|INDEPENDENT$|TIMES( SAT| COMPACT)?$|TELEGRAPH( DAILY| SUNDAY)?$|EXPRESS( DAILY| MO| TU| FR)?$|RACING POST$|MORNING STAR|OBSERVER$|I$|II$|IDAILY|IWEEKEND|I ON SAT|MIDWEEK SPORT|PEOPLE \(THE\))/i;
@@ -933,9 +955,13 @@
           if (KINDS.indexOf(savedKinds.returns) >= 0) kindByMode.returns = savedKinds.returns;
         }
       } catch (e) {}
+      const today = todayLondon();
+      deliveryDate.value = today;
       ["delivery", "returns"].forEach(function (m) {
         KINDS.forEach(function (k) {
-          const b = readBasket(basketKeyFor(m, k));
+          const dated = readBasket(basketKeyFor(m, k) + "-" + today);
+          const legacyB = readBasket(basketKeyFor(m, k));
+          const b = dated || ((legacyB && (!legacyB.date || legacyB.date === today)) ? legacyB : null);
           if (b) {
             if (Array.isArray(b.items)) baskets[m][k].items = b.items;
             if (b.photo) baskets[m][k].photo = b.photo;
@@ -943,8 +969,6 @@
           todays[m][k] = readToday(todayKeyFor(m, k));
         });
       });
-      const del = readBasket(basketKeyFor("delivery", kindByMode.delivery));
-      if (del && del.date) deliveryDate.value = del.date;
       // Lists saved by the older one-list version are split by type once the newspaper list loads.
       legacy = {
         delivery: readBasket(DELIVERY_KEY),
@@ -952,7 +976,9 @@
         todayDelivery: readToday(TODAY_DELIVERY_KEY),
         todayReturns: readToday(TODAY_RETURNS_KEY)
       };
-      const stk = readBasket(STOCKTAKE_KEY);
+      const stkDated = readBasket(STOCKTAKE_KEY + "-" + todayLondon());
+      const stkLegacy = readBasket(STOCKTAKE_KEY);
+      const stk = stkDated || ((stkLegacy && (!stkLegacy.date || stkLegacy.date === todayLondon())) ? stkLegacy : null);
       if (stk) {
         if (Array.isArray(stk.items)) baskets.stocktake.ALL.items = stk.items;
         if (stk.photo) baskets.stocktake.ALL.photo = stk.photo;
@@ -1029,8 +1055,7 @@
       persistBasket();
       kindByMode[mode] = next;
       try { localStorage.setItem(KIND_KEY, JSON.stringify(kindByMode)); } catch (e) {}
-      const stored = readBasket(basketKey());
-      deliveryDate.value = (stored && stored.date) ? stored.date : todayLondon();
+      loadCurrentBasket();
       photoInput.value = "";
       showPhoto(photoData());
       hideFound();
@@ -1091,8 +1116,7 @@
       qtyLabel.classList.toggle("hidden", !stock);
       foundQty.min = stock ? "0" : "1";
       foundQty.setAttribute("aria-label", stock ? "Counted quantity" : "Quantity");
-      const stored = readBasket(basketKey());
-      deliveryDate.value = (stored && stored.date) ? stored.date : todayLondon();
+      loadCurrentBasket();
       showPhoto(photoData());
       hideFound();
       setStatus("", "");
@@ -1103,90 +1127,99 @@
 
     function renderList() {
       const list = items();
-      itemList.innerHTML = "";
-      let totalQty = 0;
-      let totalValue = 0;
-      list.forEach(function (item, index) {
-        const qty = Number(item.qty) || 0;
-        const price = Number(item.price) || 0;
-        totalQty += qty;
-        totalValue += qty * price;
-        const li = document.createElement("li");
-        li.innerHTML =
-          '<div class="item-top">' +
-            '<div class="item-name"></div>' +
-            '<div class="item-value"></div>' +
-          "</div>" +
-          '<div class="item-meta"></div>' +
-          '<div class="item-actions">' +
-            '<button class="qty-btn minus" type="button" aria-label="Decrease quantity">-</button>' +
-            '<span class="item-qty"></span>' +
-            '<button class="qty-btn plus" type="button" aria-label="Increase quantity">+</button>' +
-            '<button class="remove-btn" type="button">Remove</button>' +
-          "</div>";
-        const stock = stockText(item.barcode);
-        li.querySelector(".item-name").textContent = item.name || "Unknown";
-        if (isStockTake()) {
-          const till = itemTill(item);
-          const diffText = formatDiff(qty, till);
-          const valueEl = li.querySelector(".item-value");
-          valueEl.textContent = "Diff " + diffText;
-          valueEl.classList.toggle("negative", till !== null && till !== undefined && qty - till < 0);
-          valueEl.classList.toggle("positive", till !== null && till !== undefined && qty - till > 0);
-          li.querySelector(".item-meta").textContent =
-            item.barcode + "  ·  Counted " + qty + "  ·  Till " + (till === null || till === undefined ? "-" : String(till));
-        } else {
-          li.querySelector(".item-value").textContent = money(qty * price);
-          li.querySelector(".item-meta").textContent =
-            item.barcode + (price ? " at " + money(price) : "") + "  ·  Stock " + stock;
-        }
-        li.querySelector(".item-qty").textContent = String(qty);
-        li.querySelector(".minus").addEventListener("click", function () {
-          const cur = items();
-          const minQty = isStockTake() ? 0 : 1;
-          if (cur[index].qty > minQty) {
-            cur[index].qty -= 1;
+      const scannedTotals = document.getElementById("scannedTotals");
+      if (window.BirkhillScannedList) {
+        BirkhillScannedList.render({
+          root: document.getElementById("scannedBox") || itemList.parentNode,
+          listEl: itemList,
+          totalsEl: scannedTotals,
+          emptyEl: emptyList,
+          items: list,
+          newestFirst: true,
+          alreadyNewest: false,
+          name: function (item) { return item.name || "Unknown"; },
+          barcode: function (item) { return item.barcode || ""; },
+          price: function (item) { return item.price; },
+          qty: function (item) { return Number(item.qty) || 0; },
+          extra: function (item) {
+            if (isStockTake()) {
+              const till = itemTill(item);
+              return "Counted " + (Number(item.qty) || 0) + "  ·  Till " + (till === null || till === undefined ? "-" : String(till)) + "  ·  Diff " + formatDiff(item.qty || 0, till);
+            }
+            const stock = stockText(item.barcode);
+            return "Stock " + stock;
+          },
+          totals: function (shown) {
+            let totalQty = 0;
+            let totalValue = 0;
+            shown.forEach(function (item) {
+              const qty = Number(item.qty) || 0;
+              const price = Number(item.price) || 0;
+              totalQty += qty;
+              totalValue += qty * price;
+            });
+            if (isStockTake()) {
+              let tillKnown = 0;
+              let tillMissing = 0;
+              let diffSum = 0;
+              let haveDiff = false;
+              shown.forEach(function (item) {
+                const till = itemTill(item);
+                if (till === null || till === undefined) tillMissing += 1;
+                else {
+                  tillKnown += Number(till);
+                  diffSum += (Number(item.qty) || 0) - Number(till);
+                  haveDiff = true;
+                }
+              });
+              return shown.length + (shown.length === 1 ? " line" : " lines") +
+                "  ·  " + totalQty + (totalQty === 1 ? " unit" : " units") +
+                "  ·  Till " + tillKnown +
+                (tillMissing ? "  ·  " + tillMissing + " with no till stock" : "") +
+                (haveDiff ? "  ·  Diff " + formatDiff(diffSum, 0) : "");
+            }
+            return BirkhillScannedList.totalsText(shown, function (it) { return Number(it.qty) || 0; }) +
+              "  ·  " + money(totalValue);
+          },
+          onMinus: function (item, index) {
+            const cur = items();
+            const minQty = isStockTake() ? 0 : 1;
+            if (cur[index].qty > minQty) {
+              cur[index].qty -= 1;
+              persistBasket();
+              renderList();
+            }
+          },
+          onPlus: function (item, index) {
+            items()[index].qty += 1;
+            persistBasket();
+            renderList();
+          },
+          onRemove: function (item, index) {
+            const cur = items().slice();
+            cur.splice(index, 1);
+            setItems(cur);
             persistBasket();
             renderList();
           }
         });
-        li.querySelector(".plus").addEventListener("click", function () {
-          items()[index].qty += 1;
-          persistBasket();
-          renderList();
+      }
+      totals.classList.add("hidden");
+      if (!window.BirkhillScannedList) {
+        // Fallback if the shared script did not load: keep a simple newest-first list.
+        itemList.innerHTML = "";
+        const shown = list.slice().reverse();
+        shown.forEach(function (item, vis) {
+          const index = list.length - 1 - vis;
+          const li = document.createElement("li");
+          li.textContent = (item.name || "Unknown") + "  ·  " + (item.barcode || "") + "  ·  " + (item.qty || 0);
+          itemList.appendChild(li);
         });
-        li.querySelector(".remove-btn").addEventListener("click", function () {
-          const cur = items().slice();
-          cur.splice(index, 1);
-          setItems(cur);
-          persistBasket();
-          renderList();
-        });
-        itemList.appendChild(li);
-      });
-      emptyList.classList.toggle("hidden", list.length > 0);
-      totals.classList.toggle("hidden", list.length === 0);
-      if (isStockTake()) {
-        let tillKnown = 0;
-        let tillMissing = 0;
-        let diffSum = 0;
-        let haveDiff = false;
-        list.forEach(function (item) {
-          const till = itemTill(item);
-          if (till === null || till === undefined) tillMissing += 1;
-          else {
-            tillKnown += Number(till);
-            diffSum += (Number(item.qty) || 0) - Number(till);
-            haveDiff = true;
-          }
-        });
-        totals.textContent = list.length + (list.length === 1 ? " title" : " titles") +
-          "  ·  Counted " + totalQty +
-          "  ·  Till " + tillKnown +
-          (tillMissing ? "  ·  " + tillMissing + " with no till stock" : "") +
-          (haveDiff ? "  ·  Diff " + formatDiff(diffSum, 0) : "");
-      } else {
-        totals.textContent = totalQty + (totalQty === 1 ? " item" : " items") + "  ·  " + money(totalValue);
+        emptyList.classList.toggle("hidden", list.length > 0);
+        if (scannedTotals) {
+          scannedTotals.classList.toggle("hidden", list.length === 0);
+          scannedTotals.textContent = list.length ? (list.length + " lines") : "";
+        }
       }
     }
 
@@ -1323,11 +1356,13 @@
       });
       if (existing) {
         if (isStockTake()) {
-          existing.qty = qty;
+          existing.qty = (Number(existing.qty) || 0) + qty;
           existing.till = till;
         } else {
           existing.qty += qty;
         }
+        list.splice(list.indexOf(existing), 1);
+        list.unshift(existing);
       } else {
         const row = {
           barcode: current.barcode,
@@ -1336,11 +1371,10 @@
           price: price
         };
         if (isStockTake()) row.till = till;
-        list.push(row);
+        list.unshift(row);
       }
       persistBasket();
       renderList();
-      hideFound();
       barcodeInput.value = "";
       setStatus("Added " + name, "ok");
       return true;
@@ -1380,11 +1414,29 @@
       if (!rec) return;
       beep();
       barcodeInput.value = rec.barcode;
-      if (current && current.barcode === rec.barcode) {
-        const q = (parseInt(foundQty.value, 10) || 0) + 1;
-        foundQty.value = String(q);
-        updateFoundDiff();
-        setStatus((isStockTake() ? "Counted " : "Quantity ") + q, "ok");
+      const list = items();
+      const existing = list.find(function (it) {
+        return it.barcode === rec.barcode && (!rec.name || !it.name || it.name === rec.name);
+      });
+      if (existing) {
+        existing.qty = (Number(existing.qty) || 0) + 1;
+        if (isStockTake()) existing.till = tillStock(existing.barcode);
+        if (rec.name && !existing.name) existing.name = rec.name;
+        if (rec.price && !existing.price) existing.price = rec.price;
+        list.splice(list.indexOf(existing), 1);
+        list.unshift(existing);
+        persistBasket();
+        renderList();
+        showFound(rec, existing.qty);
+        setStatus((isStockTake() ? "Counted " : "Quantity ") + existing.qty, "ok");
+        return;
+      }
+      if (rec.name) {
+        current = rec;
+        foundName.value = rec.name;
+        foundQty.value = "1";
+        addCurrent();
+        showFound(rec, 1);
         return;
       }
       if (current && foundName.value.trim() && (parseInt(foundQty.value, 10) || 0) >= 1) {
@@ -1523,9 +1575,10 @@
         setStatus("Please enter a barcode.", "error");
         return;
       }
-      showFound(rec, parseInt(foundQty.value, 10) || 1);
+      lastScanCode = "";
+      lastScanAt = 0;
+      onScan(barcodeInput.value);
       if (rec.match === "none") setStatus("Unknown, type name", "error");
-      else setStatus("", "");
     }
 
     lookupBtn.addEventListener("click", runLookup);
@@ -1549,7 +1602,23 @@
     foundQty.addEventListener("input", updateFoundDiff);
     addBtn.addEventListener("click", function () { addCurrent(); });
 
-    deliveryDate.addEventListener("change", persistBasket);
+    deliveryDate.addEventListener("change", function () {
+      const next = deliveryDate.value || todayLondon();
+      const prev = deliveryDate.getAttribute("data-prev") || todayLondon();
+      if (next !== prev) {
+        deliveryDate.value = prev;
+        persistBasket();
+        deliveryDate.value = next;
+        loadCurrentBasket();
+        showPhoto(photoData());
+        hideFound();
+        renderList();
+        setStatus("", "");
+      } else {
+        persistBasket();
+      }
+      deliveryDate.setAttribute("data-prev", next);
+    });
     checkedBy.addEventListener("input", persistBasket);
     modeDeliveryBtn.addEventListener("click", function () { setMode("delivery"); });
     modeReturnsBtn.addEventListener("click", function () { setMode("returns"); });
@@ -1724,6 +1793,7 @@
     });
 
     restore();
+    deliveryDate.setAttribute("data-prev", deliveryDate.value || todayLondon());
     applyKindLabels();
     renderList();
     renderTodayList();

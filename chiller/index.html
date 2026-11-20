@@ -1017,6 +1017,7 @@
     .bk-nav a .i { font-size: 20px; line-height: 1; }
     .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
   </style>
+  <link rel="stylesheet" href="../scanned-list.css">
 </head>
 <body>
   <div class="example-banner">Example data</div>
@@ -1230,48 +1231,40 @@
       </div>
       <button id="wastageSave" class="btn" type="button">Save</button>
     </div>
+    <div id="checkListCard" class="bk-scanned">
+      <h2>Scanned items</h2>
+      <p id="checkListTitle" class="bk-scan-extra">Today's date check</p>
+      <p id="checkListCount" class="bk-scan-totals hidden"></p>
+      <ul id="checkItemList" class="bk-scan-list"></ul>
+      <p id="checkEmptyList" class="hint">No items yet. Scan or enter a product, then save.</p>
+    </div>
+    <div id="wasteListCard" class="bk-scanned hidden">
+      <h2>Scanned items</h2>
+      <p id="wasteTotals" class="bk-scan-totals hidden"></p>
+      <ul id="wasteItemList" class="bk-scan-list"></ul>
+      <p id="wasteEmptyList" class="hint">No items yet. Scan each out-of-date P&amp;P product, enter how many are going back, then save.</p>
+      <p class="hint">Show this list to the P&amp;P driver.</p>
+    </div>
+    <div id="stockInListCard" class="bk-scanned hidden">
+      <h2>Scanned items</h2>
+      <p id="stockInListCount" class="bk-scan-totals hidden"></p>
+      <div id="stockInTodayHead" class="hidden"></div>
+      <ul id="stockInItemList" class="bk-scan-list"></ul>
+      <p id="stockInEmptyList" class="hint">No items yet. Choose the supplier, then scan products, enter the qty and use-by date, and save.</p>
+    </div>
+    <div id="wastageListCard" class="bk-scanned hidden">
+      <h2>Scanned items</h2>
+      <p id="wastageListCount" class="bk-scan-totals hidden"></p>
+      <div id="wastageTodayHead" class="hidden"></div>
+      <ul id="wastageItemList" class="bk-scan-list"></ul>
+      <p id="wastageEmptyList" class="hint">No items yet. Choose the supplier, then scan products, enter the qty and reason, and save.</p>
+      <div id="wastageTotals" class="hidden"></div>
+    </div>
     <div id="status"></div>
-  </div>
-  <div id="checkListCard">
-    <h2 id="checkListTitle">Today's date check</h2>
-    <div id="checkListCount"></div>
-    <ul id="checkItemList"></ul>
-    <p id="checkEmptyList" class="hint">No items yet. Scan or enter a product, then save.</p>
-  </div>
-  <div id="wasteListCard" class="hidden">
-    <h2>Today's P&amp;P returns</h2>
-    <ul id="wasteItemList"></ul>
-    <p id="wasteEmptyList" class="hint">No items yet. Scan each out-of-date P&amp;P product, enter how many are going back, then save.</p>
-    <div id="wasteTotals" class="totals hidden"></div>
-    <p class="hint">Show this list to the P&amp;P driver.</p>
-  </div>
-  <div id="stockInListCard" class="hidden">
-    <h2>Today's stock in</h2>
-    <div id="stockInListCount"></div>
-    <div id="stockInTodayHead">
-      <span class="col-name">Name</span>
-      <span class="col-supplier">Supplier</span>
-      <span class="col-qty">Qty</span>
-      <span class="col-useby">Use by</span>
-    </div>
-    <ul id="stockInItemList"></ul>
-    <p id="stockInEmptyList" class="hint">No items yet. Choose the supplier, then scan products, enter the qty and use-by date, and save.</p>
-  </div>
-  <div id="wastageListCard" class="hidden">
-    <h2>Today's waste</h2>
-    <div id="wastageListCount"></div>
-    <div id="wastageTodayHead">
-      <span class="col-name">Name</span>
-      <span class="col-qty">Qty</span>
-      <span class="col-reason">Reason</span>
-      <span class="col-value">Value</span>
-    </div>
-    <ul id="wastageItemList"></ul>
-    <p id="wastageEmptyList" class="hint">No items yet. Choose the supplier, then scan products, enter the qty and reason, and save.</p>
-    <div id="wastageTotals" class="hidden"></div>
   </div>
   <p class="hint">Add this page to your home screen for one-tap access.</p>
   <script src="../secure-data.js"></script>
+  <script src="../scanned-list.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
     const photoInput = document.getElementById("photoInput");
@@ -1593,6 +1586,24 @@
       renderCheckList();
     }
 
+    
+    function checkLineQty(item) {
+      if (Array.isArray(item.lines)) {
+        return item.lines.reduce(function (a, l) { return a + (Number(l.qty) || 0); }, 0);
+      }
+      return Number(item.qty) || 0;
+    }
+
+    function setCheckLineQty(item, q) {
+      q = Math.max(0, Number(q) || 0);
+      if (Array.isArray(item.lines) && item.lines.length) {
+        const rest = item.lines.slice(1).reduce(function (a, l) { return a + (Number(l.qty) || 0); }, 0);
+        item.lines[0].qty = String(Math.max(0, q - rest));
+      } else {
+        item.qty = q;
+      }
+    }
+
     function renderCheckList() {
       if (!checkItemList) return;
       const isGap = mode === "gap";
@@ -1600,65 +1611,53 @@
       if (checkListTitle) {
         checkListTitle.textContent = isGap ? "Today's gap check" : "Today's date check";
       }
-      const n = items.length;
-      checkListCount.textContent = n === 0 ? "" : (n + (n === 1 ? " item" : " items"));
-      checkItemList.innerHTML = "";
-      items.forEach(function (item, index) {
-        const li = document.createElement("li");
-        const nameEl = document.createElement("div");
-        nameEl.className = "item-name";
-        nameEl.textContent = item.name || "Unknown";
-        li.appendChild(nameEl);
-        if (item.barcode) {
-          const bar = document.createElement("div");
-          bar.className = "item-meta";
-          bar.textContent = "Barcode " + item.barcode;
-          li.appendChild(bar);
-        }
-        if (isGap) {
-          if (item.qty !== undefined && item.qty !== "") {
-            const q = document.createElement("div");
-            q.className = "item-meta";
-            q.textContent = item.qty + " left on shelf";
-            li.appendChild(q);
+      if (!window.BirkhillScannedList) return;
+      BirkhillScannedList.render({
+        root: document.getElementById("checkListCard"),
+        listEl: checkItemList,
+        totalsEl: checkListCount,
+        emptyEl: checkEmptyList,
+        items: items,
+        alreadyNewest: true,
+        name: function (item) { return item.name || "Unknown"; },
+        barcode: function (item) { return item.barcode || ""; },
+        price: function (item) { return (typeof tillPrice === "function") ? tillPrice(item.barcode) : item.price; },
+        qty: function (item) { return checkLineQty(item); },
+        extra: function (item) {
+          if (isGap) {
+            return (item.qty !== undefined && item.qty !== "" ? item.qty + " left on shelf" : "") +
+              (item.note ? "  ·  " + item.note : "") +
+              (item.time ? "  ·  " + item.time : "");
           }
-          if (item.note) {
-            const note = document.createElement("div");
-            note.className = "item-meta";
-            note.textContent = item.note;
-            li.appendChild(note);
+          if (Array.isArray(item.lines)) {
+            return item.lines.map(function (line) {
+              const qty = (line.qty === undefined || line.qty === "") ? "" : String(line.qty);
+              return formatUkDate(line.date) + (qty === "" ? "" : "  x  " + qty);
+            }).join("  ·  ") + (item.time ? "  ·  " + item.time : "");
           }
-        } else if (Array.isArray(item.lines)) {
-          item.lines.forEach(function (line) {
-            const row = document.createElement("div");
-            row.className = "item-meta";
-            const qty = (line.qty === undefined || line.qty === "") ? "" : String(line.qty);
-            row.textContent = formatUkDate(line.date) + (qty === "" ? "" : "  ×  " + qty);
-            li.appendChild(row);
-          });
-        }
-        const timeEl = document.createElement("div");
-        timeEl.className = "item-time";
-        timeEl.textContent = item.time || "";
-        li.appendChild(timeEl);
-        const actions = document.createElement("div");
-        actions.className = "item-actions";
-        const hideBtn = document.createElement("button");
-        hideBtn.type = "button";
-        hideBtn.className = "remove-btn";
-        hideBtn.textContent = "Hide";
-        hideBtn.addEventListener("click", function () {
+          return item.time || "";
+        },
+        onMinus: function (item, index) {
+          const q = checkLineQty(item);
+          if (q <= 0) return;
+          setCheckLineQty(item, q - 1);
+          persistCheckLists();
+          renderCheckList();
+        },
+        onPlus: function (item, index) {
+          setCheckLineQty(item, checkLineQty(item) + 1);
+          persistCheckLists();
+          renderCheckList();
+        },
+        onRemove: function (item, index) {
           if (isGap) gapItems.splice(index, 1);
           else dateItems.splice(index, 1);
           persistCheckLists();
           renderCheckList();
-        });
-        actions.appendChild(hideBtn);
-        li.appendChild(actions);
-        checkItemList.appendChild(li);
+        }
       });
-      checkEmptyList.classList.toggle("hidden", items.length > 0);
     }
+
 
     restoreCheckLists();
     renderCheckList();
@@ -2060,40 +2059,50 @@
       } catch (e) {}
     }
 
+    
     function wasteRenderList() {
-      wasteItemList.innerHTML = "";
-      let totalQty = 0;
-      wasteItems.forEach(function (item, index) {
-        const qty = Number(item.qty) || 0;
-        totalQty += qty;
-        const li = document.createElement("li");
-        li.innerHTML =
-          '<div class="item-top">' +
-            '<div class="item-name"></div>' +
-            '<div class="item-value"></div>' +
-          "</div>" +
-          '<div class="item-meta"></div>' +
-          '<div class="item-actions">' +
-            '<span class="item-qty"></span>' +
-            '<button class="remove-btn" type="button">Hide</button>' +
-          "</div>";
-        li.querySelector(".item-name").textContent = item.name || "Unknown";
-        li.querySelector(".item-value").textContent = "× " + qty;
-        li.querySelector(".item-meta").textContent = item.barcode;
-        li.querySelector(".item-qty").textContent = qty + (qty === 1 ? " pack" : " packs");
-        li.querySelector(".remove-btn").addEventListener("click", function () {
+      if (!window.BirkhillScannedList) return;
+      BirkhillScannedList.render({
+        root: document.getElementById("wasteListCard"),
+        listEl: wasteItemList,
+        totalsEl: wasteTotals,
+        emptyEl: wasteEmptyList,
+        items: wasteItems,
+        newestFirst: true,
+        alreadyNewest: false,
+        name: function (item) { return item.name || "Unknown"; },
+        barcode: function (item) { return item.barcode || ""; },
+        price: function (item) { return item.price; },
+        qty: function (item) { return Number(item.qty) || 0; },
+        extra: function (item) {
+          const q = Number(item.qty) || 0;
+          return q + (q === 1 ? " pack" : " packs");
+        },
+        totals: function (shown) {
+          const units = shown.reduce(function (a, it) { return a + (Number(it.qty) || 0); }, 0);
+          return BirkhillScannedList.totalsText(shown, function (it) { return Number(it.qty) || 0; }) +
+            "  ·  " + units + (units === 1 ? " pack" : " packs") + " in total";
+        },
+        onMinus: function (item, index) {
+          if (wasteItems[index].qty > 1) {
+            wasteItems[index].qty -= 1;
+            wastePersist();
+            wasteRenderList();
+          }
+        },
+        onPlus: function (item, index) {
+          wasteItems[index].qty += 1;
+          wastePersist();
+          wasteRenderList();
+        },
+        onRemove: function (item, index) {
           wasteItems.splice(index, 1);
           wastePersist();
           wasteRenderList();
-        });
-        wasteItemList.appendChild(li);
+        }
       });
-      wasteEmptyList.classList.toggle("hidden", wasteItems.length > 0);
-      wasteTotals.classList.toggle("hidden", wasteItems.length === 0);
-      const n = wasteItems.length;
-      wasteTotals.textContent = n + (n === 1 ? " line" : " lines") + "  ·  " +
-        totalQty + (totalQty === 1 ? " pack" : " packs") + " in total";
     }
+
 
     function wasteClearPhoto() {
       wastePhotoDataUrl = "";
@@ -2586,55 +2595,52 @@
       return false;
     }
 
+    
     function renderStockInList() {
-      if (!stockInItemList) return;
-      const n = stockInItems.length;
-      stockInListCount.textContent = n === 0 ? "" : (n + (n === 1 ? " item" : " items"));
-      stockInItemList.innerHTML = "";
-      stockInItems.forEach(function (item, index) {
-        const li = document.createElement("li");
-        const top = document.createElement("div");
-        top.className = "item-top";
-        const nameEl = document.createElement("div");
-        nameEl.className = "item-name";
-        nameEl.textContent = item.name || "Unknown";
-        const supplierEl = document.createElement("div");
-        supplierEl.className = "item-supplier";
-        supplierEl.textContent = item.supplier || "";
-        const qtyEl = document.createElement("div");
-        qtyEl.className = "item-qty";
-        qtyEl.textContent = item.qty === undefined || item.qty === "" ? "" : String(item.qty);
-        const dateEl = document.createElement("div");
-        dateEl.className = "item-useby";
-        dateEl.textContent = formatUkDateShort(item.date);
-        top.appendChild(nameEl);
-        top.appendChild(supplierEl);
-        top.appendChild(qtyEl);
-        top.appendChild(dateEl);
-        li.appendChild(top);
-        const timeEl = document.createElement("div");
-        timeEl.className = "item-time";
-        timeEl.textContent = item.time || "";
-        li.appendChild(timeEl);
-        const actions = document.createElement("div");
-        actions.className = "item-actions";
-        const hideBtn = document.createElement("button");
-        hideBtn.type = "button";
-        hideBtn.className = "remove-btn";
-        hideBtn.textContent = "Hide";
-        hideBtn.addEventListener("click", function () {
+      if (!stockInItemList || !window.BirkhillScannedList) return;
+      BirkhillScannedList.render({
+        root: document.getElementById("stockInListCard"),
+        listEl: stockInItemList,
+        totalsEl: stockInListCount,
+        emptyEl: stockInEmptyList,
+        items: stockInItems,
+        alreadyNewest: true,
+        name: function (item) { return item.name || "Unknown"; },
+        barcode: function (item) { return item.barcode || ""; },
+        price: function (item) {
+          if (item.price != null && item.price !== "") return item.price;
+          return (typeof tillPrice === "function") ? tillPrice(item.barcode) : "";
+        },
+        qty: function (item) { return Number(item.qty) || 0; },
+        extra: function (item) {
+          const bits = [];
+          if (item.supplier) bits.push(item.supplier);
+          if (item.date) bits.push("Use by " + formatUkDateShort(item.date));
+          if (item.time) bits.push(item.time);
+          return bits.join("  ·  ");
+        },
+        onMinus: function (item, index) {
+          if ((Number(stockInItems[index].qty) || 0) > 1) {
+            stockInItems[index].qty = Number(stockInItems[index].qty) - 1;
+            persistStockInList();
+            renderStockInList();
+          }
+        },
+        onPlus: function (item, index) {
+          stockInItems[index].qty = (Number(stockInItems[index].qty) || 0) + 1;
+          persistStockInList();
+          renderStockInList();
+        },
+        onRemove: function (item, index) {
           stockInItems.splice(index, 1);
           persistStockInList();
           renderStockInList();
-        });
-        actions.appendChild(hideBtn);
-        li.appendChild(actions);
-        stockInItemList.appendChild(li);
+        }
       });
-      stockInEmptyList.classList.toggle("hidden", stockInItems.length > 0);
       const head = document.getElementById("stockInTodayHead");
-      if (head) head.classList.toggle("hidden", stockInItems.length === 0);
+      if (head) head.classList.add("hidden");
     }
+
 
     function updateStockInBarcodeReadout() {
       if (!stockInBarcode) {
@@ -2664,16 +2670,23 @@
       stockInLastScanCode = rec.barcode;
       stockInLastScanAt = now;
       checkBeep();
+      const sameOpen = stockInBarcode && rec.barcode === stockInBarcode;
       stockInBarcode = rec.barcode;
       stockInBarcodeInput.value = rec.barcode;
       updateStockInBarcodeReadout();
       updateStockInStockLine();
       if (rec.match === "none") {
-        stockInName.value = "";
+        if (!sameOpen) stockInName.value = "";
         setStatus("Unknown barcode, type the name.", "error");
       } else {
         stockInName.value = rec.name;
-        setStatus("Found " + rec.name, "ok");
+        if (sameOpen) {
+          const q = (parseInt(stockInQty.value, 10) || 0) + 1;
+          stockInQty.value = String(q);
+          setStatus("Quantity " + q, "ok");
+        } else {
+          setStatus("Found " + rec.name, "ok");
+        }
       }
       if (!keepCamera && typeof stopStockInCamera === "function") stopStockInCamera();
       return true;
@@ -2848,6 +2861,7 @@
           supplier: supplier,
           qty: qtyNum,
           date: date,
+          price: (typeof tillPrice === "function") ? tillPrice(stockInBarcode) : "",
           who: who,
           time: nowLondonTime(),
           at: Date.now()
@@ -3003,74 +3017,76 @@
       wastageValue.textContent = "Waste value: " + (value === null ? "-" : formatGBP(value));
     }
 
+    
     function renderWastageList() {
-      if (!wastageItemList) return;
-      const n = wastageItems.length;
-      wastageListCount.textContent = n === 0 ? "" : (n + (n === 1 ? " item" : " items"));
-      wastageItemList.innerHTML = "";
-      let total = 0;
-      let missing = 0;
-      wastageItems.forEach(function (item, index) {
-        const li = document.createElement("li");
-        const top = document.createElement("div");
-        top.className = "item-top";
-        const nameEl = document.createElement("div");
-        nameEl.className = "item-name";
-        nameEl.textContent = item.name || "Unknown";
-        const qtyEl = document.createElement("div");
-        qtyEl.className = "item-qty";
-        qtyEl.textContent = item.qty === undefined || item.qty === "" ? "" : String(item.qty);
-        const reasonEl = document.createElement("div");
-        reasonEl.className = "item-reason";
-        reasonEl.textContent = item.reason || "";
-        const valueEl = document.createElement("div");
-        valueEl.className = "item-value";
-        if (item.value === null || item.value === undefined || item.value === "") {
-          valueEl.textContent = "-";
-          missing += 1;
-        } else {
-          const nVal = Number(item.value);
-          valueEl.textContent = formatGBP(nVal);
-          if (!isNaN(nVal)) total += nVal;
-          else missing += 1;
-        }
-        top.appendChild(nameEl);
-        top.appendChild(qtyEl);
-        top.appendChild(reasonEl);
-        top.appendChild(valueEl);
-        li.appendChild(top);
-        const timeEl = document.createElement("div");
-        timeEl.className = "item-time";
-        timeEl.textContent = item.time || "";
-        li.appendChild(timeEl);
-        const actions = document.createElement("div");
-        actions.className = "item-actions";
-        const hideBtn = document.createElement("button");
-        hideBtn.type = "button";
-        hideBtn.className = "remove-btn";
-        hideBtn.textContent = "Hide";
-        hideBtn.addEventListener("click", function () {
+      if (!wastageItemList || !window.BirkhillScannedList) return;
+      BirkhillScannedList.render({
+        root: document.getElementById("wastageListCard"),
+        listEl: wastageItemList,
+        totalsEl: wastageListCount,
+        emptyEl: wastageEmptyList,
+        items: wastageItems,
+        alreadyNewest: true,
+        name: function (item) { return item.name || "Unknown"; },
+        barcode: function (item) { return item.barcode || ""; },
+        price: function (item) {
+          if (item.price != null && item.price !== "") return item.price;
+          return (typeof tillPrice === "function") ? tillPrice(item.barcode) : "";
+        },
+        qty: function (item) { return Number(item.qty) || 0; },
+        extra: function (item) {
+          const bits = [];
+          if (item.reason) bits.push(item.reason);
+          if (item.supplier) bits.push(item.supplier);
+          if (item.value !== null && item.value !== undefined && item.value !== "") bits.push("Value " + formatGBP(item.value));
+          if (item.time) bits.push(item.time);
+          return bits.join("  ·  ");
+        },
+        totals: function (shown) {
+          let total = 0;
+          let missing = 0;
+          shown.forEach(function (item) {
+            if (item.value === null || item.value === undefined || item.value === "") missing += 1;
+            else total += Number(item.value) || 0;
+          });
+          let text = BirkhillScannedList.totalsText(shown, function (it) { return Number(it.qty) || 0; });
+          text += "  ·  Today's waste: " + formatGBP(Math.round(total * 100) / 100);
+          if (missing) text += " (plus " + missing + (missing === 1 ? " item" : " items") + " with no till price)";
+          return text;
+        },
+        onMinus: function (item, index) {
+          const it = wastageItems[index];
+          const q = Number(it.qty) || 0;
+          if (q <= 1) return;
+          if (it.value !== null && it.value !== undefined && it.value !== "" && q) {
+            it.value = Math.round((Number(it.value) * (q - 1) / q) * 100) / 100;
+          }
+          it.qty = q - 1;
+          persistWastageList();
+          renderWastageList();
+        },
+        onPlus: function (item, index) {
+          const it = wastageItems[index];
+          const q = Number(it.qty) || 0;
+          if (it.value !== null && it.value !== undefined && it.value !== "" && q) {
+            it.value = Math.round((Number(it.value) * (q + 1) / q) * 100) / 100;
+          }
+          it.qty = q + 1;
+          persistWastageList();
+          renderWastageList();
+        },
+        onRemove: function (item, index) {
           wastageItems.splice(index, 1);
           persistWastageList();
           renderWastageList();
-        });
-        actions.appendChild(hideBtn);
-        li.appendChild(actions);
-        wastageItemList.appendChild(li);
+        }
       });
-      wastageEmptyList.classList.toggle("hidden", wastageItems.length > 0);
       const head = document.getElementById("wastageTodayHead");
-      if (head) head.classList.toggle("hidden", wastageItems.length === 0);
-      if (wastageItems.length === 0) {
-        wastageTotals.textContent = "";
-        wastageTotals.classList.add("hidden");
-      } else {
-        let text = "Today's waste: " + formatGBP(Math.round(total * 100) / 100);
-        if (missing) text += " (plus " + missing + (missing === 1 ? " item" : " items") + " with no till price)";
-        wastageTotals.textContent = text;
-        wastageTotals.classList.remove("hidden");
-      }
+      if (head) head.classList.add("hidden");
+      const wt = document.getElementById("wastageTotals");
+      if (wt) wt.classList.add("hidden");
     }
+
 
     function updateWastageBarcodeReadout() {
       if (!wastageBarcode) {
@@ -3102,15 +3118,22 @@
       wastageLastScanCode = rec.barcode;
       wastageLastScanAt = now;
       checkBeep();
+      const sameOpen = wastageBarcode && rec.barcode === wastageBarcode;
       wastageBarcode = rec.barcode;
       wastageBarcodeInput.value = rec.barcode;
       updateWastageBarcodeReadout();
       if (rec.match === "none") {
-        wastageName.value = "";
+        if (!sameOpen) wastageName.value = "";
         setStatus("Unknown barcode, type the name.", "error");
       } else {
         wastageName.value = rec.name;
-        setStatus("Found " + rec.name, "ok");
+        if (sameOpen) {
+          const q = (parseInt(wastageQty.value, 10) || 0) + 1;
+          wastageQty.value = String(q);
+          setStatus("Quantity " + q, "ok");
+        } else {
+          setStatus("Found " + rec.name, "ok");
+        }
       }
       updateWastageInfoLines();
       if (!keepCamera && typeof stopWastageCamera === "function") stopWastageCamera();
@@ -3292,6 +3315,7 @@
           reason: reason,
           date: date,
           value: valueNum,
+          price: (typeof tillPrice === "function") ? tillPrice(wastageBarcode) : "",
           who: who,
           time: nowLondonTime(),
           at: Date.now()

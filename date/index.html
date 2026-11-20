@@ -175,6 +175,7 @@
     .bk-nav a .i { font-size: 20px; line-height: 1; }
     .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
   </style>
+  <link rel="stylesheet" href="../scanned-list.css">
 </head>
 <body>
   <h1>Birkhill Date Check</h1>
@@ -205,9 +206,16 @@
     </div>
     <button id="save" type="button">Save</button>
     <div id="status"></div>
+    <div id="scannedBox" class="bk-scanned">
+      <h2>Scanned items</h2>
+      <p id="scannedTotals" class="bk-scan-totals hidden"></p>
+      <ul id="scannedList" class="bk-scan-list"></ul>
+      <p id="scannedEmpty" class="hint">No items yet. Save a product and it will appear here.</p>
+    </div>
   </div>
   <p class="hint">Add this page to your home screen for one-tap access.</p>
   <script src="../secure-data.js"></script>
+  <script src="../scanned-list.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
     const photoInput = document.getElementById("photoInput");
@@ -216,7 +224,91 @@
     const nameInput = document.getElementById("name");
     const saveBtn = document.getElementById("save");
     const statusEl = document.getElementById("status");
+    const SCANNED_KEY = "birkhill-date-check-scanned-v1";
     let photoDataUrl = "";
+    let scannedItems = [];
+
+    function todayLondon() {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/London",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit"
+      }).format(new Date());
+    }
+
+    function lineQty(item) {
+      if (Array.isArray(item.lines)) {
+        return item.lines.reduce(function (a, l) { return a + (Number(l.qty) || 0); }, 0);
+      }
+      return Number(item.qty) || 0;
+    }
+
+    function setLineQty(item, q) {
+      q = Math.max(0, Number(q) || 0);
+      if (Array.isArray(item.lines) && item.lines.length) {
+        const rest = item.lines.slice(1).reduce(function (a, l) { return a + (Number(l.qty) || 0); }, 0);
+        item.lines[0].qty = String(Math.max(0, q - rest));
+      } else {
+        item.qty = q;
+      }
+    }
+
+    function persistScanned() {
+      try {
+        localStorage.setItem(SCANNED_KEY, JSON.stringify({ date: todayLondon(), items: scannedItems }));
+      } catch (e) {}
+    }
+
+    function restoreScanned() {
+      try {
+        const raw = localStorage.getItem(SCANNED_KEY);
+        if (!raw) return;
+        const data = JSON.parse(raw);
+        if (data && data.date === todayLondon() && Array.isArray(data.items)) scannedItems = data.items;
+      } catch (e) {}
+    }
+
+    function renderScanned() {
+      if (!window.BirkhillScannedList) return;
+      BirkhillScannedList.render({
+        root: document.getElementById("scannedBox"),
+        listEl: document.getElementById("scannedList"),
+        totalsEl: document.getElementById("scannedTotals"),
+        emptyEl: document.getElementById("scannedEmpty"),
+        items: scannedItems,
+        alreadyNewest: true,
+        name: function (item) { return item.name || "Unknown"; },
+        barcode: function (item) { return item.barcode || ""; },
+        price: function (item) { return item.price; },
+        qty: function (item) { return lineQty(item); },
+        extra: function (item) {
+          if (!Array.isArray(item.lines)) return "";
+          return item.lines.map(function (line) {
+            var d = line.date || "";
+            if (/^\d{4}-\d{2}-\d{2}$/.test(d)) d = d.slice(8, 10) + "/" + d.slice(5, 7) + "/" + d.slice(0, 4);
+            return d + (line.qty ? "  x  " + line.qty : "");
+          }).join("  ·  ");
+        },
+        onMinus: function (item, index) {
+          const q = lineQty(item);
+          if (q <= 0) return;
+          setLineQty(item, q - 1);
+          persistScanned();
+          renderScanned();
+        },
+        onPlus: function (item, index) {
+          setLineQty(item, lineQty(item) + 1);
+          persistScanned();
+          renderScanned();
+        },
+        onRemove: function (item, index) {
+          scannedItems.splice(index, 1);
+          persistScanned();
+          renderScanned();
+        }
+      });
+    }
 
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("sw.js").catch(function () {});
@@ -313,6 +405,14 @@
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ name: name, photo: photoDataUrl || "", lines: lines })
       }).then(function () {
+        scannedItems.unshift({
+          name: name,
+          barcode: "",
+          lines: lines,
+          at: Date.now()
+        });
+        persistScanned();
+        renderScanned();
         setStatus("Saved ✓", "ok");
         clearForm();
       }).catch(function () {
@@ -321,6 +421,9 @@
         saveBtn.disabled = false;
       });
     });
+
+    restoreScanned();
+    renderScanned();
   </script>
   <script src="../nav.js"></script>
 </body>

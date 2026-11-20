@@ -16,7 +16,9 @@
         --amber:#9a5b00; --amberbg:#fff4dc; --red:#b42318; --redbg:#fdecea; --okbg:#e6f4ec; }
 * { box-sizing:border-box; }
 html,body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; overflow-x:hidden; }
-body { padding-bottom:calc(150px + env(safe-area-inset-bottom)); }
+body { padding-bottom:calc(220px + env(safe-area-inset-bottom)); }
+    body.bk-has-nav { padding-bottom: calc(220px + env(safe-area-inset-bottom)) !important; }
+    #scannedBox { margin-bottom: 16px; }
 a[aria-label="Back to Birkhill home"] { display:none !important; }
 header { position:sticky; top:0; z-index:50; background:#fff; border-bottom:3px solid var(--o); padding:calc(6px + env(safe-area-inset-top)) 12px 6px; display:flex; align-items:center; gap:10px; }
 header img { height:40px; width:auto; }
@@ -97,6 +99,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
 .zoom img { width:100%; height:auto; border-radius:12px; }
 @media (min-width:700px) { .wtc { grid-template-columns:220px 1fr; } .pic { width:220px; height:220px; } .dgrid { grid-template-columns:1fr 1fr; } .stats { grid-template-columns:repeat(6,1fr); } }
 </style>
+  <link rel="stylesheet" href="../scanned-list.css">
 </head>
 <body>
 <header><img src="logo.png" alt="Birkhill Stores"><div class="ttl">Stock Count</div><span class="pill" id="syncPill">Ready</span></header>
@@ -183,6 +186,14 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       <input type="text" id="noteIn" placeholder="e.g. 2 in the back room">
       <div id="countMsg"></div>
     </div>
+    <div class="card" id="scannedBox">
+      <div class="bk-scanned" style="margin-top:0;padding-top:0;border-top:0">
+        <h2>Scanned items</h2>
+        <p id="scannedTotals" class="bk-scan-totals hidden"></p>
+        <ul id="scannedList" class="bk-scan-list"></ul>
+        <p id="scannedEmpty" class="bk-scan-empty">No products counted yet in this session. Scan and count an item and it will appear here.</p>
+      </div>
+    </div>
   </section>
   <section id="scrReview" class="hidden">
     <div class="card">
@@ -210,6 +221,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
 </nav>
 <div class="overlay hidden" id="overlay"><div class="pop" id="pop"></div></div>
 <script src="../secure-data.js"></script>
+  <script src="../scanned-list.js"></script>
   <script>
 (function () {
   "use strict";
@@ -392,6 +404,75 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     if (!it.i) { el.innerHTML = noPic(); return; }
     var img = new Image(); img.alt = it.n; img.onerror = function () { el.innerHTML = noPic(); }; img.src = "img/" + it.i; el.innerHTML = ""; el.appendChild(img);
   }
+
+  function dateStatusText(r) {
+    if (!r) return "";
+    if (r.status === "skip") return "Skipped" + (r.note ? " (" + r.note + ")" : "");
+    var labels = { useby: "Use by", bestbefore: "Best before", nodate: "No date applies", unreadable: "Cannot read date", nounits: "No units to check" };
+    var t = labels[r.dtype] || "";
+    var first = r.batches && r.batches[0];
+    if (first && first.d) {
+      var d = first.d;
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d)) d = d.slice(8, 10) + "/" + d.slice(5, 7) + "/" + d.slice(0, 4);
+      t = (t ? t + " " : "") + d;
+    }
+    if (r.batches && r.batches.length > 1) t += "  ·  " + r.batches.length + " date batches";
+    return t;
+  }
+  function countedSessionItems() {
+    var out = [];
+    if (!S) return out;
+    S.items.forEach(function (it, i) {
+      var r = S.res[it.id];
+      if (!r || r.status !== "counted") return;
+      out.push({ it: it, i: i, r: r, at: r.at || "" });
+    });
+    out.sort(function (a, b) { return String(b.at).localeCompare(String(a.at)); });
+    return out;
+  }
+  function openCounted(entry) {
+    if (!S || S.finished) return;
+    S.idx = entry.i;
+    save();
+    renderCount();
+    setStep(3);
+    window.scrollTo(0, 0);
+  }
+  function removeCounted(entry) {
+    if (!S || S.finished || busy) return;
+    S.idx = entry.i;
+    save();
+    renderCount();
+    cur.scan = cur.scan || "skip";
+    commit({ status: "skip", count: null, held: 0, note: "Removed from scanned list" });
+  }
+  function renderScannedSession() {
+    if (!window.BirkhillScannedList || !S) return;
+    var box = $("scannedBox");
+    if (box) box.classList.toggle("hidden", !S || S.finished);
+    BirkhillScannedList.render({
+      root: box,
+      listEl: $("scannedList"),
+      totalsEl: $("scannedTotals"),
+      emptyEl: $("scannedEmpty"),
+      items: countedSessionItems(),
+      alreadyNewest: true,
+      name: function (e) { return e.it.n; },
+      barcode: function (e) { return (e.it.b && e.it.b[0]) || ""; },
+      price: function (e) { return e.it.p; },
+      picture: function (e) { return e.it.i || ""; },
+      qty: function (e) { return Number(e.r.count) || 0; },
+      extra: function (e) {
+        var d = dateStatusText(e.r);
+        return "Till stock " + e.r.till + (d ? "  ·  " + d : "");
+      },
+      onPlus: function (e) { openCounted(e); },
+      onMinus: function (e) { openCounted(e); },
+      onOpen: function (e) { openCounted(e); },
+      onRemove: function (e) { removeCounted(e); },
+      confirmMsg: function (e) { return "Remove " + e.it.n + " from this session's counted list? It will be marked as skipped so you can count it later from Review."; }
+    });
+  }
   function renderCount() {
     if (!S || S.finished) { go("home"); return; }
     if (S.idx >= S.items.length) S.idx = 0;
@@ -415,6 +496,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     setStep(r && r.status === "counted" ? 3 : 1);
     if (r && r.status === "counted") diff();
     var n = firstPending(S.idx + 1); if (n >= 0 && S.items[n].i) { var pre = new Image(); pre.src = "img/" + S.items[n].i; }
+    renderScannedSession();
   }
   function setStep(n) {
     step = n; stopCam();
