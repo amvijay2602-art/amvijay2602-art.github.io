@@ -1036,6 +1036,12 @@
     .p20-photoprev { display: none; margin-top: 8px; max-width: 100%; max-height: 120px; border-radius: 8px; }
     .p20-err { display: none; margin-top: 8px; color: #c62828; font-weight: 700; font-size: 0.85rem; }
     .p20-err.show { display: block; }
+    .p20-actions.three { grid-template-columns: 1fr 1fr 1fr; }
+    .p20-btn.skip { background: #fff; color: #b8501a; border-color: #E86B2A; }
+    .p20-item.is-skipped { border-color: #f3c7a8; background: #fffaf6; }
+    .p20-finishbar { display: flex; gap: 10px; align-items: center; margin: 0 0 12px; padding: 8px 10px; background: #eef5f0; border: 1px solid #d5e3da; border-radius: 12px; }
+    .p20-finishbar span { flex: 1 1 auto; font-size: 0.85rem; font-weight: 700; color: #18342A; }
+    .p20-finishbar .dc-btn { flex: 0 0 auto; padding: 0 18px; }
   </style>
 
   <style id="birkhill-theme">
@@ -1071,6 +1077,7 @@
   <div id="priority20Card" class="card p20-card">
     <h2>Today's 20 priority checks</h2>
     <p class="p20-lead">Short dates (3 days or less) must be removed. <span id="p20Progress"></span></p>
+    <div class="p20-finishbar"><span id="dcProgress">Count each line on the shelf. Skip if you can't, Finish when you stop.</span><button type="button" id="p20Finish" class="dc-btn finish solid">Finish</button></div>
     <ul id="priority20List" class="p20-list"></ul>
     <p id="p20Empty" class="hint hidden">Today's list could not be loaded. You can still scan below.</p>
   </div>
@@ -1107,7 +1114,16 @@
         <input class="line-date" type="date" aria-label="Use by or best before date 3">
         <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 3">
       </div>
+      <div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty">
+        <button type="button" class="dc-minus" aria-label="One less">&minus;</button>
+        <input id="dcShelfQty" class="dc-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf">
+        <button type="button" class="dc-plus" aria-label="One more">+</button>
+      </div></div>
       <button id="save" class="save-btn" type="button">Save</button>
+      <div class="dc-row2">
+        <button id="dcSkip" class="dc-btn" type="button">Skip</button>
+        <button id="dcFinish" class="dc-btn finish" type="button">Finish</button>
+      </div>
     </div>
     <div id="gapPanel" class="hidden">
       <label class="field">
@@ -1310,6 +1326,7 @@
   <p class="hint">Add this page to your home screen for one-tap access.</p>
   <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
+  <script src="../datecount.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
     const photoInput = document.getElementById("photoInput");
@@ -1471,7 +1488,7 @@
       preview.src = "";
       previewWrap.style.display = "none";
       nameInput.value = "";
-      document.querySelectorAll(".line-date, .line-qty").forEach(function (el) {
+      document.querySelectorAll(".line-date, .line-qty, #dcShelfQty").forEach(function (el) {
         el.value = "";
       });
       shelfQtyInput.value = "0";
@@ -1509,6 +1526,13 @@
         setStatus("Please enter the product name and at least one date.", "error");
         return;
       }
+      const shelfRaw = shelfInput.value.trim();
+      if (shelfRaw === "" || isNaN(Number(shelfRaw)) || Number(shelfRaw) < 0) {
+        setStatus("Please enter how many are on the shelf (0 if none), or tap Skip.", "error");
+        shelfInput.focus();
+        return;
+      }
+      const dcManual = dcItemManual(name, checkBarcode);
       setSaving(true);
       setStatus("Saving...", "");
       let savedName = "CHILLER: " + name;
@@ -1521,6 +1545,11 @@
           time: nowLondonTime(),
           at: Date.now()
         });
+        if (dc) {
+          const first = lines.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0];
+          dc.count(dcManual, Number(shelfRaw), first.date, "OK", first.qty === "" ? null : Number(first.qty));
+          dcUpdate();
+        }
         setStatus("Saved ✓", "ok");
         clearForm();
       }).catch(function () {
@@ -1708,6 +1737,65 @@
 
 
 
+    /* Shelf stock count with the date check (20 Nov 2026). Same COUNT rows as the Stock Count app. Never writes to the till. */
+    const shelfInput = document.getElementById("dcShelfQty");
+    const dc = window.BirkhillDateCount ? BirkhillDateCount.create({
+      app: "chiller", key: "DATECHECK-CHILLER", dept: "Chiller date check",
+      total: function () { return (p20Data && Array.isArray(p20Data.items)) ? p20Data.items.length : 0; },
+      snap: function () { return (p20Data && p20Data.generated_at) || ""; }
+    }) : null;
+    function dcKeyP20(it) { return it.barcode ? String(it.barcode) : "N:" + String(it.name || "").toUpperCase(); }
+    function dcItemP20(it) {
+      return { key: dcKeyP20(it), id: it.pid != null ? String(it.pid) : (it.barcode || ""), barcode: it.barcode || "", name: it.name || "", size: "",
+               till: Number(it.stock) || 0, inList: true, scan: "list" };
+    }
+    function dcItemManual(name, barcode) {
+      const bc = String(barcode || "");
+      let till = 0;
+      try { const t = bc ? tillStock(bc) : null; if (t !== null && t !== undefined && !isNaN(Number(t))) till = Number(t); } catch (e) {}
+      const inList = !!(bc && p20Data && Array.isArray(p20Data.items) && p20Data.items.some(function (it) { return String(it.barcode) === bc; }));
+      const p = inList ? p20Data.items.filter(function (it) { return String(it.barcode) === bc; })[0] : null;
+      return { key: bc || ("N:" + name.toUpperCase()), id: p && p.pid != null ? String(p.pid) : (bc || "N:" + name.toUpperCase()), barcode: bc, name: name, size: "",
+               till: p ? (Number(p.stock) || 0) : till, inList: inList, scan: bc ? "ok" : "manual:name only" };
+    }
+    function dcUpdate() {
+      const el = document.getElementById("dcProgress");
+      if (!dc || !el) return;
+      const sm = dc.summary();
+      el.textContent = sm.session ? ("This check: " + sm.checked + " checked, " + sm.skipped + " skipped, " + sm.notReached + " not reached.") : "Count each line on the shelf. Skip if you can't, Finish when you stop.";
+    }
+    function p20FocusNext(n) {
+      const list = document.getElementById("priority20List");
+      if (!list) return;
+      const items = Array.prototype.slice.call(list.querySelectorAll(".p20-item"));
+      const ix = items.findIndex(function (li) { return li.getAttribute("data-n") === String(n); });
+      for (let i = ix + 1; i < items.length; i++) {
+        if (!items[i].classList.contains("is-done") && !items[i].classList.contains("is-removed") && !items[i].classList.contains("is-skipped")) {
+          try { items[i].scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+          return;
+        }
+      }
+    }
+    function dcFinish() {
+      if (!dc) return;
+      dc.finish();
+      dcUpdate();
+      p20Render();
+      setStatus("Date check finished.", "ok");
+    }
+    document.getElementById("p20Finish").addEventListener("click", dcFinish);
+    document.getElementById("dcFinish").addEventListener("click", dcFinish);
+    document.getElementById("dcSkip").addEventListener("click", function () {
+      const name = nameInput.value.trim();
+      if (!name) { setStatus("Scan or type the product first, then tap Skip.", "error"); nameInput.focus(); return; }
+      if (!dc) return;
+      dc.skip(dcItemManual(name, checkBarcode));
+      clearForm();
+      dcUpdate();
+      p20Render();
+      setStatus("Skipped " + name + ". Next item.", "ok");
+    });
+
     const P20_KEY = "birkhill-chiller-priority20-v1";
     let p20Data = null;
     let p20Results = {};
@@ -1790,6 +1878,11 @@
         return;
       }
       if (empty) empty.classList.add("hidden");
+      const keep = {};
+      list.querySelectorAll(".p20-item").forEach(function (li) {
+        const g = function (sel) { const el = li.querySelector(sel); return el ? el.value : null; };
+        keep[li.getAttribute("data-n")] = { date: g(".p20-date"), qty: g(".p20-qty"), shelf: g(".p20-shelf") };
+      });
       list.innerHTML = items.map(function (it) {
         const key = String(it.n);
         const saved = p20Results[key];
@@ -1802,7 +1895,10 @@
         if (done === "REMOVE") cls += " is-removed";
         else if (done) cls += " is-done";
         if (isShort && !done) cls += " is-short";
-        const flag = done ? ('<div class="p20-done-flag">' + (done === "REMOVE" ? "Removed" : "OK") + (saved.date ? "  ·  " + formatUkDate(saved.date) : "") + "</div>") : "";
+        const dcSt = dc ? dc.status(dcKeyP20(it)) : null;
+        const shelfNow = (saved && saved.shelf != null) ? String(saved.shelf) : "";
+        if (!done && dcSt === "skip") cls += " is-skipped";
+        const flag = done ? ('<div class="p20-done-flag">' + (done === "REMOVE" ? "Removed" : "OK") + (saved.date ? "  ·  " + formatUkDate(saved.date) : "") + (shelfNow !== "" ? "  ·  on shelf " + shelfNow : "") + "</div>") : (dcSt === "skip" ? '<div class="dc-flag-skip">Skipped</div>' : "");
         const photoHint = p20Photos[key] ? "Date photo attached" : "Optional: photo of the date";
         return '<li class="' + cls + '" data-n="' + key + '">' +
           '<div class="p20-top">' + p20Thumb(it) +
@@ -1814,13 +1910,26 @@
           '<input class="p20-date" type="date" aria-label="Use by or best before for ' + String(it.name || "").replace(/"/g, "") + '" value="' + dateVal + '">' +
           '<input class="p20-qty" type="number" inputmode="numeric" min="1" step="1" placeholder="Qty" aria-label="Quantity" value="' + qtyVal + '">' +
           "</div>" +
+          '<div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty"><button type="button" class="dc-minus" aria-label="One less">&minus;</button>' +
+          '<input class="dc-shelf p20-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf" value="' + shelfNow + '">' +
+          '<button type="button" class="dc-plus" aria-label="One more">+</button></div></div>' +
           '<label class="p20-photo">📷 ' + photoHint + '<input class="p20-photo-input" type="file" accept="image/*" capture="environment"></label>' +
           (p20Photos[key] ? '<img class="p20-photoprev" alt="Date photo" src="' + p20Photos[key] + '" style="display:block">' : '<img class="p20-photoprev" alt="Date photo">') +
-          '<div class="p20-actions">' +
+          '<div class="p20-actions three">' +
           '<button type="button" class="p20-btn ok" data-result="OK">OK</button>' +
           '<button type="button" class="p20-btn remove" data-result="REMOVE">Remove</button>' +
+          '<button type="button" class="p20-btn skip" data-result="SKIP">Skip</button>' +
           '</div><p class="p20-err"></p></li>';
       }).join("");
+      Object.keys(keep).forEach(function (n) {
+        if (p20Results[n]) return;
+        const li = list.querySelector('.p20-item[data-n="' + n + '"]');
+        if (!li) return;
+        const k = keep[n];
+        if (k.date !== null && li.querySelector(".p20-date")) li.querySelector(".p20-date").value = k.date;
+        if (k.qty !== null && li.querySelector(".p20-qty")) li.querySelector(".p20-qty").value = k.qty;
+        if (k.shelf !== null && li.querySelector(".p20-shelf")) li.querySelector(".p20-shelf").value = k.shelf;
+      });
       p20BindThumbs(list);
       p20UpdateProgress();
     }
@@ -1837,6 +1946,17 @@
       const n = li.getAttribute("data-n");
       const item = (p20Data.items || []).filter(function (it) { return String(it.n) === n; })[0];
       if (!item) return;
+      if (result === "SKIP") {
+        p20SetErr(li, "");
+        if (dc) dc.skip(dcItemP20(item));
+        setStatus("Skipped " + item.name + ". Next item.", "ok");
+        p20Render();
+        dcUpdate();
+        p20FocusNext(n);
+        return;
+      }
+      const shelfEl = li.querySelector(".p20-shelf");
+      const shelfRaw = shelfEl ? shelfEl.value.trim() : "";
       const dateEl = li.querySelector(".p20-date");
       const qtyEl = li.querySelector(".p20-qty");
       const dateVal = dateEl ? dateEl.value.trim() : "";
@@ -1844,6 +1964,11 @@
       if (!dateVal) {
         p20SetErr(li, "Please enter the use-by or best-before date.");
         if (dateEl) dateEl.focus();
+        return;
+      }
+      if (shelfRaw === "" || isNaN(Number(shelfRaw)) || Number(shelfRaw) < 0) {
+        p20SetErr(li, "Please enter how many are on the shelf (0 if none), or tap Skip.");
+        if (shelfEl) shelfEl.focus();
         return;
       }
       p20SetErr(li, "");
@@ -1854,7 +1979,9 @@
       if (item.barcode) savedName += " [" + item.barcode + "]";
       savedName += " | " + result;
       postPayload({ name: savedName, photo: p20Photos[n] || "", lines: [{ date: dateVal, qty: String(qtyVal) }] }).then(function () {
-        p20Results[n] = { result: result, date: dateVal, qty: qtyVal, time: nowLondonTime(), at: Date.now() };
+        p20Results[n] = { result: result, date: dateVal, qty: qtyVal, shelf: Number(shelfRaw), time: nowLondonTime(), at: Date.now() };
+        if (dc) dc.count(dcItemP20(item), Number(shelfRaw), dateVal, result, Number(qtyVal));
+        dcUpdate();
         p20SaveResults();
         addDateListItem({
           name: item.name,
@@ -1866,6 +1993,7 @@
         });
         setStatus(result === "REMOVE" ? "Saved as Remove." : "Saved as OK.", "ok");
         p20Render();
+        p20FocusNext(n);
       }).catch(function () {
         p20SetErr(li, "Could not save. Check your connection and try again.");
         setStatus("Could not save. Check your connection and try again.", "error");
@@ -1919,9 +2047,11 @@
           p20Data = data;
         }
         p20Render();
+        dcUpdate();
       }).catch(function () {
         p20Data = null;
         p20Render();
+        dcUpdate();
         const empty = document.getElementById("p20Empty");
         if (empty) empty.classList.remove("hidden");
       });

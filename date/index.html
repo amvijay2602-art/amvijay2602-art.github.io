@@ -204,7 +204,17 @@
       <input class="line-date" type="date" aria-label="Best before date 3">
       <input class="line-qty" type="number" inputmode="numeric" min="0" step="1" placeholder="Qty" aria-label="Quantity 3">
     </div>
+    <div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty">
+      <button type="button" class="dc-minus" aria-label="One less">&minus;</button>
+      <input id="shelfQty" class="dc-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf">
+      <button type="button" class="dc-plus" aria-label="One more">+</button>
+    </div></div>
     <button id="save" type="button">Save</button>
+    <div class="dc-row2">
+      <button id="dcSkip" class="dc-btn" type="button">Skip</button>
+      <button id="dcFinish" class="dc-btn finish" type="button">Finish</button>
+    </div>
+    <p id="dcProgress" class="hint">Skip moves on to the next item. Finish ends this check at any time.</p>
     <div id="status"></div>
     <div id="scannedBox" class="bk-scanned">
       <h2>Scanned items</h2>
@@ -216,6 +226,7 @@
   <p class="hint">Add this page to your home screen for one-tap access.</p>
   <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
+  <script src="../datecount.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
     const photoInput = document.getElementById("photoInput");
@@ -385,7 +396,7 @@
       preview.src = "";
       previewWrap.style.display = "none";
       nameInput.value = "";
-      document.querySelectorAll(".line-date, .line-qty").forEach(function (el) {
+      document.querySelectorAll(".line-date, .line-qty, #shelfQty").forEach(function (el) {
         el.value = "";
       });
     }
@@ -395,6 +406,12 @@
       const lines = collectLines();
       if (!name || lines.length === 0) {
         setStatus("Please enter the product name and at least one date.", "error");
+        return;
+      }
+      const shelfRaw = shelfInput.value.trim();
+      if (shelfRaw === "" || isNaN(Number(shelfRaw)) || Number(shelfRaw) < 0) {
+        setStatus("Please enter how many are on the shelf (0 if none), or tap Skip.", "error");
+        shelfInput.focus();
         return;
       }
       saveBtn.disabled = true;
@@ -413,6 +430,11 @@
         });
         persistScanned();
         renderScanned();
+        if (dc) {
+          const first = lines.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0];
+          dc.count(dcItem(name), Number(shelfRaw), first.date, "OK", first.qty === "" ? null : Number(first.qty));
+          dcUpdate();
+        }
         setStatus("Saved ✓", "ok");
         clearForm();
       }).catch(function () {
@@ -421,6 +443,36 @@
         saveBtn.disabled = false;
       });
     });
+
+    /* Shelf stock count with the date check (20 Nov 2026): COUNT rows like the Stock Count app. Never writes to the till. */
+    const shelfInput = document.getElementById("shelfQty");
+    const dc = window.BirkhillDateCount ? BirkhillDateCount.create({ app: "date", key: "DATECHECK", dept: "Date check", total: function () { return 0; } }) : null;
+    function dcItem(name) {
+      const slug = name.toUpperCase().replace(/[^A-Z0-9]+/g, " ").trim();
+      return { key: "N:" + slug, id: "N:" + slug, barcode: "", name: name, size: "", till: 0, scan: "manual:name only" };
+    }
+    function dcUpdate() {
+      const el = document.getElementById("dcProgress");
+      if (!dc || !el) return;
+      const sm = dc.summary();
+      el.textContent = sm.session ? ("This check: " + sm.checked + " checked, " + sm.skipped + " skipped. Tap Finish when you stop.") : "Skip moves on to the next item. Finish ends this check at any time.";
+    }
+    document.getElementById("dcSkip").addEventListener("click", function () {
+      const name = nameInput.value.trim();
+      if (!name) { setStatus("Type the product name first, then tap Skip.", "error"); nameInput.focus(); return; }
+      if (!dc) return;
+      dc.skip(dcItem(name));
+      clearForm();
+      dcUpdate();
+      setStatus("Skipped " + name + ". Next item.", "ok");
+    });
+    document.getElementById("dcFinish").addEventListener("click", function () {
+      if (!dc) return;
+      dc.finish();
+      dcUpdate();
+      setStatus("Date check finished.", "ok");
+    });
+    dcUpdate();
 
     restoreScanned();
     renderScanned();
