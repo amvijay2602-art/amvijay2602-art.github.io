@@ -534,6 +534,22 @@
     .rs-btn { min-height: 48px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; border: 2px solid #E86B2A; background: #E86B2A; color: #fff; }
     .rs-btn.scan { background: #fff; color: #E86B2A; }
     .rs-btn:disabled { opacity: 0.55; cursor: default; }
+    .rs-item { cursor: default; flex-wrap: wrap; }
+    .rs-expected { margin: 6px 0 0; font-size: 1.02rem; font-weight: 800; color: #18342A; }
+    .rs-qty-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .rs-step {
+      flex: 0 0 48px; width: 48px; min-height: 48px; border-radius: 12px;
+      border: 2px solid #17643F; background: #fff; color: #17643F;
+      font-weight: 800; font-size: 1.5rem; line-height: 1; cursor: pointer;
+    }
+    .rs-qty-input {
+      width: 4.4rem; min-height: 48px; text-align: center;
+      font-weight: 800; font-size: 1.3rem; border: 2px solid #17643F;
+      border-radius: 12px; color: #18342A; background: #fff;
+    }
+    .rs-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; flex: 1 1 100%; }
+    .rs-btn.confirm { background: #17643F; border-color: #17643F; color: #fff; min-height: 56px; font-size: 1.12rem; width: 100%; }
+    .rs-btn.scan { background: #fff; color: #E86B2A; width: 100%; }
     .rs-err { display: none; margin-top: 8px; color: #c62828; font-weight: 700; font-size: 0.85rem; }
     .rs-err.show { display: block; }
     .confirm-note {
@@ -644,12 +660,12 @@
     <button type="button" id="kindMags" class="kind-btn" role="tab" aria-selected="false">Magazines<span class="kind-n" id="kindMagsN"></span></button>
   </div>
   <div class="card hidden" id="returnSheetCard">
-    <h2>What to scan today</h2>
+    <h2>What to return today</h2>
     <p class="rs-total" id="returnSheetTotal"></p>
     <p class="rs-instruct" id="returnSheetInstruct"></p>
     <p class="rs-meta" id="returnSheetMeta"></p>
     <ul id="returnSheetToday" class="rs-list"></ul>
-    <p id="returnSheetTodayEmpty" class="hint hidden">Nothing to scan today</p>
+    <p id="returnSheetTodayEmpty" class="hint hidden">Nothing to return today</p>
     <p id="confirmReturnHint" class="confirm-note"></p>
     <button id="confirmReturnBtn" class="btn" type="button">Confirm return</button>
     <div id="returnSheetTonight" class="rs-tonight hidden">
@@ -1620,6 +1636,11 @@
           price: price
         };
         if (isStockTake()) row.till = till;
+        if (isReturns()) {
+          row.method = "scan";
+          var line1 = (typeof matchReturnLine === "function") ? matchReturnLine(row) : null;
+          if (line1) row.expected = Number(line1.qty) || 0;
+        }
         list.unshift(row);
       }
       persistBasket();
@@ -1681,6 +1702,13 @@
         if (isStockTake()) existing.till = tillStock(existing.barcode);
         if (rec.name && !existing.name) existing.name = rec.name;
         if (rec.price && !existing.price) existing.price = rec.price;
+        if (isReturns()) {
+          existing.method = existing.method || "scan";
+          if (existing.expected == null) {
+            var line0 = (typeof matchReturnLine === "function") ? matchReturnLine(existing) : null;
+            if (line0) existing.expected = Number(line0.qty) || 0;
+          }
+        }
         list.splice(list.indexOf(existing), 1);
         list.unshift(existing);
         persistBasket();
@@ -1977,6 +2005,10 @@
         row.postedQty = Number(item.qty) || 0;
         row.postedKind = item.postedKind || item.kind || kind();
         row.postedMode = item.postedMode || mode;
+        if (item.method) row.method = item.method;
+        if (item.expected != null) row.expected = item.expected;
+        if (item.actual != null) row.actual = item.actual;
+        if (item.kind) row.kind = item.kind;
         return row;
       }).reverse();
       setTodayItems(stamped.concat(todayItems()));
@@ -2124,18 +2156,18 @@
       var msg = "";
       var ready = true;
       if (prog.hasSheet && prog.total > 0 && missing.length) {
-        msg = "Scanned " + prog.done + " of " + prog.total + ". Confirm return is available. If anything is still short you can confirm anyway.";
+        msg = "Confirmed " + prog.done + " of " + prog.total + ". Confirm return is available. If anything is still short you can confirm anyway.";
         ready = false;
       } else if (prog.hasSheet && prog.ready && unsaved === 0) {
-        msg = "All items scanned";
+        msg = "All items confirmed";
         ready = true;
       } else if (prog.hasSheet && prog.ready && unsaved > 0) {
-        msg = "All items scanned. Tap Confirm return.";
+        msg = "All items confirmed. Tap Confirm return.";
         ready = true;
       } else if (!prog.hasSheet) {
         msg = unsaved ? "Today's return sheet could not be loaded. You can still confirm scanned returns." : "";
       } else {
-        msg = unsaved ? "Nothing due on today's list. You can still confirm scanned returns." : "Nothing to scan today";
+        msg = unsaved ? "Nothing due on today's list. You can still confirm scanned returns." : "Nothing to return today";
       }
       [hint, note].forEach(function (el) {
         if (!el) return;
@@ -2183,7 +2215,15 @@
         return "PAPERSTOCK: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + tillText + " | " + who;
       }
       if (ret) {
-        return "PAPERRETURN: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + who + " | " + saveKind;
+        var method = cleanField(item.method || "scan").toLowerCase();
+        if (method !== "manual") method = "scan";
+        var expected = item.expected;
+        if (expected == null || expected === "") {
+          var line = (typeof matchReturnLine === "function") ? matchReturnLine(item) : null;
+          expected = line ? (Number(line.qty) || item.qty) : item.qty;
+        }
+        var actual = item.actual != null ? item.actual : item.qty;
+        return "PAPERRETURN: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + who + " | " + method + " | expected " + String(expected) + " | actual " + String(actual) + " | " + saveKind;
       }
       return "PAPER: " + item.barcode + " | " + item.name + " | " + who + " | " + saveKind;
     }
@@ -2392,25 +2432,129 @@
       return Math.max(server, local);
     }
 
+    function lineKey(it) {
+      var k = codeKey((it && (it.barcode || it.code)) || "");
+      if (k) return "b:" + k;
+      var n = String((it && (it.name || it.title || it.full_title)) || "").toLowerCase().replace(/\s+/g, " ").trim();
+      return n ? "n:" + n : "";
+    }
+
+    function localReturnEntries() {
+      var out = [];
+      try {
+        KINDS.forEach(function (k) {
+          ((baskets.returns[k] && baskets.returns[k].items) || []).forEach(function (it) {
+            var row = {};
+            Object.keys(it).forEach(function (key) { row[key] = it[key]; });
+            row.postedKind = row.postedKind || k;
+            row._source = "basket";
+            out.push(row);
+          });
+          (todays.returns[k] || []).forEach(function (it) {
+            var row = {};
+            Object.keys(it).forEach(function (key) { row[key] = it[key]; });
+            row.postedKind = row.postedKind || k;
+            row._source = "today";
+            out.push(row);
+          });
+        });
+      } catch (e) {}
+      return out;
+    }
+
+    function entriesForLine(item) {
+      var key = lineKey(item);
+      var name = String((item && (item.title || item.full_title || item.name)) || "").toLowerCase().replace(/\s+/g, " ").trim();
+      var code = codeKey(item && item.barcode);
+      return localReturnEntries().filter(function (it) {
+        var k = lineKey(it);
+        if (key && k && key === k) return true;
+        if (code && codeKey(it.barcode) && (code === codeKey(it.barcode) || (code.slice(0, 12) === codeKey(it.barcode).slice(0, 12) && code.length >= 12))) return true;
+        var n = String(it.name || it.title || "").toLowerCase().replace(/\s+/g, " ").trim();
+        return !!(name && n && (name === n || name.indexOf(n) >= 0 || n.indexOf(name) >= 0));
+      });
+    }
+
+    function postedQtyForLine(item) {
+      var n = 0;
+      entriesForLine(item).forEach(function (it) {
+        if (it._source === "today" || it.posted) n += Number(it.postedQty != null ? it.postedQty : it.qty) || 0;
+      });
+      var server = Number(item && item.scanned) || 0;
+      // Server already includes today's posted rows after a refresh; take the max so we do not double-count.
+      return Math.max(server, n);
+    }
+
+    function basketQtyForLine(item) {
+      var n = 0;
+      entriesForLine(item).forEach(function (it) {
+        if (it._source === "basket") n += Number(it.qty) || 0;
+      });
+      return n;
+    }
+
+    function manualConfirmFor(item) {
+      if (item && (item.confirmed_manual || String(item.method || "").toLowerCase() === "manual")) {
+        var actual = item.returned != null ? Number(item.returned) : (item.actual != null ? Number(item.actual) : Number(item.scanned) || 0);
+        return { actual: actual, expected: Number(item.qty) || 0, method: "manual" };
+      }
+      var found = null;
+      entriesForLine(item).forEach(function (it) {
+        if (String(it.method || "").toLowerCase() === "manual") {
+          found = {
+            actual: it.actual != null ? Number(it.actual) : (Number(it.qty) || 0),
+            expected: it.expected != null ? Number(it.expected) : (Number(item.qty) || 0),
+            method: "manual"
+          };
+        }
+      });
+      return found;
+    }
+
+    function expectedForItem(item) {
+      if (item && item.expected != null && item.expected !== "") return Number(item.expected) || 0;
+      return Number(item && item.qty) || 0;
+    }
+
     function mergeSheetItem(item, localMap) {
       var out = {};
       Object.keys(item).forEach(function (k) { out[k] = item[k]; });
       if (item.count_at_close) return out;
       var qty = Number(item.qty) || 0;
       var scanned = sheetScanned(item, localMap);
-      var left = Math.max(0, qty - scanned);
+      var manual = manualConfirmFor(item);
+      var returned = scanned;
+      if (manual) {
+        returned = manual.actual;
+        scanned = Math.max(scanned, returned);
+        out.method = "manual";
+        out.confirmed_manual = true;
+        out.done = true;
+        out.left = 0;
+      } else {
+        out.method = scanned ? "scan" : (out.method || "");
+        out.confirmed_manual = false;
+        out.left = Math.max(0, qty - scanned);
+        out.done = out.left === 0;
+      }
       out.scanned = scanned;
-      out.left = left;
-      out.done = left === 0;
+      out.returned = returned;
+      out.expected = qty;
       if (qty === 0) {
         out.status = "Sold out";
         out.done = true;
-      } else if (left === 0) {
+        out.left = 0;
+        out.line_text = "Sold out";
+      } else if (out.done && (out.confirmed_manual || returned !== qty)) {
         out.status = "Done";
+        out.line_text = returned !== qty ? ("expected " + qty + ", returned " + returned) : ("returned " + returned);
+      } else if (out.done) {
+        out.status = "Done";
+        out.line_text = "scanned " + scanned + " of " + qty;
       } else {
-        out.status = "Scan " + left;
+        out.status = "Confirm " + out.left;
+        out.line_text = "scanned " + scanned + " of " + qty;
       }
-      out.line_text = qty === 0 ? "Sold out" : ("scanned " + scanned + " of " + qty);
       return out;
     }
 
@@ -2429,14 +2573,14 @@
       var left = leftM.concat(leftN);
       var pack = packM.concat(packN);
       var scanNow;
-      if (left.length) scanNow = "What to scan today: " + phraseItems(left) + ".";
+      if (left.length) scanNow = "What to return today: " + phraseItems(left) + ".";
       else if (pack.length) {
-        scanNow = "All scanned. Pack today: " + pack.map(function (x) { return x.title + " x" + x.qty; }).join(", ") + ".";
+        scanNow = "All confirmed. Pack today: " + pack.map(function (x) { return x.title + " x" + x.qty; }).join(", ") + ".";
       } else {
-        scanNow = (data && data.scan_now) || "Nothing to scan today.";
+        scanNow = (data && data.scan_now) || "Nothing to return today.";
       }
       var totalLine = totalLeft === 1 ? "1 item left to return" : (totalLeft + " items left to return");
-      if (totalQty > 0 && totalLeft === 0) totalLine = "All " + totalQty + " items scanned";
+      if (totalQty > 0 && totalLeft === 0) totalLine = "All " + totalQty + " items confirmed";
       return { scan_now: scanNow, total_line: totalLine, total_left: totalLeft };
     }
 
@@ -2477,11 +2621,21 @@
         } else {
           issue.textContent = "Issue " + d;
         }
+        var expected = Number(item.qty) || 0;
+        if (!tonight && !sold) {
+          var exp = document.createElement("p");
+          exp.className = "rs-expected";
+          exp.textContent = "Expected return: " + expected;
+          col.appendChild(name);
+          if (issue.textContent) col.appendChild(issue);
+          col.appendChild(exp);
+        } else {
+          col.appendChild(name);
+          if (issue.textContent) col.appendChild(issue);
+        }
         var line = document.createElement("p");
         line.className = "rs-line";
         line.textContent = item.line_text || "";
-        col.appendChild(name);
-        if (issue.textContent) col.appendChild(issue);
         col.appendChild(line);
         if (item.note) {
           var note = document.createElement("p");
@@ -2496,24 +2650,85 @@
         li.appendChild(col);
         li.appendChild(badge);
         if (!tonight && !sold && !item.done && lineKind) {
+          var startVal = expected;
+          var qtyRow = document.createElement("div");
+          qtyRow.className = "rs-qty-row";
+          var minus = document.createElement("button");
+          minus.type = "button";
+          minus.className = "rs-step";
+          minus.setAttribute("aria-label", "Fewer copies");
+          minus.textContent = "\u2212";
+          var qtyInput = document.createElement("input");
+          qtyInput.type = "number";
+          qtyInput.className = "rs-qty-input";
+          qtyInput.min = "0";
+          qtyInput.max = "99";
+          qtyInput.step = "1";
+          qtyInput.inputMode = "numeric";
+          qtyInput.value = String(startVal);
+          qtyInput.setAttribute("aria-label", "Actual return quantity for " + (item.title || "this title"));
+          var plus = document.createElement("button");
+          plus.type = "button";
+          plus.className = "rs-step";
+          plus.setAttribute("aria-label", "More copies");
+          plus.textContent = "+";
+          qtyRow.appendChild(minus);
+          qtyRow.appendChild(qtyInput);
+          qtyRow.appendChild(plus);
           var actions = document.createElement("div");
           actions.className = "rs-actions";
-          actions.style.gridTemplateColumns = "1fr";
-          actions.innerHTML = '<button type="button" class="rs-btn scan" data-act="scan">Scan</button>';
-          col.appendChild(actions);
+          var confirmBtn = document.createElement("button");
+          confirmBtn.type = "button";
+          confirmBtn.className = "rs-btn confirm";
+          confirmBtn.setAttribute("data-act", "confirm");
+          confirmBtn.textContent = "Confirm " + startVal;
+          var scanBtn = document.createElement("button");
+          scanBtn.type = "button";
+          scanBtn.className = "rs-btn scan";
+          scanBtn.setAttribute("data-act", "scan");
+          scanBtn.textContent = "Scan";
+          var err = document.createElement("p");
+          err.className = "rs-err";
+          actions.appendChild(confirmBtn);
+          actions.appendChild(scanBtn);
+          actions.appendChild(err);
+          li.appendChild(qtyRow);
+          li.appendChild(actions);
           li.classList.add("is-due");
-          li.addEventListener("click", function (e) {
-            if (e.target && e.target.closest && e.target.closest("button")) return;
-            if (typeof startMagReturn === "function") startMagReturn(item, true);
-          });
-          actions.querySelector('[data-act="scan"]').addEventListener("click", function (e) {
+          function currentQty() {
+            var n = parseInt(qtyInput.value, 10);
+            if (isNaN(n) || n < 0) n = 0;
+            if (n > 99) n = 99;
+            return n;
+          }
+          function syncConfirm() {
+            var n = currentQty();
+            qtyInput.value = String(n);
+            confirmBtn.textContent = "Confirm " + n;
+          }
+          minus.addEventListener("click", function (e) {
+            e.preventDefault();
             e.stopPropagation();
-            if (typeof startMagReturn === "function") startMagReturn(item, true);
+            qtyInput.value = String(Math.max(0, currentQty() - 1));
+            syncConfirm();
           });
-        } else if (!tonight && lineKind) {
-          li.addEventListener("click", function () {
-            if (typeof setKind === "function") setKind(lineKind);
-            if (lineKind === "MAGAZINE" && typeof startMagReturn === "function") startMagReturn(item, false);
+          plus.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            qtyInput.value = String(Math.min(99, currentQty() + 1));
+            syncConfirm();
+          });
+          qtyInput.addEventListener("input", syncConfirm);
+          qtyInput.addEventListener("change", syncConfirm);
+          confirmBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            confirmLineReturn(item, currentQty(), err, confirmBtn);
+          });
+          scanBtn.addEventListener("click", function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            startReturnScan(item, true);
           });
         }
         listEl.appendChild(li);
@@ -2572,10 +2787,104 @@
 
     var magAwaiting = null;
 
+
+    function removeBasketForLine(item) {
+      var key = lineKey(item);
+      var code = codeKey(item && item.barcode);
+      var name = String((item && (item.title || item.full_title || item.name)) || "").toLowerCase().replace(/\s+/g, " ").trim();
+      KINDS.forEach(function (k) {
+        if (!baskets.returns[k]) return;
+        baskets.returns[k].items = (baskets.returns[k].items || []).filter(function (it) {
+          var k2 = lineKey(it);
+          if (key && k2 && key === k2) return false;
+          var bc = codeKey(it.barcode);
+          if (code && bc && (code === bc || (code.slice(0, 12) === bc.slice(0, 12) && code.length >= 12 && bc.length >= 12))) return false;
+          var n = String(it.name || it.title || "").toLowerCase().replace(/\s+/g, " ").trim();
+          if (!code && name && n && (name === n || name.indexOf(n) >= 0 || n.indexOf(name) >= 0)) return false;
+          return true;
+        });
+      });
+      persistBasket();
+    }
+
+    function confirmLineReturn(item, actual, errEl, btn) {
+      actual = parseInt(actual, 10);
+      if (isNaN(actual) || actual < 0) actual = 0;
+      function showErr(msg) {
+        if (errEl) { errEl.textContent = msg || ""; errEl.classList.toggle("show", !!msg); }
+        if (msg) setStatus(msg, "error");
+      }
+      var who = (checkedBy.value || "").trim();
+      if (!who) {
+        showErr("Enter your name in Checked by first.");
+        checkedBy.focus();
+        return Promise.resolve(false);
+      }
+      var date = (deliveryDate.value || todayLondon()).trim();
+      if (!date) {
+        deliveryDate.value = todayLondon();
+        date = deliveryDate.value;
+      }
+      var typ = item.kind || paperType(item.barcode, item.title || item.full_title) || kind();
+      var expected = expectedForItem(item);
+      var already = postedQtyForLine(item);
+      var delta = actual - already;
+      if (delta < 0) delta = 0;
+      removeBasketForLine(item);
+      if (btn) btn.disabled = true;
+      showErr("");
+      var title = item.title || item.full_title || "title";
+      setStatus("Saving " + title + "...", "");
+      var name = "PAPERRETURN: " + cleanField(item.barcode || "") + " | " + cleanField(title) + " | " + String(delta) + " | " + who + " | manual | expected " + String(expected) + " | actual " + String(actual) + " | " + typ;
+      return postPayload({
+        name: name,
+        photo: "",
+        lines: [{ date: date, qty: String(delta) }]
+      }).then(function () {
+        appendToday([{
+          barcode: item.barcode || "",
+          name: title,
+          qty: delta,
+          method: "manual",
+          expected: expected,
+          actual: actual,
+          postedKind: typ,
+          postedMode: "returns",
+          kind: typ
+        }]);
+        setStatus("Confirmed " + title + ": returned " + actual, "ok");
+        renderList();
+        renderReturnSheet();
+        return true;
+      }).catch(function () {
+        showErr("Could not save. Check your connection and try again.");
+        if (btn) btn.disabled = false;
+        return false;
+      });
+    }
+
+    function startReturnScan(item, startCam) {
+      startMagReturn(item, startCam);
+    }
+
+    window.__paperReturns.confirmLine = confirmLineReturn;
+    window.__paperReturns.startReturnScan = startReturnScan;
+    window.__paperReturns.dueLines = function () {
+      if (!returnSheetData) return [];
+      var localMap = localReturnScanMap();
+      var rt = returnSheetData.return_today || {};
+      return (rt.newspapers || []).concat(rt.magazines || []).map(function (it) {
+        return mergeSheetItem(it, localMap);
+      });
+    };
+    window.__paperReturns.removeBasketForLine = removeBasketForLine;
+
+
     function startMagReturn(item, startCam) {
       if (!item) return;
       if (!isReturns()) setMode("returns");
-      setKind("MAGAZINE");
+      var typ = item.kind || paperType(item.barcode, item.title || item.full_title || item.name) || kind() || "NEWSPAPER";
+      setKind(typ);
       magAwaiting = item.barcode || item.title || "mag";
       if (item.barcode) {
         var rec = lookup(item.barcode) || { barcode: item.barcode, name: item.title || item.full_title || "", price: 0, match: "none" };
