@@ -106,10 +106,14 @@
       if (uos == null) flags.push("Case size (UOS) not read");
       if (typeof price !== "number") { price = null; flags.push("Cost not read"); }
       if (typeof ext === "number" && price != null && qty != null && !near(price * qty, ext, 0.02)) flags.push("Qty x price does not equal the line value, check");
-      var size = "";
-      var lastT = descToks[descToks.length - 1] || "";
+      var size = "", mul = 1;
+      if (descToks.length && /^\d{1,2}x$/i.test(descToks[descToks.length - 1])) { mul = parseInt(descToks.pop(), 10); }   // "6x" = 6 bottles in the case
+      var lastT = (descToks[descToks.length - 1] || "").replace(/\*+$/, "");
       if ((descToks.length > 1 && /(\d|ml|g|kg|ltr|cl|pk)\)?$/i.test(lastT)) || /^\d+(\.\d+)?(ml|g|kg|ltr|l|cl)$/i.test(lastT)) size = descToks.pop();
       var desc = descToks.join(" ");
+      if (/^\*+$/.test(size.replace(/^[\d.]+(ml|g|kg|ltr|l|cl|pk|'s)/i, "")) || /\*$/.test(size)) size = size.replace(/\*+$/, "");
+      if (!/[A-Za-z]{3}/.test(desc.replace(/\b\d+(\.\d+)?(ml|g|kg|ltr|l|cl)\b\**/gi, ""))) { if (!size && desc) size = desc.replace(/\*+$/, ""); desc = ""; }
+      if (mul > 1 && uos != null) { uos = uos * mul; flags.push("Case of " + mul + " (printed " + mul + "x), case size set to " + uos); }
       if (!desc) {   // wrapped description printed above and below
         var up = (raw[i - 1] || "").trim(), dn = (raw[i + 1] || "").trim();
         desc = ((/^\d{5,6}\s|T&S/.test(up) ? "" : up) + " " + (/^\d{5,6}\s|T&S|Trolley/.test(dn) ? "" : dn)).trim();
