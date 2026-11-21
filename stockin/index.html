@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17643F">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Deliveries">
+  <title>Birkhill Deliveries and Suppliers</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="stylesheet" href="../scanned-list.css">
+  <style id="birkhill-theme">
+    :root { --bk-g:#17643F; --bk-gd:#0f4a2e; --bk-o:#E86B2A; --bk-bg:#F4F7F4; --bk-ink:#18342A; --bk-line:#d5e3da; }
+    html, body { background: var(--bk-bg); color: var(--bk-ink); }
+    body { font-family: "Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; font-size: 16px; }
+    input, select, textarea { font-size: 16px !important; }
+    button, .btn, input[type="text"], input[type="number"], input[type="date"], input[type="search"], input[type="password"], select { min-height: 48px; }
+    .card { border-radius: 18px !important; box-shadow: 0 1px 4px rgba(24,52,42,.10) !important; }
+    .bk-logo { display:block; margin: 0 auto 6px; height: 44px; width: auto; }
+    body.bk-has-nav { padding-bottom: calc(88px + env(safe-area-inset-bottom)) !important; }
+    .bk-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 9990; display: grid; background: #fff; border-top: 1px solid var(--bk-line); box-shadow: 0 -2px 8px rgba(24,52,42,.08); padding-bottom: env(safe-area-inset-bottom); }
+    .bk-nav a { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:58px; color: var(--bk-ink); text-decoration:none; font: 700 12px/1.1 system-ui, sans-serif; gap: 3px; }
+    .bk-nav a .i { font-size: 20px; line-height: 1; }
+    .bk-nav a.on { color: var(--bk-g); box-shadow: inset 0 3px 0 var(--bk-g); }
+  </style>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 12px 12px 24px; }
+    main { max-width: 640px; margin: 0 auto; }
+    h1 { text-align: center; margin: 0 0 2px; font-size: 1.5rem; color: var(--bk-g); }
+    .sub { text-align: center; color: #5b6573; font-size: .9rem; margin-bottom: 10px; }
+    .card { background: #fff; padding: 14px; margin: 0 0 12px; }
+    .card h2 { margin: 0 0 10px; font-size: 1.1rem; }
+    .btn { display: block; width: 100%; border: 0; border-radius: 14px; padding: 12px; font-size: 1.05rem; font-weight: 800; color: #fff; background: var(--bk-g); cursor: pointer; }
+    .btn.o { background: var(--bk-o); } .btn.red { background: #c62828; }
+    .btn.sec { background: #eef5f0; color: var(--bk-g); border: 1px solid var(--bk-line); }
+    .btn.small { display: inline-block; width: auto; padding: 8px 14px; min-height: 40px; font-size: .95rem; }
+    .btn:disabled { opacity: .5; }
+    .row { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
+    .row > * { flex: 1 1 120px; }
+    input[type=text], input[type=number], input[type=date], input[type=password], input[type=search], select, textarea { width: 100%; border: 1px solid #c9d6ce; border-radius: 12px; padding: 10px; background: #fff; color: var(--bk-ink); }
+    label.f { display: block; font-weight: 700; font-size: .88rem; margin: 8px 0 4px; }
+    .hidden { display: none !important; }
+    .msg { border-radius: 12px; padding: 10px 12px; margin-top: 10px; font-weight: 600; font-size: .95rem; }
+    .msg.ok { background: #e8f6ec; color: #1b7a3d; } .msg.err { background: #fdecec; color: #c62828; } .msg.warn { background: #fef3c7; color: #8a4b08; }
+    .tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; }
+    .tabs button { flex: 0 0 auto; border: 1px solid var(--bk-line); background: #fff; color: var(--bk-ink); border-radius: 999px; padding: 8px 14px; font-weight: 800; font-size: .92rem; min-height: 42px; }
+    .tabs button.on { background: var(--bk-g); color: #fff; border-color: var(--bk-g); }
+    .tabs .n { display: inline-block; min-width: 20px; border-radius: 999px; background: var(--bk-o); color: #fff; font-size: .75rem; padding: 1px 6px; margin-left: 4px; }
+    .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .tile { background: #fff; border: 1px solid var(--bk-line); border-radius: 16px; padding: 14px; text-align: left; font-weight: 800; font-size: 1rem; color: var(--bk-ink); min-height: 84px; }
+    .tile small { display: block; font-weight: 600; color: #5b6573; font-size: .8rem; margin-top: 4px; }
+    .tile .big { font-size: 1.6rem; display: block; }
+    .list .item { border: 1px solid #e3ebe6; border-radius: 14px; padding: 10px; margin-bottom: 8px; background: #fff; }
+    .item .t { font-weight: 800; } .m { color: #5b6573; font-size: .85rem; margin-top: 2px; }
+    .st { display: inline-block; font-size: .75rem; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: #eef5f0; color: var(--bk-g); }
+    .st.draft { background: #eef2ff; color: #3730a3; } .st.needs_fix, .st.error { background: #fdecec; color: #c62828; }
+    .st.pending_approval { background: #fef3c7; color: #8a4b08; } .st.approved, .st.sending { background: #e0f2fe; color: #075985; }
+    .st.posted { background: #e8f6ec; color: #1b7a3d; } .st.recorded { background: #f3e8ff; color: #6b21a8; } .st.local { background: #fff7ed; color: #9a3412; }
+    .line { border: 1px solid #e3ebe6; border-radius: 14px; padding: 10px; margin-bottom: 10px; background: #fff; }
+    .line.bad { border-color: #f1a5a5; background: #fffafa; } .line.out { opacity: .55; }
+    .lh { display: flex; gap: 10px; }
+    .pic { width: 64px; height: 64px; flex: 0 0 64px; border-radius: 12px; background: #eef5f0; display: flex; align-items: center; justify-content: center; overflow: hidden; font-size: 1.6rem; }
+    .pic img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+    .ln { font-weight: 800; line-height: 1.2; } .lm { color: #5b6573; font-size: .82rem; margin-top: 2px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+    .grid label { font-size: .75rem; font-weight: 800; color: #5b6573; display: block; }
+    .grid input, .grid select { min-height: 42px; padding: 6px 8px; }
+    .flag { font-size: .82rem; font-weight: 700; color: #c62828; margin-top: 6px; } .note { font-size: .82rem; font-weight: 700; color: #8a4b08; margin-top: 6px; }
+    .pill { position: fixed; top: 8px; right: 8px; z-index: 9999; background: #fef3c7; color: #8a4b08; border-radius: 999px; padding: 4px 10px; font-size: .8rem; font-weight: 800; }
+    .mgrbar { position: fixed; top: 8px; left: 8px; z-index: 9999; background: var(--bk-g); color: #fff; border-radius: 999px; padding: 4px 10px; font-size: .8rem; font-weight: 800; }
+    table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
+    table.t th, table.t td { border-bottom: 1px solid #e3ebe6; padding: 6px 4px; text-align: left; vertical-align: top; }
+    table.t td.n, table.t th.n { text-align: right; }
+    .ud { display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #eef2ef; padding: 8px 0; }
+    .ud .q { display: flex; align-items: center; gap: 4px; }
+    .ud .q button { width: 42px; min-height: 42px; border-radius: 10px; border: 1px solid var(--bk-line); background: #eef5f0; font-weight: 900; font-size: 1.2rem; }
+    .ud .q input { width: 58px; text-align: center; min-height: 42px; padding: 4px; }
+    .ud .ret input { width: 58px; text-align: center; min-height: 42px; padding: 4px; border-color: #c4b5fd; }
+    .ud .exp { font-size: .78rem; color: #5b6573; }
+    .empty { color: #5b6573; font-size: .92rem; }
+    video { width: 100%; border-radius: 14px; margin-top: 10px; background: #000; max-height: 240px; object-fit: cover; }
+    .search-res .item { cursor: pointer; display: flex; gap: 8px; align-items: center; border: 1px solid #e3ebe6; border-radius: 12px; padding: 6px; margin-top: 6px; }
+    @media print { body { font-size: 14pt; } .tabs, .bk-nav, .btn, .pill, .mgrbar { display: none !important; } table.t { font-size: 14pt; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Deliveries and Suppliers</h1>
+  <div class="sub" id="sub">Stock In drafts, approval and posting to the till</div>
+  <div id="pill" class="pill hidden"></div>
+  <div id="mgrbar" class="mgrbar hidden"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="view"></div>
+  <div class="empty" id="dataNote" style="text-align:center;margin-top:10px"></div>
+</main>
+<script src="../secure-data.js"></script>
+  <script src="../scanned-list.js"></script>
+  <script>
+(function () {
+  "use strict";
+  var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
+  var K = { queue: "birkhill-si-queue-v1", docs: "birkhill-si-local-docs-v1", mgr: "birkhill-si-manager-v1" };
+  var STATUS = { draft: "Draft", needs_fix: "Needs fixing", pending_approval: "Waiting for manager", approved: "Approved, sending to till", sending: "Sending to till", posted: "Posted", error: "Posting error", recorded: "Return recorded", discarded: "Discarded", local: "Not sent yet" };
+  var VATS = [["", "VAT?"], ["20", "20%"], ["5", "5%"], ["0", "0%"], ["NA", "N/A"]];
+  var SI = null, PR = null, BYID = {}, BYBC = {}, cur = { tab: "home", doc: null };
+  function $(id) { return document.getElementById(id); }
+  function jget(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function jset(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function digits(s) { return String(s || "").replace(/\D/g, ""); }
+  function bkey(b) { return digits(b).replace(/^0+/, ""); }
+  function staff() { try { return localStorage.getItem("birkhill-staff-name") || ""; } catch (e) { return ""; } }
+  function money(n) { return n == null || n === "" || isNaN(Number(n)) ? "-" : "\u00a3" + Number(n).toFixed(2); }
+  function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+  function londonParts() { var f = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date()); var o = {}; f.forEach(function (p) { o[p.type] = p.value; }); return o; }
+  function londonISO() { var o = londonParts(); return o.year + "-" + o.month + "-" + o.day; }
+  function londonAt() { var o = londonParts(); return o.year + "-" + o.month + "-" + o.day + "T" + (o.hour === "24" ? "00" : o.hour) + ":" + o.minute + ":" + o.second; }
+  function ukDate(iso) { return iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(2, 4) : ""; }
+  function newId(p) { var o = londonParts(), a = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", s = ""; for (var i = 0; i < 4; i++) s += a[Math.floor(Math.random() * a.length)]; return p + o.year.slice(2) + o.month + o.day + "-" + s; }
+  function each(sel, fn) { Array.prototype.forEach.call($("view").querySelectorAll(sel), fn); }
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function () {});
+
+  // offline-safe send queue (same Apps Script and Camera Entries tab as the other Birkhill apps)
+  var sending = false;
+  function pill() { var q = jget(K.queue, []); $("pill").textContent = q.length + " waiting to send"; $("pill").classList.toggle("hidden", q.length === 0); }
+  function queueEv(ev) { var q = jget(K.queue, []); q.push({ name: "SI1: " + JSON.stringify(ev), photo: "", lines: [{ date: londonISO(), qty: "0" }] }); jset(K.queue, q); pill(); flush(); }
+  function flush() {
+    if (sending) return; var q = jget(K.queue, []); pill(); if (!q.length) return; sending = true;
+    fetch(ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(q[0]) })
+      .then(function () { var q2 = jget(K.queue, []); q2.shift(); jset(K.queue, q2); sending = false; flush(); })
+      .catch(function () { sending = false; pill(); setTimeout(flush, 15000); });
+  }
+  window.addEventListener("online", flush); setInterval(flush, 30000);
+  function sendDraft(doc) {
+    var s = JSON.stringify({ kind: doc.kind, sid: doc.sid, ref: doc.ref, date: doc.date, staff: doc.staff, notes: doc.notes || "", lines: doc.lines, returns: doc.returns || [], source: doc.source || "app" });
+    var size = 30000, parts = Math.max(1, Math.ceil(s.length / size));
+    for (var i = 0; i < parts; i++) queueEv({ t: "draft", id: doc.id, rev: doc.rev, part: i, parts: parts, by: staff() || doc.staff, d: s.slice(i * size, (i + 1) * size) });
+  }
+
+  // manager crypto: the code never leaves the phone; the box checks an HMAC signature
+  function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ("0" + b.toString(16)).slice(-2); }).join(""); }
+  function unhex(h) { var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
+  function deriveKey(name, code) {
+    var enc = new TextEncoder();
+    return crypto.subtle.importKey("raw", enc.encode(code), "PBKDF2", false, ["deriveBits"]).then(function (k) {
+      return crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: enc.encode("BH-MGR-" + name.trim().toUpperCase()), iterations: 100000 }, k, 256);
+    }).then(hex);
+  }
+  function hmacHex(keyHex, msg) {
+    return crypto.subtle.importKey("raw", unhex(keyHex), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]).then(function (k) { return crypto.subtle.sign("HMAC", k, new TextEncoder().encode(msg)); }).then(hex);
+  }
+  function sha256(s) { return crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)).then(hex); }
+  function rsaEnc(obj) {
+    var der = Uint8Array.from(atob(SI.rsa_public), function (c) { return c.charCodeAt(0); });
+    return crypto.subtle.importKey("spki", der, { name: "RSA-OAEP", hash: "SHA-256" }, false, ["encrypt"]).then(function (k) {
+      return crypto.subtle.encrypt({ name: "RSA-OAEP" }, k, new TextEncoder().encode(JSON.stringify(obj)));
+    }).then(function (b) { return btoa(String.fromCharCode.apply(null, new Uint8Array(b))); });
+  }
+  function mgr() { try { return JSON.parse(sessionStorage.getItem(K.mgr) || "null"); } catch (e) { return null; } }
+  function mgrBar() { var m = mgr(); $("mgrbar").textContent = m ? "Manager: " + m.name : ""; $("mgrbar").classList.toggle("hidden", !m); }
+  function signRaw(msgFn) { var m = mgr(); if (!m) { alert("Manager login needed. Open the Manager tab."); return Promise.reject(new Error("no manager")); } var at = londonAt(); return Promise.resolve(msgFn(at, m.name)).then(function (msg) { return hmacHex(m.key, msg); }).then(function (sig) { return { at: at, by: m.name, sig: sig }; }); }
+  function signed(t, id, rev, extra) {
+    return signRaw(function (at, by) { return t + "|" + id + "|" + rev + "|" + at + "|" + by; }).then(function (s) {
+      var ev = { t: t, id: id, rev: rev, at: s.at, by: s.by, sig: s.sig }; for (var k in (extra || {})) ev[k] = extra[k]; queueEv(ev); return ev;
+    });
+  }
+
+  // data
+  function load() {
+    return Promise.all([
+      fetch("stockin.json").then(function (r) { if (!r.ok) throw new Error("locked"); return r.json(); }),
+      fetch("stockin_products.json").then(function (r) { if (!r.ok) throw new Error("locked"); return r.json(); })
+    ]).then(function (res) {
+      SI = res[0]; PR = res[1]; BYID = {}; BYBC = {};
+      PR.p.forEach(function (a) {
+        var p = { id: a[0], n: a[1], s: a[2], b: a[3], q: a[4], c: a[5], p: a[6], vat: a[7], upc: a[8], cc: a[9], i: a[10], ld: a[11], ls: a[12], lcc: a[13], lupc: a[14], sup: a[15] };
+        BYID[p.id] = p; p.b.forEach(function (b) { var k = bkey(b); if (k && (!BYBC[k] || BYBC[k].q === 0)) BYBC[k] = p; });
+      });
+      $("dataNote").textContent = "Updated " + SI.generated_display + ". Till posting is " + (SI.writes_enabled ? "on" : "switched off on the box") + ".";
+      var loc = jget(K.docs, {}), sd = docsById();
+      Object.keys(loc).forEach(function (id) { if (sd[id] && (sd[id].rev || 0) >= (loc[id].rev || 0) && !loc[id].unsent) delete loc[id]; });
+      jset(K.docs, loc);
+    });
+  }
+  function docsById() { var o = {}; (SI ? SI.docs : []).forEach(function (d) { o[d.id] = d; }); return o; }
+  function allDocs() {
+    var o = docsById(), loc = jget(K.docs, {});
+    Object.keys(loc).forEach(function (id) { if (!o[id] || (loc[id].rev || 0) >= (o[id].rev || 0)) o[id] = Object.assign({}, o[id] || {}, loc[id]); });
+    return Object.keys(o).map(function (k) { return o[k]; }).filter(function (d) { return status(d) !== "discarded"; }).sort(function (a, b) { return String(b.updated || b.created || "").localeCompare(String(a.updated || a.created || "")); });
+  }
+  function status(d) { return d.localStatus || d.status || "draft"; }
+  function supName(sid) { var s = (SI.suppliers || []).filter(function (x) { return x.id === sid; })[0]; return s ? s.name : (sid || "No supplier"); }
+  function lookup(code) { var d = digits(code); if (!d) return null; var k = bkey(d); return BYBC[k] || (d.length === 12 ? BYBC[bkey("0" + d)] : null) || (d.length <= 7 ? BYID[parseInt(d, 10)] : null) || null; }
+  function picHtml(pid) { var p = BYID[pid]; return p && p.i ? "<img alt='' src='../count/img/" + esc(p.i) + "' onerror=\"this.parentNode.innerHTML='&#128230;'\">" : "&#128230;"; }
+  function saveLocal(doc, st_) { var loc = jget(K.docs, {}); doc.updated = londonAt(); if (st_) doc.localStatus = st_; loc[doc.id] = doc; jset(K.docs, loc); }
+  function say(id, t, k) { $(id).innerHTML = "<div class='msg " + (k || "ok") + "'>" + esc(t) + "</div>"; }
+  // tabs
+  var TABS = [["home", "Home"], ["new", "New delivery"], ["ud", "Milk and bread"], ["drafts", "Drafts"], ["approval", "Pending Approval"], ["errors", "Posting Errors"], ["posted", "Posted Deliveries"], ["suppliers", "Suppliers"], ["reports", "Supplier Reports"], ["manager", "Manager"]];
+  function counts() {
+    var c = { drafts: 0, approval: 0, errors: 0 };
+    allDocs().forEach(function (d) { var s = status(d); if (s === "draft" || s === "local" || s === "recorded") c.drafts++; if (s === "pending_approval") c.approval++; if (s === "error" || s === "needs_fix") c.errors++; });
+    return c;
+  }
+  function renderTabs() {
+    var c = counts();
+    $("tabs").innerHTML = TABS.map(function (t) { var n = c[t[0]]; return "<button type='button' data-tab='" + t[0] + "' class='" + (cur.tab === t[0] ? "on" : "") + "'>" + t[1] + (n ? "<span class='n'>" + n + "</span>" : "") + "</button>"; }).join("");
+    Array.prototype.forEach.call($("tabs").querySelectorAll("button"), function (b) { b.onclick = function () { go(b.getAttribute("data-tab")); }; });
+  }
+  function go(tab, arg) { cur.tab = tab; renderTabs(); stopCam(); (VIEWS[tab] || VIEWS.home)(arg); window.scrollTo(0, 0); try { history.replaceState(null, "", "?tab=" + tab); } catch (e) {} }
+
+  var VIEWS = {};
+  function tile(g, big, t, d) { return "<button type='button' class='tile' data-go='" + g + "'><span class='big'>" + big + "</span>" + t + "<small>" + d + "</small></button>"; }
+  VIEWS.home = function () {
+    var c = counts(), posted = allDocs().filter(function (d) { return status(d) === "posted"; }).length;
+    $("view").innerHTML = "<div class='tiles'>" +
+      tile("new", "&#128666;", "New delivery", "Type, scan or import an EDN") + tile("ud", "&#129371;", "Milk and bread", "Unique Dairies quick check") +
+      tile("drafts", c.drafts, "Drafts", "Saved, not sent to the till") + tile("approval", c.approval, "Pending Approval", "Manager checks and approves") +
+      tile("errors", c.errors, "Posting Errors", "Fix or send again") + tile("posted", posted, "Posted Deliveries", "In the till, stock before and after") +
+      tile("suppliers", (SI.suppliers || []).length, "Suppliers", "Profiles and till link") + tile("reports", "&#128202;", "Supplier Reports", "Spend, deliveries, audit log") + "</div>" +
+      "<div class='card' style='margin-top:12px'><h2>How it works</h2><div class='m'>Draft &gt; Check Products &gt; Match Supplier &gt; Manager Approval &gt; Send to Till &gt; Confirm Till Receipt &gt; Posted. Saving a draft never changes the till. Quick item scans still go in the Chiller app Stock In tab; Grok Bot can turn a day's scans into a draft here.</div></div>";
+    each(".tile", function (b) { b.onclick = function () { go(b.getAttribute("data-go")); }; });
+  };
+  function docTotal(d) { var t = 0; (d.lines || []).forEach(function (l) { if (l.leave_out || !l.pid) return; if (d.kind === "return") t += num(l.ret) * num(l.unit_cost); else if (num(l.upc)) t += num(l.case_cost) / num(l.upc) * (num(l.rcv) * num(l.upc) - num(l.damaged)); }); return t; }
+  function docList(filter, empty) {
+    var ds = allDocs().filter(filter);
+    if (!ds.length) return "<div class='card empty'>" + empty + "</div>";
+    return "<div class='list'>" + ds.map(function (d) {
+      var s = status(d), n = (d.lines || []).filter(function (l) { return !l.leave_out; }).length;
+      return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(supName(d.sid)) + " &middot; " + esc(d.ref || d.id) + " <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span></div>" +
+        "<div class='m'>" + esc(ukDate(d.date)) + " &middot; " + n + " lines &middot; " + money(docTotal(d)) + " ex VAT &middot; " + esc(d.staff || "") + (d.kind === "return" ? " &middot; supplier return" : "") + (d.source ? " &middot; " + esc(d.source) : "") + "</div>" +
+        (d.error ? "<div class='flag'>" + esc(d.error) + "</div>" : "") + ((d.issues || []).length && s === "needs_fix" ? "<div class='flag'>" + esc(d.issues.length + " problem(s): " + d.issues[0]) + "</div>" : "") +
+        (d.waiting && s === "approved" ? "<div class='note'>" + esc(d.waiting) + "</div>" : "") + (d.till ? "<div class='m'>Till " + (d.kind === "return" ? "StockReturn " : "StockIn ") + esc(d.till.till_id) + (d.reconcile && d.reconcile.ok ? ", reconciled" : d.reconcile ? ", MISMATCH" : "") + "</div>" : "") + "</div>";
+    }).join("") + "</div>";
+  }
+  function bindOpen() { each(".item[data-id]", function (el) { el.onclick = function () { openDoc(el.getAttribute("data-id")); }; }); }
+  VIEWS.drafts = function () {
+    var td = (SI.till_drafts || []).slice(0, 15);
+    $("view").innerHTML = "<div class='card'><h2>Drafts</h2><div class='m'>Saved in this app and not sent to the till. Returns waiting for the driver to collect are here too.</div></div>" +
+      docList(function (d) { return ["draft", "local", "recorded"].indexOf(status(d)) >= 0; }, "No drafts.") +
+      "<div class='card'><h2>Drafts saved in the GloPOS Manager app</h2><div class='m'>Already in the till's own draft list, not posted. Ask Grok Bot to bring one in here so it goes through approval instead of being keyed twice.</div>" +
+      (td.length ? "<table class='t'><tr><th>No.</th><th>Ref</th><th>Date</th><th class='n'>Lines</th><th class='n'>Ex VAT</th></tr>" + td.map(function (t) { return "<tr><td>" + t.id + "</td><td>" + esc(t.ref) + "</td><td>" + ukDate(t.date) + "</td><td class='n'>" + t.lines + "</td><td class='n'>" + money(t.ex) + "</td></tr>"; }).join("") + "</table>" : "<div class='empty'>None.</div>") + "</div>";
+    bindOpen();
+  };
+  VIEWS.approval = function () {
+    $("view").innerHTML = "<div class='card'><h2>Pending Approval</h2><div class='m'>Checked and matched. A manager opens each one, reads the warnings and cost changes, then approves. Approved deliveries go to the till at the next update.</div></div>" +
+      docList(function (d) { return ["pending_approval", "approved", "sending"].indexOf(status(d)) >= 0; }, "Nothing waiting.");
+    bindOpen();
+  };
+  VIEWS.errors = function () {
+    $("view").innerHTML = "<div class='card'><h2>Posting Errors</h2><div class='m'>Nothing here changed the till. Fix the draft and send it again, or a manager can retry.</div></div>" +
+      docList(function (d) { return ["error", "needs_fix"].indexOf(status(d)) >= 0; }, "No errors.");
+    bindOpen();
+  };
+  VIEWS.posted = function () {
+    $("view").innerHTML = "<div class='card'><h2>Posted Deliveries</h2><div class='m'>Confirmed in the till. Open one to see till stock before and after.</div></div>" +
+      docList(function (d) { return status(d) === "posted"; }, "Nothing posted from this app yet.");
+    bindOpen();
+  };
+
+  // new delivery
+  VIEWS.new = function () {
+    var opts = (SI.suppliers || []).filter(function (s) { return s.active !== false; }).map(function (s) { return "<option value='" + s.id + "'>" + esc(s.name) + "</option>"; }).join("");
+    $("view").innerHTML = "<div class='card'><h2>New delivery</h2><label class='f'>Supplier</label><select id='nSup'><option value=''>Choose supplier</option>" + opts + "</select>" +
+      "<label class='f'>Invoice or delivery note number</label><input id='nRef' type='text' autocomplete='off'>" +
+      "<div class='row'><div><label class='f'>Delivery date</label><input id='nDate' type='date' value='" + londonISO() + "'></div><div><label class='f'>Staff name</label><input id='nStaff' type='text' value='" + esc(staff()) + "'></div></div>" +
+      "<label class='f'>Parfetts or Eden EDN file, or a CSV of barcode, cases, case size, case cost, VAT (optional)</label><input id='nFile' type='file' accept='.csv,text/csv'>" +
+      "<div class='m' style='margin-top:6px'>Dhamecha PDF invoices and GloPOS Stock In Templates: send them to Grok Bot and it makes the draft here.</div>" +
+      "<button class='btn' id='nGo' style='margin-top:12px'>Start draft</button><div id='nMsg'></div></div>";
+    $("nSup").onchange = function () { var s = (SI.suppliers || []).filter(function (x) { return x.id === $("nSup").value; })[0]; if (s && s.import_type === "ud_daily" && confirm("Use the quick Milk and bread screen?")) go("ud"); };
+    $("nGo").onclick = function () {
+      var sid = $("nSup").value, who = $("nStaff").value.trim();
+      if (!sid) return say("nMsg", "Choose the supplier.", "err"); if (!who) return say("nMsg", "Type your name.", "err");
+      try { localStorage.setItem("birkhill-staff-name", who); } catch (e) {}
+      var doc = { id: newId("D"), kind: "delivery", sid: sid, ref: $("nRef").value.trim(), date: $("nDate").value, staff: who, lines: [], rev: 0, source: "app", localStatus: "local", unsent: true };
+      var f = $("nFile").files[0];
+      if (!f) { saveLocal(doc); openDoc(doc.id); return; }
+      var rd = new FileReader();
+      rd.onload = function () { try { parseEDN(rd.result, doc); saveLocal(doc); openDoc(doc.id); } catch (e) { say("nMsg", "Could not read that file: " + e.message, "err"); } };
+      rd.readAsText(f, "windows-1252");
+    };
+  };
+  function csvRows(t) {
+    var out = [], row = [], f = "", q = false;
+    for (var i = 0; i < t.length; i++) { var ch = t[i];
+      if (q) { if (ch === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += ch; }
+      else if (ch === '"') q = true; else if (ch === ",") { row.push(f); f = ""; } else if (ch === "\n" || ch === "\r") { if (ch === "\r" && t[i + 1] === "\n") i++; row.push(f); out.push(row); row = []; f = ""; } else f += ch; }
+    if (f || row.length) { row.push(f); out.push(row); }
+    return out.filter(function (r) { return r.join("").trim(); });
+  }
+  function vatOf(p) { return p ? ({ 1: "20", 2: "5", 3: "0", 4: "NA" }[p.vat] || "") : ""; }
+  function mkLine(p, o) {
+    var l = { pid: p ? p.id : null, name: p ? p.n : (o.inv_name || ""), bc: o.bc || (p ? p.b[0] : ""), inv_name: o.inv_name || "", inv_code: o.inv_code || "", exp: o.exp != null ? o.exp : "", rcv: o.rcv != null ? o.rcv : 1,
+      upc: o.upc || (p ? (p.lupc || p.upc || 1) : ""), case_cost: o.case_cost != null ? o.case_cost : "", vat: o.vat != null ? o.vat : vatOf(p), damaged: 0, bb: "", match: o.match || (p ? "scan" : "none"), confirmed: !!(p && o.match !== "suggested"), cost_src: o.cost_src || "" };
+    if (p && l.upc && p.lupc && Math.abs(num(l.upc) - p.lupc) > 1e-6) l.note = "Case size " + l.upc + ", last buy was " + p.lupc + ". Check.";
+    return l;
+  }
+  function parseEDN(text, doc) {
+    var rows = csvRows(text.replace(/^\ufeff/, "").replace(/^\u00ef\u00bb\u00bf/, "")), h = rows.shift().map(function (x) { return x.trim(); });
+    function col(r, n) { var i = h.indexOf(n); return i >= 0 ? (r[i] || "").trim() : ""; }
+    if (h.indexOf("Retail_Barcode") < 0) {
+      rows.unshift(h);
+      rows.forEach(function (r) { if (!digits(r[0])) return; var p = lookup(r[0]); doc.lines.push(mkLine(p, { bc: r[0], inv_name: p ? "" : "Barcode " + r[0], rcv: num(r[1]), exp: num(r[1]), upc: num(r[2]) || (p ? p.upc : ""), case_cost: r[3] === "" || r[3] == null ? "" : num(r[3]), vat: (r[4] || "").replace("%", "").trim(), match: p ? "barcode" : "none", cost_src: "file" })); });
+      doc.source = "CSV file"; return;
+    }
+    if (!doc.ref) doc.ref = (doc.sid === "SUP-005" ? "Eden " : "Parfetts ") + col(rows[0], "transaction_number");
+    var d = col(rows[0], "Date_transaction").slice(0, 10).split("/"); if (d.length === 3) doc.date = d[2] + "-" + d[1] + "-" + d[0];
+    var codes = (SI.codes || {})[doc.sid] || {};
+    rows.forEach(function (r) {
+      var p = lookup(col(r, "Retail_Barcode")) || lookup(col(r, "Selling_Out_Barcode")), match = p ? "barcode" : "none";
+      if (!p && codes[col(r, "Item")]) { p = BYID[codes[col(r, "Item")]]; match = p ? "code" : "none"; }
+      var qty = num(col(r, "Qty")), vr = col(r, "vatrate");
+      var l = mkLine(p, { bc: col(r, "Retail_Barcode") || col(r, "Selling_Out_Barcode"), inv_name: col(r, "Description") + " " + col(r, "Pack_description"), inv_code: col(r, "Item"), rcv: qty, exp: qty,
+        upc: num(col(r, "UOS")) * (num(col(r, "Pack")) || 1), case_cost: col(r, "Sell") === "" ? "" : num(col(r, "Sell")), vat: vr === "" ? "" : String(Math.round(num(vr))), match: match, cost_src: "invoice" });
+      if (qty === 0) { l.leave_out = true; l.note = "Not supplied (0 on the EDN)"; }
+      doc.lines.push(l);
+    });
+    doc.source = "EDN file";
+  }
+  // open and edit a document
+  function findDoc(id) { return allDocs().filter(function (d) { return d.id === id; })[0]; }
+  function editable(d) { return ["draft", "local", "needs_fix", "error", "pending_approval"].indexOf(status(d)) >= 0 && d.kind !== "return"; }
+  function openDoc(id) { var d = findDoc(id); if (!d) return go("drafts"); cur.doc = JSON.parse(JSON.stringify(d)); cur.tab = "doc"; renderTabs(); renderDoc(); window.scrollTo(0, 0); }
+  function lineTotals(d) { var t = 0, ti = 0, u = 0; (d.lines || []).forEach(function (l) { if (l.leave_out || !l.pid) return; var units = d.kind === "return" ? num(l.ret) : num(l.rcv) * num(l.upc) - num(l.damaged), unit = d.kind === "return" ? num(l.unit_cost) : (num(l.upc) ? num(l.case_cost) / num(l.upc) : 0), v = l.vat === "NA" ? 0 : num(l.vat); t += unit * units; ti += unit * units * (1 + v / 100); u += units; }); return { t: t, ti: ti, u: u }; }
+  function clientCheck(d) {
+    var iss = [], ok = 0;
+    if (!d.sid) iss.push("Choose the supplier"); if (!(d.ref || "").trim()) iss.push("Type the invoice or delivery note number"); if (!d.date) iss.push("Delivery date missing"); if (!(d.staff || "").trim()) iss.push("Staff name missing");
+    (d.lines || []).forEach(function (l) {
+      if (l.leave_out) return; var nm = l.name || l.inv_name || "line";
+      if (!l.pid) { iss.push("Not on the till: " + nm + ". Match it or tap Leave out."); return; }
+      if (l.match === "suggested" && !l.confirmed) iss.push("Confirm the suggested match for " + (l.inv_name || nm));
+      if (!(num(l.upc) > 0)) iss.push("Case size missing for " + nm);
+      if (l.case_cost === "" || l.case_cost == null) iss.push("Cost missing for " + nm);
+      if (!l.vat) iss.push("VAT missing for " + nm);
+      var units = num(l.rcv) * num(l.upc) - num(l.damaged); if (units < 0) iss.push("Damaged is more than received for " + nm); if (units > 0) ok++;
+    });
+    if (!ok) iss.push("Nothing to post yet");
+    return iss;
+  }
+  function renderDoc() {
+    var d = cur.doc, s = status(d), ed = editable(d), tt = lineTotals(d), sup = (SI.suppliers || []).filter(function (x) { return x.id === d.sid; })[0];
+    var h = "<div class='card'><div class='row' style='align-items:center'><div><b>" + esc(supName(d.sid)) + "</b> <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span></div><div style='flex:0 0 auto'><button class='btn small sec' id='dBack'>Back</button></div></div>" +
+      "<div class='m'>" + esc(d.id) + (d.source ? " &middot; " + esc(d.source) : "") + (sup && !sup.till_id ? " &middot; not a till supplier yet, posts under the name" : sup ? " &middot; till supplier " + sup.till_id : "") + "</div>";
+    if (ed) {
+      h += "<div class='row'><div><label class='f'>Invoice or delivery note</label><input id='dRef' type='text' value='" + esc(d.ref || "") + "'></div><div><label class='f'>Delivery date</label><input id='dDate' type='date' value='" + esc(d.date || "") + "'></div></div>" +
+        "<div class='row'><div><label class='f'>Staff name</label><input id='dStaff' type='text' value='" + esc(d.staff || staff()) + "'></div><div><label class='f'>Supplier</label><select id='dSup'>" + (SI.suppliers || []).map(function (x) { return "<option value='" + x.id + "'" + (x.id === d.sid ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</select></div></div>";
+    } else h += "<div class='m'>Ref " + esc(d.ref) + " &middot; " + ukDate(d.date) + " &middot; staff " + esc(d.staff || "") + (d.approval ? " &middot; approved by " + esc(d.approval.by) : "") + "</div>";
+    h += "<div class='m' style='margin-top:6px'><b>" + money(tt.t) + "</b> ex VAT &middot; " + money(tt.ti) + " inc VAT &middot; " + tt.u + " units</div>";
+    if (s === "needs_fix") (d.issues || []).forEach(function (x) { h += "<div class='flag'>" + esc(x) + "</div>"; });
+    (d.warnings || []).forEach(function (x) { h += "<div class='note'>" + esc(x) + "</div>"; });
+    if (d.error) h += "<div class='msg err'>" + esc(d.error) + "</div>";
+    if (d.waiting && s === "approved") h += "<div class='msg warn'>" + esc(d.waiting) + "</div>";
+    h += "</div>";
+    if (ed) h += "<div class='card'><h2>Add a product</h2><button class='btn sec' id='dScan'>&#128247; Scan barcode</button><video id='video' class='hidden' playsinline muted></video>" +
+      "<div class='row' style='margin-top:8px'><input id='dCode' type='search' placeholder='Barcode or product name' autocomplete='off'><button class='btn small' id='dFind' style='flex:0 0 auto'>Find</button></div><div id='dRes' class='search-res'></div></div>";
+    h += "<div id='lines'>" + (d.lines || []).map(function (l, i) { return lineHtml(d, l, i, ed); }).join("") + "</div>";
+    if (d.kind === "ud" && (d.returns || []).length) h += "<div class='card'><h2>Returns recorded with this delivery</h2>" + d.returns.map(function (r) { return "<div class='m'>" + esc(r.name) + ": " + r.ret + "</div>"; }).join("") + "<div class='m'>Stock only goes down when the return is confirmed and approved.</div></div>";
+    h += "<div class='card' id='acts'></div>";
+    if (d.till) h += "<div class='card'><h2>Till receipt</h2><div class='m'>" + (d.kind === "return" ? "StockReturn " : "StockIn ") + esc(d.till.till_id) + " &middot; " + esc(d.till.ref) + " &middot; " + (d.reconcile && d.reconcile.ok ? "app and till match" : "MISMATCH: " + esc(((d.reconcile || {}).diffs || []).join("; "))) + "</div>" +
+      "<table class='t'><tr><th>Product</th><th class='n'>Qty</th><th class='n'>Before</th><th class='n'>After</th><th class='n'>Till now</th></tr>" + d.till.lines.map(function (l) { return "<tr><td>" + esc(l.name) + "</td><td class='n'>" + l.units + "</td><td class='n'>" + l.before + "</td><td class='n'>" + l.after + "</td><td class='n'>" + l.now + "</td></tr>"; }).join("") + "</table></div>";
+    if ((d.history || []).length) h += "<div class='card'><h2>History</h2>" + d.history.slice().reverse().map(function (x) { return "<div class='m'>" + esc(String(x.at).replace("T", " ").slice(0, 16)) + " &middot; " + esc(x.what) + (x.by ? " &middot; " + esc(x.by) : "") + "</div>"; }).join("") + "</div>";
+    $("view").innerHTML = h;
+    $("dBack").onclick = function () { go(s === "posted" ? "posted" : (s === "pending_approval" || s === "approved") ? "approval" : (s === "error" || s === "needs_fix") ? "errors" : "drafts"); };
+    if (ed) {
+      ["dRef", "dDate", "dStaff", "dSup"].forEach(function (id) { $(id).onchange = function () { d.ref = $("dRef").value.trim(); d.date = $("dDate").value; d.staff = $("dStaff").value.trim(); d.sid = $("dSup").value; touch(); }; });
+      $("dFind").onclick = function () { findProduct($("dCode").value); };
+      $("dCode").onkeydown = function (e) { if (e.key === "Enter") findProduct($("dCode").value); };
+      $("dScan").onclick = function () { if (cam.on) stopCam(); else startCam(function (code) { stopCam(); $("dCode").value = code; findProduct(code); }); };
+      bindLines();
+    }
+    renderActs();
+  }
+  function lineHtml(d, l, i, ed) {
+    var p = BYID[l.pid], bad = !l.leave_out && (!l.pid || (l.match === "suggested" && !l.confirmed) || l.case_cost === "" || l.case_cost == null || !l.vat || !(num(l.upc) > 0));
+    var hasExp = l.exp !== "" && l.exp != null, short = hasExp && num(l.rcv) < num(l.exp), extra = hasExp && num(l.rcv) > num(l.exp);
+    var h = "<div class='line" + (bad ? " bad" : "") + (l.leave_out ? " out" : "") + "' data-i='" + i + "'><div class='lh'><div class='pic'>" + picHtml(l.pid) + "</div><div style='flex:1;min-width:0'>" +
+      "<div class='ln'>" + esc(p ? p.n + (p.s && p.n.indexOf(p.s) < 0 ? " " + p.s : "") : (l.inv_name || l.name || "Not on the till")) + "</div>" +
+      "<div class='lm'>" + (l.bc ? "Barcode " + esc(l.bc) : "No barcode") + (p ? " &middot; till " + p.id + " &middot; stock " + p.q + " &middot; sells " + money(p.p) : "") + "</div>" +
+      (l.inv_name && p ? "<div class='lm'>Invoice: " + esc(l.inv_name) + (l.inv_code ? " (" + esc(l.inv_code) + ")" : "") + "</div>" : "") +
+      (p && p.ld ? "<div class='lm'>Last buy " + ukDate(p.ld) + " " + esc(p.ls) + ": " + money(p.lcc) + " for " + (p.lupc || "?") + "</div>" : "") + "</div></div>";
+    if (ed) {
+      h += "<div class='grid'><div><label>Expected cases</label><input data-f='exp' type='number' inputmode='decimal' value='" + esc(l.exp) + "'></div><div><label>Received cases</label><input data-f='rcv' type='number' inputmode='decimal' value='" + esc(l.rcv) + "'></div><div><label>Case size (units)</label><input data-f='upc' type='number' inputmode='decimal' value='" + esc(l.upc) + "'></div>" +
+        "<div><label>Case cost ex VAT</label><input data-f='case_cost' type='number' inputmode='decimal' step='0.01' value='" + esc(l.case_cost) + "'></div><div><label>VAT</label><select data-f='vat'>" + VATS.map(function (v) { return "<option value='" + v[0] + "'" + (String(l.vat == null ? "" : l.vat) === v[0] ? " selected" : "") + ">" + v[1] + "</option>"; }).join("") + "</select></div><div><label>Damaged units</label><input data-f='damaged' type='number' inputmode='numeric' value='" + esc(l.damaged || 0) + "'></div>" +
+        "<div><label>BB or use-by</label><input data-f='bb' type='date' value='" + esc(l.bb || "") + "'></div><div><label>Unit cost ex VAT</label><div style='padding-top:10px;font-weight:800'>" + (num(l.upc) && l.case_cost !== "" && l.case_cost != null ? money(num(l.case_cost) / num(l.upc)) : "-") + "</div></div><div><label>&nbsp;</label><label style='font-size:.85rem'><input data-f='leave_out' type='checkbox'" + (l.leave_out ? " checked" : "") + "> Leave out</label></div></div>";
+    } else if (d.kind === "return") h += "<div class='lm'>Return " + esc(l.ret) + " at " + money(l.unit_cost) + (l.reason ? " &middot; " + esc(l.reason) : "") + "</div>";
+    else h += "<div class='lm'>Expected " + esc(hasExp ? l.exp : "-") + " &middot; received " + esc(l.rcv) + " x " + esc(l.upc) + " &middot; " + money(l.case_cost) + " a case ex VAT &middot; VAT " + esc(l.vat) + (num(l.damaged) ? " &middot; damaged " + l.damaged : "") + (l.bb ? " &middot; BB " + ukDate(l.bb) : "") + (l.leave_out ? " &middot; LEFT OUT" : "") + "</div>";
+    if (short) h += "<div class='note'>Short by " + (num(l.exp) - num(l.rcv)) + " case(s)</div>"; if (extra) h += "<div class='note'>Extra " + (num(l.rcv) - num(l.exp)) + " case(s)</div>";
+    if (num(l.damaged)) h += "<div class='note'>" + l.damaged + " damaged unit(s), not added to stock</div>";
+    if (l.cost_src && l.cost_src !== "invoice") h += "<div class='note'>Cost from " + esc(l.cost_src) + "</div>";
+    if (p && l.case_cost !== "" && l.case_cost != null && num(l.upc) && p.c > 0 && Math.abs(num(l.case_cost) / num(l.upc) - p.c) / p.c > 0.1) h += "<div class='note'>Cost change: till " + money(p.c) + ", this " + money(num(l.case_cost) / num(l.upc)) + " a unit. Manager approval updates the till cost.</div>";
+    if (l.note) h += "<div class='note'>" + esc(l.note) + "</div>";
+    if (!l.pid && !l.leave_out) h += "<div class='flag'>Not on the till. Find the right product below, or tap Leave out. New lines are never added.</div>";
+    if (ed && (!l.pid || (l.match === "suggested" && !l.confirmed))) h += (l.match === "suggested" ? "<div class='note'>Suggested match from earlier deliveries. Check it is the same product.</div>" : "") + "<div class='row' style='margin-top:6px'>" + (l.pid ? "<button class='btn small' data-a='confirm' style='flex:0 0 auto'>Confirm match</button>" : "") + "<input data-a='q' type='search' placeholder='Search till product' value='" + esc((l.inv_name || "").split(" ").slice(0, 2).join(" ")) + "'><button class='btn small sec' data-a='search' style='flex:0 0 auto'>Search</button></div><div class='search-res' data-a='res'></div>";
+    if (ed) h += "<div style='text-align:right;margin-top:6px'><button class='btn small sec' data-a='del'>Remove line</button></div>";
+    return h + "</div>";
+  }
+  function touch() { var d = cur.doc; d.localStatus = "local"; d.unsent = true; saveLocal(d); renderActs(); }
+  function bindLines() {
+    Array.prototype.forEach.call($("lines").querySelectorAll(".line"), function (el) {
+      var i = +el.getAttribute("data-i"), l = cur.doc.lines[i];
+      Array.prototype.forEach.call(el.querySelectorAll("[data-f]"), function (inp) {
+        inp.onchange = function () { var f = inp.getAttribute("data-f"); if (f === "leave_out") l.leave_out = inp.checked; else if (f === "vat" || f === "bb") l[f] = inp.value; else { l[f] = inp.value === "" ? "" : num(inp.value); if (f === "case_cost") l.cost_src = "typed by " + (cur.doc.staff || staff() || "staff"); } touch(); rerenderLine(i); };
+      });
+      var a = function (n) { return el.querySelector("[data-a='" + n + "']"); };
+      if (a("del")) a("del").onclick = function () { if (confirm("Remove this line?")) { cur.doc.lines.splice(i, 1); touch(); renderDoc(); } };
+      if (a("confirm")) a("confirm").onclick = function () { l.confirmed = true; touch(); rerenderLine(i); };
+      if (a("search")) a("search").onclick = function () { a("res").innerHTML = searchHtml(a("q").value); Array.prototype.forEach.call(a("res").querySelectorAll(".item"), function (r) { r.onclick = function () { var p = BYID[+r.getAttribute("data-pid")]; l.pid = p.id; l.name = p.n; l.match = "manual"; l.confirmed = true; if (!l.bc) l.bc = p.b[0] || ""; if (!l.vat) l.vat = vatOf(p); touch(); rerenderLine(i); }; }); };
+    });
+  }
+  function rerenderLine(i) { var el = $("lines").querySelector(".line[data-i='" + i + "']"); var tmp = document.createElement("div"); tmp.innerHTML = lineHtml(cur.doc, cur.doc.lines[i], i, true); el.parentNode.replaceChild(tmp.firstChild, el); bindLines(); }
+  function searchHtml(qs) {
+    var ws = String(qs || "").toUpperCase().split(/\s+/).filter(Boolean), out = [];
+    if (!ws.length) return "";
+    var byCode = lookup(qs); if (byCode) out.push(byCode);
+    for (var id in BYID) { var p = BYID[id], n = (p.n + " " + p.s).toUpperCase(); if (p !== byCode && ws.every(function (w) { return n.indexOf(w) >= 0; })) out.push(p); if (out.length > 60) break; }
+    out.sort(function (a, b) { return (b.q !== 0) - (a.q !== 0); });
+    return out.slice(0, 25).map(function (p) { return "<div class='item' data-pid='" + p.id + "'><div class='pic' style='width:44px;height:44px;flex-basis:44px'>" + picHtml(p.id) + "</div><div><div class='t'>" + esc(p.n) + " " + esc(p.s) + "</div><div class='m'>" + esc(p.b[0] || "") + " &middot; stock " + p.q + " &middot; " + money(p.p) + "</div></div></div>"; }).join("") || "<div class='empty'>No till product found. New lines are never added.</div>";
+  }
+  function findProduct(qs) {
+    var p = lookup(qs);
+    if (p) { addProduct(p, digits(qs)); return; }
+    $("dRes").innerHTML = searchHtml(qs);
+    Array.prototype.forEach.call($("dRes").querySelectorAll(".item"), function (r) { r.onclick = function () { addProduct(BYID[+r.getAttribute("data-pid")], ""); }; });
+  }
+  function addProduct(p, code) {
+    var d = cur.doc, ex = d.lines.filter(function (l) { return l.pid === p.id; })[0];
+    if (ex) ex.rcv = num(ex.rcv) + 1;
+    else {
+      var l = mkLine(p, { bc: code || p.b[0], match: code ? "scan" : "manual" });
+      if (p.lcc != null) { l.case_cost = p.lcc; l.upc = p.lupc || l.upc; l.cost_src = "last buy " + ukDate(p.ld) + ", check the invoice"; }
+      d.lines.unshift(l);
+    }
+    touch(); renderDoc();
+  }
+  function renderActs() {
+    var d = cur.doc, s = status(d), m = mgr(), h = "";
+    if (editable(d)) {
+      h += "<button class='btn sec' id='aSave'>Save draft (does not change the till)</button>";
+      h += "<button class='btn' id='aSend' style='margin-top:8px'>Check products and send for approval</button>";
+      if (["draft", "local", "needs_fix"].indexOf(s) >= 0) h += "<button class='btn small sec' id='aDiscard' style='margin-top:8px'>Discard draft</button>";
+    }
+    if (s === "recorded" && d.kind === "return") h += "<div class='m'>Tap when the driver has taken the returns. Change a quantity first if it is different.</div>" + d.lines.map(function (l, i) { return "<div class='row' style='align-items:center'><div>" + esc(l.name) + "</div><input data-ri='" + i + "' type='number' value='" + esc(l.ret) + "' style='flex:0 0 90px'></div>"; }).join("") + "<button class='btn o' id='aRconf' style='margin-top:8px'>Confirm return collected</button>";
+    if (s === "pending_approval") h += m ? "<button class='btn' id='aApprove' style='margin-top:8px'>Approve and send to till (" + esc(m.name) + ")</button><button class='btn sec' id='aReject' style='margin-top:8px'>Send back to staff</button>" : "<div class='msg warn'>A manager must approve this. Log in on the Manager tab.</div>";
+    if (s === "error" && m) h += "<button class='btn o' id='aRetry' style='margin-top:8px'>Retry sending to till</button>";
+    if (s === "approved" && m) h += "<button class='btn sec' id='aReject' style='margin-top:8px'>Cancel approval</button>";
+    h += "<div id='aMsg'></div>";
+    $("acts").innerHTML = h;
+    var b = function (id, fn) { if ($(id)) $(id).onclick = fn; };
+    function bump() { d.rev = Math.max(d.rev || 0, (docsById()[d.id] || {}).rev || 0) + 1; }
+    b("aSave", function () { bump(); sendDraft(d); d.unsent = false; d.localStatus = "draft"; saveLocal(d); say("aMsg", "Draft saved. The till is not changed.", "ok"); renderTabs(); });
+    b("aSend", function () {
+      var iss = clientCheck(d);
+      if (iss.length) { $("aMsg").innerHTML = "<div class='msg err'><b>Check Products found " + iss.length + " problem(s):</b><br>" + iss.slice(0, 15).map(esc).join("<br>") + "</div>"; return; }
+      bump(); sendDraft(d); queueEv({ t: "submit", id: d.id, rev: d.rev, by: staff() || d.staff }); d.unsent = false; d.localStatus = "pending_approval"; saveLocal(d);
+      say("aMsg", "Sent for manager approval. Check Products and Match Supplier passed on this phone; the box checks again against the till.", "ok"); renderTabs();
+    });
+    b("aDiscard", function () { if (!confirm("Discard this draft?")) return; queueEv({ t: "discard", id: d.id, by: staff() }); d.localStatus = "discarded"; saveLocal(d); go("drafts"); });
+    b("aRconf", function () { var ls = d.lines.map(function (l, i) { return { pid: l.pid, ret: num($("acts").querySelector("[data-ri='" + i + "']").value) }; }); queueEv({ t: "rconfirm", id: d.id, by: staff(), lines: ls }); d.localStatus = "pending_approval"; saveLocal(d); say("aMsg", "Return confirmed. When a manager approves it, till stock goes down.", "ok"); renderTabs(); });
+    b("aApprove", function () {
+      var w = (d.warnings || []).length ? "\n\nWarnings:\n" + d.warnings.join("\n") : "";
+      if (!confirm("Approve " + supName(d.sid) + " " + (d.ref || "") + " for " + money(lineTotals(d).t) + " ex VAT? It will be posted to the till." + w)) return;
+      signed("approve", d.id, d.rev).then(function () { d.localStatus = "approved"; saveLocal(d); say("aMsg", "Approved. It goes to the till at the next update and shows in Posted Deliveries once the till confirms it.", "ok"); renderTabs(); });
+    });
+    b("aReject", function () { var r = prompt("Reason for sending it back", ""); if (r === null) return; signed("reject", d.id, d.rev, { reason: r }).then(function () { d.localStatus = d.kind === "return" ? "recorded" : "draft"; saveLocal(d); say("aMsg", "Sent back.", "ok"); renderTabs(); }); });
+    b("aRetry", function () { signed("retry", d.id, d.rev).then(function () { d.localStatus = "approved"; saveLocal(d); say("aMsg", "It will be sent again at the next update. It can never post twice.", "ok"); }); });
+  }
+
+  // Unique Dairies daily milk and bread
+  VIEWS.ud = function () {
+    var items = SI.ud || [], key = "birkhill-si-ud-" + londonISO(), saved = jget(key, {});
+    var h = "<div class='card'><h2>Milk and bread: Unique Dairies (North) Ltd</h2><div class='m'>Default supplier for these lines. Check the delivery against the list, no scanning needed. Expected is the usual quantity from recent deliveries. Returns are kept separate and only take stock off when confirmed.</div>" +
+      "<div class='row'><div><label class='f'>Delivery note</label><input id='uRef' type='text' value='" + esc(saved.ref || "Milk " + ukDate(londonISO())) + "'></div><div><label class='f'>Staff</label><input id='uStaff' type='text' value='" + esc(saved.staff || staff()) + "'></div></div>" +
+      "<button class='btn sec' id='uAll' style='margin-top:10px'>Everything delivered as expected</button></div><div class='card'>" +
+      "<div class='ud' style='font-size:.78rem;font-weight:800;color:#5b6573'><div style='flex:1'>Product</div><div style='width:150px;text-align:center'>Received</div><div style='width:62px;text-align:center'>Return</div></div>";
+    items.forEach(function (it, i) {
+      var v = saved.rcv && saved.rcv[it.pid] != null ? saved.rcv[it.pid] : "", r = saved.ret && saved.ret[it.pid] != null ? saved.ret[it.pid] : "";
+      h += "<div class='ud'><div class='pic' style='width:48px;height:48px;flex-basis:48px'>" + picHtml(it.pid) + "</div><div style='flex:1;min-width:0'><div class='ln' style='font-size:.92rem'>" + esc(it.name) + "</div><div class='exp'>" + esc(it.bc) + " &middot; expected " + it.expected + " &middot; " + money(it.unit_cost) + " each (" + esc(it.cost_src) + ")</div></div>" +
+        "<div class='q'><button type='button' data-m='" + i + "'>-</button><input data-r='" + i + "' type='number' inputmode='numeric' value='" + esc(v) + "' placeholder='" + it.expected + "'><button type='button' data-p='" + i + "'>+</button></div><div class='ret'><input data-t='" + i + "' type='number' inputmode='numeric' value='" + esc(r) + "' placeholder='0'></div></div>";
+    });
+    if (!items.length) h += "<div class='empty'>No milk or bread lines found in recent till stock-ins.</div>";
+    h += "<button class='btn' id='uSend' style='margin-top:12px'>Save and send for approval</button><div id='uMsg'></div></div>";
+    var rets = allDocs().filter(function (d) { return d.kind === "return" && d.sid === "SUP-003" && ["recorded", "pending_approval", "approved"].indexOf(status(d)) >= 0; });
+    h += "<div class='card'><h2>Returns waiting</h2>" + (rets.length ? "<div class='list'>" + rets.map(function (d) { return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(d.ref) + " <span class='st " + status(d) + "'>" + esc(STATUS[status(d)]) + "</span></div><div class='m'>" + d.lines.map(function (l) { return esc(l.name) + " " + l.ret; }).join(", ") + "</div></div>"; }).join("") + "</div>" : "<div class='empty'>None.</div>") + "</div>";
+    var hist = SI.ud_history || [];
+    h += "<div class='card'><h2>History: net = accepted deliveries minus confirmed returns</h2>" + (hist.length ? "<table class='t'><tr><th>Date</th><th class='n'>Delivered</th><th class='n'>Returned</th><th class='n'>Net</th></tr>" + hist.map(function (e) { return "<tr><td>" + ukDate(e.date) + "</td><td class='n'>" + e.delivered + "</td><td class='n'>" + e.returned + "</td><td class='n'>" + e.net + "</td></tr>"; }).join("") + "</table>" : "<div class='empty'>No posted milk and bread deliveries from this app yet.</div>") + "</div>";
+    $("view").innerHTML = h; bindOpen();
+    function store() { var s = jget(key, {}); s.ref = $("uRef").value; s.staff = $("uStaff").value; s.rcv = {}; s.ret = {}; items.forEach(function (it, i) { var a = $("view").querySelector("[data-r='" + i + "']").value, b = $("view").querySelector("[data-t='" + i + "']").value; if (a !== "") s.rcv[it.pid] = num(a); if (b !== "") s.ret[it.pid] = num(b); }); jset(key, s); return s; }
+    each("[data-r],[data-t],#uRef,#uStaff", function (el) { el.onchange = store; });
+    each("[data-m],[data-p]", function (b) { b.onclick = function () { var i = b.getAttribute("data-m") || b.getAttribute("data-p"), inp = $("view").querySelector("[data-r='" + i + "']"); var v = inp.value === "" ? items[i].expected : num(inp.value); inp.value = Math.max(0, v + (b.hasAttribute("data-p") ? 1 : -1)); store(); }; });
+    $("uAll").onclick = function () { items.forEach(function (it, i) { $("view").querySelector("[data-r='" + i + "']").value = it.expected; }); store(); };
+    $("uSend").onclick = function () {
+      var s = store(), who = (s.staff || "").trim(); if (!who) return say("uMsg", "Type your name.", "err");
+      var missing = items.filter(function (it) { return s.rcv[it.pid] == null; });
+      if (missing.length && !confirm(missing.length + " line(s) have no received number. Count them as expected?")) return;
+      var lines = items.map(function (it) { var r = s.rcv[it.pid] != null ? s.rcv[it.pid] : it.expected; return { pid: it.pid, name: it.name, bc: it.bc, exp: it.expected, rcv: r, upc: 1, case_cost: it.unit_cost, vat: it.vat, damaged: 0, bb: "", match: "list", confirmed: true, cost_src: it.cost_src }; }).filter(function (l) { return l.rcv > 0; });
+      var returns = items.filter(function (it) { return num(s.ret[it.pid]) > 0; }).map(function (it) { return { pid: it.pid, name: it.name, ret: num(s.ret[it.pid]), upc: 1, unit_cost: it.unit_cost, vat: it.vat, reason: "Unsold, returned to Unique Dairies" }; });
+      var doc = { id: s.id || newId("U"), kind: "ud", sid: "SUP-003", ref: (s.ref || "").trim(), date: londonISO(), staff: who, lines: lines, returns: returns, source: "Milk and bread screen" };
+      s.id = doc.id; jset(key, s);
+      doc.rev = Math.max(((jget(K.docs, {})[doc.id] || {}).rev || 0), ((docsById()[doc.id] || {}).rev || 0)) + 1;
+      sendDraft(doc); queueEv({ t: "submit", id: doc.id, rev: doc.rev, by: who }); doc.localStatus = "pending_approval"; saveLocal(doc);
+      say("uMsg", "Sent for manager approval." + (returns.length ? " Returns are recorded; confirm them under Drafts when the driver takes them." : ""), "ok"); renderTabs();
+    };
+  };
+  // suppliers
+  VIEWS.suppliers = function () {
+    var m = mgr(), miss = (SI.suppliers || []).filter(function (s) { return !s.till_id; });
+    var h = "<div class='card'><h2>Suppliers</h2><div class='m'>Matched to the till supplier list first, so nothing is duplicated. Till suppliers now: " + (SI.till_suppliers || []).map(function (t) { return esc(t.name) + " (" + t.id + ")"; }).join(", ") + ".</div>" +
+      (miss.length ? "<div class='msg warn'>Not in the till yet: " + miss.map(function (s) { return esc(s.name); }).join(", ") + ". A manager can add them below.</div>" : "") +
+      (m ? "<button class='btn sec' id='sNew' style='margin-top:8px'>Add a supplier</button>" : "<div class='m' style='margin-top:6px'>Managers can add and edit suppliers (Manager tab).</div>") + "</div>";
+    (SI.suppliers || []).forEach(function (s) {
+      var ih = (SI.invoice_history || {})[s.id] || [], c = s.contact || {};
+      h += "<div class='card'><div style='font-weight:800'>" + esc(s.name) + " <span class='st " + (s.till_id ? "posted" : "pending_approval") + "'>" + (s.till_id ? "Till supplier " + s.till_id + " " + esc(s.till_name) : "Not in till") + "</span></div>" +
+        "<div class='m'>App ID " + esc(s.id) + " &middot; account " + esc(s.account_no || "-") + " &middot; payment terms " + esc(s.payment_terms || "-") + "</div>" +
+        "<div class='m'>Deliveries: " + esc((s.delivery_days || []).join(", ")) + (s.delivery_notes ? " (" + esc(s.delivery_notes) + ")" : "") + "</div>" +
+        "<div class='m'>Categories: " + esc((s.categories || []).join(", ")) + "</div>" +
+        "<div class='m'>Contact: " + esc([c.person, c.phone, c.email, c.website, c.address].filter(Boolean).join(" | ") || "-") + "</div>" +
+        (s.id === "SUP-003" ? "<div class='m'>Default supplier for " + (SI.ud || []).length + " milk and bread lines.</div>" : "") +
+        (s.till_request ? "<div class='note'>Add to till: " + esc(s.till_request.status) + " (" + esc(s.till_request.by) + ")</div>" : "") +
+        (s.link_request ? "<div class='note'>Link products in till: " + esc(s.link_request.status) + "</div>" : "") +
+        "<details><summary class='m'>Invoice history (" + ih.length + " in 120 days)</summary><table class='t'>" + ih.map(function (x) { return "<tr><td>" + ukDate(x.date) + "</td><td>" + esc(x.ref) + "</td><td class='n'>" + money(x.ex) + "</td></tr>"; }).join("") + "</table></details>" +
+        (m ? "<div class='row' style='margin-top:8px'><button class='btn small sec' data-edit='" + s.id + "'>Edit</button>" + (!s.till_id && !s.till_request ? "<button class='btn small o' data-till='" + s.id + "'>Add to till</button>" : "") + (s.id === "SUP-003" && s.till_id && !s.link_request ? "<button class='btn small sec' data-link='" + s.id + "'>Make main till supplier for milk and bread</button>" : "") + "</div>" : "") + "</div>";
+    });
+    $("view").innerHTML = h;
+    if ($("sNew")) $("sNew").onclick = function () { supForm({}); };
+    each("[data-edit]", function (b) { b.onclick = function () { supForm(SI.suppliers.filter(function (s) { return s.id === b.getAttribute("data-edit"); })[0]); }; });
+    each("[data-till]", function (b) { b.onclick = function () {
+      var s = SI.suppliers.filter(function (x) { return x.id === b.getAttribute("data-till"); })[0];
+      if (!confirm("Add " + s.name + " to the till supplier list? The box checks for a duplicate first.")) return;
+      signRaw(function (at, by) { return "supplier_till|" + s.id + "|0|" + at + "|" + by; }).then(function (x) { queueEv({ t: "supplier_till", sid: s.id, at: x.at, by: x.by, sig: x.sig }); alert("Sent. The supplier is added at the next update."); });
+    }; });
+    each("[data-link]", function (b) { b.onclick = function () {
+      var pids = (SI.ud || []).map(function (u) { return u.pid; }); if (!confirm("Set Unique Dairies as the main till supplier for " + pids.length + " milk and bread products?")) return;
+      sha256(pids.join(",")).then(function (hh) { return signRaw(function (at, by) { return "link|SUP-003|" + hh + "|" + at + "|" + by; }); }).then(function (x) { queueEv({ t: "link", sid: "SUP-003", pids: pids, at: x.at, by: x.by, sig: x.sig }); alert("Sent."); });
+    }; });
+  };
+  function supForm(s) {
+    var c = s.contact || {}, f = function (id, lab, v) { return "<label class='f'>" + lab + "</label><input id='" + id + "' type='text' value='" + esc(v || "") + "'>"; };
+    $("view").innerHTML = "<div class='card'><h2>" + (s.id ? "Edit " + esc(s.name) : "Add a supplier") + "</h2>" + f("fName", "Name", s.name) + f("fAcc", "Account number", s.account_no) + f("fPerson", "Contact person", c.person) + f("fPhone", "Phone", c.phone) + f("fEmail", "Email", c.email) + f("fWeb", "Website", c.website) + f("fAddr", "Address", c.address) +
+      f("fCats", "Product categories (comma separated)", (s.categories || []).join(", ")) + f("fDays", "Delivery days (for example Mon, Thu)", (s.delivery_days || []).join(", ")) + f("fDn", "Delivery notes", s.delivery_notes) + f("fTerms", "Payment terms", s.payment_terms) +
+      "<label class='f'>Invoice import</label><select id='fImp'>" + [["manual", "Manual entry"], ["parfetts_edn", "Parfetts EDN file"], ["dhamecha_pdf", "Dhamecha PDF invoice"], ["glopos_template", "GloPOS Stock In Template"], ["ud_daily", "Milk and bread daily screen"]].map(function (o) { return "<option value='" + o[0] + "'" + (s.import_type === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select>" +
+      "<button class='btn' id='fSave' style='margin-top:12px'>Save supplier</button><button class='btn sec' id='fCancel' style='margin-top:8px'>Cancel</button><div id='fMsg'></div></div>";
+    $("fCancel").onclick = function () { go("suppliers"); };
+    $("fSave").onclick = function () {
+      var name = $("fName").value.trim(); if (!name) return say("fMsg", "Name needed.", "err");
+      var norm = function (x) { return x.toLowerCase().replace(/\(.*?\)/g, "").replace(/\b(ltd|limited|north|the)\b/g, "").replace(/[^a-z0-9]/g, ""); };
+      var dup = (SI.suppliers || []).filter(function (x) { return x.id !== s.id && norm(x.name) === norm(name); })[0];
+      if (dup) return say("fMsg", "That supplier already exists (" + dup.id + "). Edit it instead.", "err");
+      var sp = function (v) { return v.split(",").map(function (x) { return x.trim(); }).filter(Boolean); };
+      var d = { id: s.id || "", name: name, account_no: $("fAcc").value.trim(), contact: { person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(), email: $("fEmail").value.trim(), website: $("fWeb").value.trim(), address: $("fAddr").value.trim() },
+        categories: sp($("fCats").value), delivery_days: sp($("fDays").value), delivery_notes: $("fDn").value.trim(), payment_terms: $("fTerms").value.trim(), import_type: $("fImp").value, active: true };
+      if (s.aliases) d.aliases = s.aliases;
+      var ds = JSON.stringify(d);
+      sha256(ds).then(function (hh) { return signRaw(function (at, by) { return "supplier|" + hh + "|" + at + "|" + by; }); }).then(function (x) { queueEv({ t: "supplier", ds: ds, at: x.at, by: x.by, sig: x.sig }); say("fMsg", "Saved. Everyone sees it after the next update.", "ok"); });
+    };
+  }
+
+  // reports
+  VIEWS.reports = function () {
+    var r = SI.reports || [], a = SI.audit || [];
+    var h = "<div class='card'><h2>Supplier Reports</h2><div class='m'>Till stock-ins in the last 120 days (matched by till supplier or name) plus deliveries posted from this app.</div>" +
+      "<table class='t'><tr><th>Supplier</th><th class='n'>Deliveries 120d</th><th class='n'>Spend 30d ex VAT</th><th>Last</th><th class='n'>Short / extra / damaged lines</th><th class='n'>Returns</th></tr>" +
+      r.map(function (x) { return "<tr><td>" + esc(x.name) + "</td><td class='n'>" + x.till_deliveries_120d + "</td><td class='n'>" + money(x.spend_30d_ex) + "</td><td>" + ukDate(x.last_delivery) + "</td><td class='n'>" + x.short_lines + " / " + x.extra_lines + " / " + x.damaged_lines + "</td><td class='n'>" + x.returns_posted + "</td></tr>"; }).join("") + "</table>" +
+      "<button class='btn small sec' id='rPrint' style='margin-top:10px'>Print</button></div>";
+    h += "<div class='card'><h2>Audit log</h2><div class='m'>Staff, approver, posting time, supplier, products and stock changes.</div><table class='t'><tr><th>Time</th><th>Action</th><th>Document</th><th>Staff / approver</th><th>Details</th></tr>" +
+      a.slice(0, 150).map(function (x) { return "<tr><td>" + esc(String(x.at).replace("T", " ").slice(5, 16)) + "</td><td>" + esc(String(x.action).replace(/_/g, " ")) + "</td><td>" + esc(x.doc) + "<br>" + esc(x.supplier) + "</td><td>" + esc(x.staff) + (x.approver ? " / " + esc(x.approver) : "") + "</td><td>" + esc(String(typeof x.detail === "string" ? x.detail : JSON.stringify(x.detail)).slice(0, 220)) + ((x.products || []).length ? "<br>" + x.products.map(function (p) { return esc(p.name) + " " + p.before + " &gt; " + p.after; }).join("<br>") : "") + "</td></tr>"; }).join("") + "</table></div>";
+    $("view").innerHTML = h; $("rPrint").onclick = function () { window.print(); };
+  };
+
+  // manager
+  VIEWS.manager = function () {
+    var m = mgr(), names = Object.keys(SI.managers || {});
+    var h = "<div class='card'><h2>Manager</h2>";
+    if (m) h += "<div class='msg ok'>Logged in as " + esc(m.name) + " on this phone until the app is closed.</div><button class='btn sec' id='mOut' style='margin-top:8px'>Log out</button>";
+    else h += names.length ? "<label class='f'>Manager name</label><select id='mName'>" + names.map(function (n) { return "<option>" + esc(n) + "</option>"; }).join("") + "</select><label class='f'>Manager code</label><input id='mCode' type='password' autocomplete='current-password'><button class='btn' id='mIn' style='margin-top:10px'>Log in</button>" : "<div class='msg warn'>No manager code is set up yet. Use Set up below.</div>";
+    h += "<div id='mMsg'></div></div>";
+    h += "<div class='card'><h2>" + (m ? "Change my code or add a manager" : "Set up a manager code") + "</h2><div class='m'>" + (m ? "Changes are active after the next update." : "For a manager without a code (for example VJ the first time). Grok Bot switches it on only after Vijay confirms in chat. The code is encrypted on this phone and is never written to the sheet.") + "</div>" +
+      "<label class='f'>Name (till user name, for example VJ)</label><input id='sName' type='text' value='" + (m ? esc(m.name) : "") + "'>" +
+      "<label class='f'>New code (6 or more characters)</label><input id='sCode' type='password' autocomplete='new-password'><label class='f'>Type it again</label><input id='sCode2' type='password' autocomplete='new-password'>" +
+      "<button class='btn o' id='sGo' style='margin-top:10px'>" + (m ? "Save" : "Request set up") + "</button><div id='sMsg'></div>" +
+      ((SI.mgr_pending || []).length ? "<div class='note'>Waiting to be switched on: " + SI.mgr_pending.map(esc).join(", ") + "</div>" : "") + "</div>";
+    $("view").innerHTML = h;
+    if ($("mOut")) $("mOut").onclick = function () { sessionStorage.removeItem(K.mgr); mgrBar(); go("manager"); };
+    if ($("mIn")) $("mIn").onclick = function () {
+      var n = $("mName").value, c = $("mCode").value; say("mMsg", "Checking...", "warn");
+      deriveKey(n, c).then(function (k) { return hmacHex(k, "BH-MGR-LOGIN").then(function (v) { if (v !== SI.managers[n]) throw new Error("bad"); sessionStorage.setItem(K.mgr, JSON.stringify({ name: n, key: k })); mgrBar(); go("approval"); }); })
+        .catch(function () { say("mMsg", "Code not right.", "err"); });
+    };
+    $("sGo").onclick = function () {
+      var n = $("sName").value.trim().toUpperCase(), c = $("sCode").value;
+      if (!n) return say("sMsg", "Name needed.", "err"); if (c.length < 6) return say("sMsg", "Use 6 or more characters.", "err"); if (c !== $("sCode2").value) return say("sMsg", "The two codes are different.", "err");
+      rsaEnc({ code: c }).then(function (enc) {
+        if (!mgr()) { queueEv({ t: "mgr_setup", name: n, enc: enc }); say("sMsg", "Sent. Tell Grok Bot you have set your manager code so it can switch it on.", "ok"); return; }
+        var t = n === mgr().name ? "mgr_change" : "mgr_add";
+        return sha256(enc).then(function (hh) { return signRaw(function (at, by) { return t + "|" + n + "|" + hh + "|" + at + "|" + by; }); }).then(function (x) { queueEv({ t: t, name: n, enc: enc, at: x.at, by: x.by, sig: x.sig }); say("sMsg", "Sent. Active after the next update.", "ok"); });
+      });
+    };
+  };
+
+  // camera
+  var cam = { on: false };
+  function loadZX() { return window.ZXing ? Promise.resolve(window.ZXing) : new Promise(function (ok, no) { var s = document.createElement("script"); s.src = "zxing.min.js"; s.onload = function () { ok(window.ZXing); }; s.onerror = no; document.head.appendChild(s); }); }
+  function startCam(onCode) {
+    var v = $("video"); if (!v) return;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false }).then(function (stream) {
+      cam.stream = stream; v.srcObject = stream; v.classList.remove("hidden"); v.play(); cam.on = true;
+      if ("BarcodeDetector" in window) {
+        var det = new BarcodeDetector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128", "itf"] });
+        var tick = function () { if (!cam.on) return; det.detect(v).then(function (c) { if (c && c.length) onCode(c[0].rawValue); else cam.t = setTimeout(tick, 200); }).catch(function () { cam.t = setTimeout(tick, 300); }); };
+        tick();
+      } else loadZX().then(function (Z) { cam.zx = new Z.BrowserMultiFormatReader(); cam.zx.decodeFromStream(stream, v, function (r) { if (r && cam.on) onCode(r.getText()); }); });
+    }).catch(function () { alert("Camera not available. Type the barcode instead."); });
+  }
+  function stopCam() { cam.on = false; clearTimeout(cam.t); if (cam.zx) { try { cam.zx.reset(); } catch (e) {} cam.zx = null; } if (cam.stream) cam.stream.getTracks().forEach(function (t) { t.stop(); }); cam.stream = null; var v = $("video"); if (v) { v.srcObject = null; v.classList.add("hidden"); } }
+
+  load().then(function () {
+    mgrBar(); pill(); flush();
+    var qp = new URLSearchParams(location.search), t = qp.get("tab") || "home";
+    if (qp.get("doc")) openDoc(qp.get("doc")); else go(VIEWS[t] ? t : "home");
+  }).catch(function () {
+    $("view").innerHTML = "<div class='msg err'>Data locked or not loaded. Open this app once from the full link Vijay sent (it ends in #k=...).</div>";
+  });
+  window.__si = { lookup: lookup, allDocs: allDocs, clientCheck: clientCheck, parseEDN: parseEDN, go: go };
+})();
+</script>
+  <script src="../nav.js"></script>
+</body>
+</html>
