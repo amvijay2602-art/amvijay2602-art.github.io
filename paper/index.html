@@ -536,7 +536,8 @@
     .rs-btn:disabled { opacity: 0.55; cursor: default; }
     .rs-item { cursor: default; flex-wrap: wrap; }
     .rs-expected { margin: 6px 0 0; font-size: 1.02rem; font-weight: 800; color: #18342A; }
-    .rs-qty-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+    .rs-badge { align-self: flex-start; margin-top: 4px; }
+    .rs-qty-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex: 1 1 100%; }
     .rs-step {
       flex: 0 0 48px; width: 48px; min-height: 48px; border-radius: 12px;
       border: 2px solid #17643F; background: #fff; color: #17643F;
@@ -2552,7 +2553,7 @@
         out.status = "Done";
         out.line_text = "scanned " + scanned + " of " + qty;
       } else {
-        out.status = "Confirm " + out.left;
+        out.status = out.left === 1 ? "1 left" : (out.left + " left");
         out.line_text = "scanned " + scanned + " of " + qty;
       }
       return out;
