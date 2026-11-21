@@ -634,6 +634,23 @@
     .ca-back { background: #fff; color: #17643F; }
     .ca-go { background: #17643F; color: #fff; border-color: #17643F; }
 
+    .rs-item.is-changed { background: #fff6e8; border-color: #e2b86a; box-shadow: inset 4px 0 0 #b45309; }
+    .rs-changed { margin: 8px 0 0; font-size: 16px; font-weight: 800; color: #8a3b12; }
+    .confirm-all-btn {
+      margin-top: 8px; width: 100%; min-height: 52px; border-radius: 14px;
+      font-weight: 800; font-size: 1.05rem; cursor: pointer;
+      border: 2px solid #17643F; background: #fff; color: #17643F;
+    }
+    .confirm-all-btn:disabled { opacity: 0.55; cursor: default; }
+    .scan-secondary { margin: 16px 0 0; font-size: 16px; font-weight: 700; color: #17643F; }
+    .scan-secondary summary { cursor: pointer; padding: 10px 0; }
+    body.delivery-job #kindRow { display: none; }
+    body.delivery-job:not(.scan-open) #scanCard { display: none; }
+    body.delivery-job.scan-open #kindRow { display: flex; }
+    #deliveryJobCard { margin: 12px 0; }
+    .rs-section { margin: 14px 0 6px; font-size: 14px; font-weight: 800; letter-spacing: 0.04em; color: #5b6573; text-transform: uppercase; list-style: none; }
+    #deliveryStatus { margin-top: 10px; font-weight: 700; font-size: 16px; min-height: 1.2em; }
+
     body.returns .qty-row,
     body.returns #addBtn,
     body.returns #qtyLabel { display: none !important; }
@@ -653,6 +670,50 @@
   <div class="kinds" id="kindRow" role="tablist" aria-label="Paper type">
     <button type="button" id="kindNews" class="kind-btn active" role="tab" aria-selected="true">Newspapers<span class="kind-n" id="kindNewsN"></span></button>
     <button type="button" id="kindMags" class="kind-btn" role="tab" aria-selected="false">Magazines<span class="kind-n" id="kindMagsN"></span></button>
+  </div>
+  <p id="loadState">Loading titles...</p>
+  <div class="card">
+    <label class="field">
+      <span id="dateLabel">Delivery date</span>
+      <input id="deliveryDate" type="date">
+    </label>
+    <label class="field">
+      Checked by
+      <input id="checkedBy" type="text" autocomplete="name" autocapitalize="words" placeholder="Your name">
+    </label>
+    <label class="take-photo" id="photoLabel">
+      <span id="photoLabelText">Optional: photo of the delivery note</span>
+      <input id="photoInput" type="file" accept="image/*" capture="environment">
+    </label>
+    <div id="previewWrap">
+      <img id="preview" alt="Note preview">
+    </div>
+  </div>
+  <div class="card hidden" id="deliveryJobCard">
+    <section class="job-card" id="jobDelivery" data-job="delivery">
+      <div class="job-head" id="jobDeliveryHead">
+        <div class="job-head-text">
+          <p class="job-kicker" id="jobDeliveryKicker">TODAY</p>
+          <h2 id="jobDeliveryTitle">Check today's delivery</h2>
+          <p class="job-instruct" id="jobDeliveryInstruct">Confirm how many copies of each paper arrived, or change the quantity if the delivery is different. No barcode scanning required.</p>
+        </div>
+        <span class="job-status is-todo" id="jobDeliveryStatus">To do</span>
+      </div>
+      <div class="job-body" id="jobDeliveryBody">
+        <div id="deliveryFinishedBanner" class="job-finished hidden" role="status"></div>
+        <p class="rs-meta" id="deliveryJobMeta"></p>
+        <p class="job-step" id="jobDeliveryStep1">Step 1. Check each paper and confirm the quantity</p>
+        <ul id="deliverySheetList" class="rs-list"></ul>
+        <p id="deliverySheetEmpty" class="hint hidden">No delivery note for today yet.</p>
+        <p class="job-step" id="jobDeliveryStep2">Step 2. Press Finish job</p>
+        <button id="confirmAllDeliveryBtn" class="confirm-all-btn" type="button">Confirm all as delivered</button>
+        <button id="finishDeliveryBtn" class="finish-job-btn" type="button">Finish job</button>
+        <div id="deliveryStatus"></div>
+        <details id="scanSecondary" class="scan-secondary">
+          <summary>Or scan a barcode (optional)</summary>
+        </details>
+      </div>
+    </section>
   </div>
   <div class="card hidden" id="returnSheetCard">
     <div id="jobsStack">
@@ -699,25 +760,7 @@
     <p id="returnSheetMeta" class="hidden"></p>
     <div id="returnSheetTonight" class="hidden"></div>
   </div>
-  <p id="loadState">Loading titles...</p>
-  <div class="card">
-    <label class="field">
-      <span id="dateLabel">Delivery date</span>
-      <input id="deliveryDate" type="date">
-    </label>
-    <label class="field">
-      Checked by
-      <input id="checkedBy" type="text" autocomplete="name" autocapitalize="words" placeholder="Your name">
-    </label>
-    <label class="take-photo" id="photoLabel">
-      <span id="photoLabelText">Optional: photo of the delivery note</span>
-      <input id="photoInput" type="file" accept="image/*" capture="environment">
-    </label>
-    <div id="previewWrap">
-      <img id="preview" alt="Note preview">
-    </div>
-  </div>
-  <div class="card">
+  <div class="card" id="scanCard">
     <button id="cameraBtn" class="btn" type="button">Start camera</button>
     <div id="scanWrap" class="scan-wrap hidden">
       <video id="video" playsinline muted autoplay></video>
@@ -1349,7 +1392,13 @@
       renderTodayList();
       var rsCard = document.getElementById("returnSheetCard");
       if (rsCard) rsCard.classList.toggle("hidden", !ret);
+      var delCard = document.getElementById("deliveryJobCard");
+      var isDelivery = !ret && !stock;
+      document.body.classList.toggle("delivery-job", isDelivery);
+      if (delCard) delCard.classList.toggle("hidden", !isDelivery);
+      if (!isDelivery) document.body.classList.remove("scan-open");
       renderReturnSheet();
+      if (typeof renderDeliverySheet === "function") renderDeliverySheet();
     }
 
     function renderList() {
@@ -2039,6 +2088,7 @@
       setTodayItems(stamped.concat(todayItems()));
       persistToday();
       renderTodayList();
+      if (typeof renderDeliverySheet === "function") renderDeliverySheet();
     }
 
     function allReturnItems() {
@@ -2374,8 +2424,19 @@
         var actual = item.actual != null ? item.actual : item.qty;
         return "PAPERRETURN: " + item.barcode + " | " + item.name + " | " + String(item.qty) + " | " + who + " | " + method + " | expected " + String(expected) + " | actual " + String(actual) + " | " + saveKind;
       }
-      return "PAPER: " + item.barcode + " | " + item.name + " | " + who + " | " + saveKind;
+      var method = cleanField(item.method || "scan").toLowerCase();
+      if (method !== "confirm" && method !== "changed") method = "scan";
+      var expected = (item.expected != null && item.expected !== "") ? item.expected : item.qty;
+      var actual = (item.actual != null && item.actual !== "") ? item.actual : item.qty;
+      var edition = cleanField(item.edition || item.issue_display || "");
+      var flag = "";
+      if (Number(actual) !== Number(expected)) {
+        var diff = Number(actual) - Number(expected);
+        flag = (diff < 0 ? "SHORT " : "OVER ") + String(Math.abs(diff));
+      }
+      return "PAPER: " + cleanField(item.barcode) + " | " + cleanField(item.name) + " | " + who + " | " + method + " | expected " + String(expected) + " | actual " + String(actual) + " | edition " + edition + (flag ? " | " + flag : "") + " | " + saveKind;
     }
+
 
     function finishSaveButtons() {
       saveDelivery.disabled = false;
@@ -2384,6 +2445,10 @@
       kindMagsBtn.disabled = false;
       var topBtn = document.getElementById("confirmReturnBtn");
       if (topBtn) topBtn.disabled = false;
+      var fin = document.getElementById("finishDeliveryBtn");
+      var all = document.getElementById("confirmAllDeliveryBtn");
+      if (fin) fin.disabled = false;
+      if (all) all.disabled = false;
       if (typeof updateConfirmLock === "function") updateConfirmLock();
     }
 
@@ -3251,6 +3316,548 @@
       if (!foundName.value && current.name) foundName.value = current.name;
     }
 
+
+    var deliverySheet = null;
+    var _deliveryPreview = null;
+    var _justFinishedDelivery = false;
+    var DELIVERY_FINISH_KEY = "birkhill-paper-stockin-delivery-finished-v1";
+    window.__paperDelivery = window.__paperDelivery || {};
+
+    function allDeliveryItems() {
+      if (!deliverySheet) return [];
+      return (deliverySheet.newspapers || []).concat(deliverySheet.magazines || []);
+    }
+
+    function deliveryLineKey(item) {
+      if (!item) return "";
+      var bc = String(item.barcode || "").replace(/\D/g, "");
+      if (bc.length >= 12) return "b:" + bc.slice(0, 12);
+      var n = String(item.title || item.full_title || item.name || "").toLowerCase().replace(/\s+/g, " ").trim();
+      return n ? "n:" + n : "";
+    }
+
+    function deliveryFinishStoreKey() {
+      var day = (deliverySheet && deliverySheet.date) || (deliveryDate && deliveryDate.value) || todayLondon();
+      return DELIVERY_FINISH_KEY + ":" + day;
+    }
+
+    function readDeliveryFinish() {
+      try {
+        var raw = localStorage.getItem(deliveryFinishStoreKey());
+        if (!raw) return null;
+        var data = JSON.parse(raw);
+        if (data && data.finished) return data;
+      } catch (e) {}
+      return null;
+    }
+
+    function markDeliveryJobFinished(info) {
+      info = info || {};
+      var rec = {
+        finished: true,
+        by: info.by || (checkedBy && checkedBy.value) || "",
+        at: info.at || new Date().toISOString(),
+        status: info.status || "complete"
+      };
+      try { localStorage.setItem(deliveryFinishStoreKey(), JSON.stringify(rec)); } catch (e) {}
+      _justFinishedDelivery = true;
+      _deliveryPreview = null;
+      return rec;
+    }
+
+    function deliveryJobSubmission() {
+      if (_deliveryPreview === "todo" || _deliveryPreview === "changed") return null;
+      if (_deliveryPreview && _deliveryPreview.finished) return _deliveryPreview;
+      return readDeliveryFinish();
+    }
+
+    function deliveryConfirmedMap() {
+      var map = {};
+      if (typeof todays === "undefined" || !todays.delivery) return map;
+      KINDS.forEach(function (k) {
+        ((todays.delivery[k]) || []).forEach(function (row) {
+          var key = deliveryLineKey({ barcode: row.barcode, title: row.name || row.title, full_title: row.full_title });
+          if (!key) return;
+          var actual = row.actual != null ? Number(row.actual) : Number(row.qty) || 0;
+          var expected = row.expected != null ? Number(row.expected) : null;
+          var prev = map[key];
+          if (!prev) {
+            map[key] = { done: true, actual: actual, expected: expected, method: row.method || "scan", time: row.time || "" };
+          } else if (row.actual != null) {
+            prev.actual = actual;
+            prev.method = row.method || prev.method;
+            prev.time = row.time || prev.time;
+          } else {
+            prev.actual = (Number(prev.actual) || 0) + (Number(row.qty) || 0);
+          }
+        });
+      });
+      return map;
+    }
+
+    function mergeDeliveryItem(item, cmap) {
+      var row = {};
+      Object.keys(item || {}).forEach(function (k) { row[k] = item[k]; });
+      var key = deliveryLineKey(row);
+      var rec = key ? cmap[key] : null;
+      row.expected = Number(row.expected != null ? row.expected : row.qty) || 0;
+      if (rec && rec.done) {
+        row.done = true;
+        row.actual = rec.actual;
+        row.method = rec.method;
+        row.time = rec.time;
+      } else {
+        row.done = false;
+        row.actual = row.expected;
+        row.method = "";
+      }
+      if (_deliveryPreview === "todo") {
+        row.done = false;
+        row.actual = row.expected;
+        row.method = "";
+      } else if (_deliveryPreview === "changed") {
+        var first = allDeliveryItems()[0];
+        var isFirst = first && deliveryLineKey(first) === key;
+        if (isFirst) {
+          row.done = true;
+          row.actual = Math.max(0, row.expected - 1);
+          row.method = "changed";
+        } else {
+          row.done = false;
+          row.actual = row.expected;
+          row.method = "";
+        }
+      } else if (_deliveryPreview && _deliveryPreview.finished) {
+        var firstF = allDeliveryItems()[0];
+        var isFirstF = firstF && deliveryLineKey(firstF) === key;
+        row.done = true;
+        if (isFirstF) {
+          row.actual = Math.max(0, row.expected - 1);
+          row.method = "changed";
+        } else {
+          row.actual = row.expected;
+          row.method = "confirm";
+        }
+      }
+      return row;
+    }
+
+    function deliveryProgress() {
+      var items = allDeliveryItems().map(function (it) { return mergeDeliveryItem(it, deliveryConfirmedMap()); });
+      var total = items.length;
+      var done = items.filter(function (it) { return it.done; }).length;
+      var changed = items.filter(function (it) { return it.done && Number(it.actual) !== Number(it.expected); }).length;
+      var finished = !!deliveryJobSubmission();
+      return { total: total, done: done, changed: changed, finished: finished, items: items, hasSheet: total > 0 };
+    }
+
+    function formatDeliveryTime(iso) {
+      if (!iso) return "";
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      var h = d.getHours();
+      var m = d.getMinutes();
+      var hh = ((h + 11) % 12) + 1;
+      var mm = (m < 10 ? "0" : "") + m;
+      var ap = h >= 12 ? "pm" : "am";
+      return hh + ":" + mm + ap;
+    }
+
+    function setDeliveryStatus(msg, kind) {
+      var el = document.getElementById("deliveryStatus");
+      if (el) {
+        el.textContent = msg || "";
+        el.style.color = kind === "error" ? "#c62828" : (kind === "ok" ? "#17643F" : "#18342A");
+      }
+      if (msg) setStatus(msg, kind || "");
+    }
+
+    function renderDeliverySheet() {
+      var card = document.getElementById("deliveryJobCard");
+      var listEl = document.getElementById("deliverySheetList");
+      var emptyEl = document.getElementById("deliverySheetEmpty");
+      var statusEl = document.getElementById("jobDeliveryStatus");
+      var metaEl = document.getElementById("deliveryJobMeta");
+      var banner = document.getElementById("deliveryFinishedBanner");
+      var confirmAll = document.getElementById("confirmAllDeliveryBtn");
+      var finishBtn = document.getElementById("finishDeliveryBtn");
+      var step1 = document.getElementById("jobDeliveryStep1");
+      var step2 = document.getElementById("jobDeliveryStep2");
+      if (!card || !listEl) return;
+      var isDelivery = !isReturns() && !isStockTake();
+      card.classList.toggle("hidden", !isDelivery);
+      document.body.classList.toggle("delivery-job", isDelivery);
+      if (!isDelivery) return;
+      var prog = deliveryProgress();
+      var finished = prog.finished;
+      var submit = deliveryJobSubmission();
+      if (statusEl) {
+        statusEl.classList.remove("is-todo", "is-progress", "is-finished");
+        if (finished) {
+          statusEl.textContent = "FINISHED";
+          statusEl.classList.add("is-finished");
+        } else if (prog.done > 0) {
+          statusEl.textContent = "In progress " + prog.done + " of " + prog.total;
+          statusEl.classList.add("is-progress");
+        } else {
+          statusEl.textContent = "To do";
+          statusEl.classList.add("is-todo");
+        }
+      }
+      if (metaEl) {
+        var bits = [];
+        if (deliverySheet && deliverySheet.note_display) bits.push(deliverySheet.note_display);
+        if (deliverySheet && deliverySheet.ref) bits.push("note " + deliverySheet.ref);
+        if (deliverySheet && deliverySheet.total_qty) bits.push(deliverySheet.total_qty + " copies on the note");
+        metaEl.textContent = bits.join(" · ");
+      }
+      if (banner) {
+        if (finished && submit) {
+          banner.classList.remove("hidden");
+          banner.textContent = "JOB FINISHED ✓ at " + (formatDeliveryTime(submit.at) || "now") + " by " + (submit.by || "staff");
+        } else {
+          banner.classList.add("hidden");
+          banner.textContent = "";
+        }
+      }
+      if (step1) step1.classList.toggle("hidden", finished);
+      if (step2) step2.classList.toggle("hidden", finished);
+      if (confirmAll) {
+        confirmAll.classList.toggle("hidden", finished || !prog.hasSheet || prog.done === prog.total);
+        confirmAll.disabled = false;
+      }
+      if (finishBtn) {
+        finishBtn.classList.toggle("hidden", finished);
+        finishBtn.classList.toggle("is-ready", !finished && prog.hasSheet && prog.done === prog.total && prog.total > 0);
+        finishBtn.disabled = false;
+      }
+      listEl.innerHTML = "";
+      if (!prog.hasSheet) {
+        if (emptyEl) emptyEl.classList.remove("hidden");
+        return;
+      }
+      if (emptyEl) emptyEl.classList.add("hidden");
+      var papers = prog.items.filter(function (it) { return it.kind === "NEWSPAPER"; });
+      var mags = prog.items.filter(function (it) { return it.kind !== "NEWSPAPER"; });
+      function addHeading(label) {
+        var h = document.createElement("li");
+        h.className = "rs-section";
+        h.textContent = label;
+        listEl.appendChild(h);
+      }
+      if (papers.length && mags.length) addHeading("Newspapers");
+      papers.forEach(function (it) { listEl.appendChild(deliveryRow(it, finished)); });
+      if (mags.length) addHeading("Magazines");
+      mags.forEach(function (it) { listEl.appendChild(deliveryRow(it, finished)); });
+    }
+
+    function deliveryRow(item, jobFinished) {
+      var li = document.createElement("li");
+      var changed = item.done && Number(item.actual) !== Number(item.expected);
+      li.className = "rs-item" + (item.done && !changed ? " is-done" : "") + (changed ? " is-changed" : "");
+      var thumb = document.createElement("div");
+      thumb.className = "rs-thumb";
+      if (item.image) {
+        var img = document.createElement("img");
+        img.src = item.image;
+        img.alt = "";
+        thumb.appendChild(img);
+      } else {
+        var letters = String(item.title || item.full_title || "?").replace(/[^A-Za-z0-9]/g, "").slice(0, 3).toUpperCase();
+        thumb.textContent = letters || "?";
+      }
+      var col = document.createElement("div");
+      col.className = "rs-meta-col";
+      var name = document.createElement("p");
+      name.className = "rs-name";
+      name.textContent = item.title || item.full_title || "Title";
+      col.appendChild(name);
+      var issue = document.createElement("p");
+      issue.className = "rs-issue";
+      issue.textContent = "Edition " + (item.issue_display || item.edition || "today");
+      col.appendChild(issue);
+      if (item.done) {
+        var doneLine = document.createElement("p");
+        doneLine.className = changed ? "rs-changed" : "rs-done-line";
+        if (changed) doneLine.textContent = "Expected " + item.expected + ", delivered " + item.actual + (item.actual < item.expected ? " (short)" : " (extra)");
+        else doneLine.textContent = "Delivered " + item.actual + " ✓";
+        col.appendChild(doneLine);
+      } else if (jobFinished) {
+        var miss = document.createElement("p");
+        miss.className = "rs-changed";
+        miss.textContent = "Not confirmed (expected " + item.expected + ")";
+        col.appendChild(miss);
+      } else {
+        var qtyLabel = document.createElement("p");
+        qtyLabel.className = "rs-return-qty";
+        qtyLabel.textContent = "Delivered: " + item.expected;
+        col.appendChild(qtyLabel);
+      }
+      li.appendChild(thumb);
+      li.appendChild(col);
+      if (!item.done && !jobFinished) {
+        var qty = item.expected;
+        var row = document.createElement("div");
+        row.className = "rs-qty-row";
+        var minus = document.createElement("button");
+        minus.type = "button";
+        minus.className = "rs-step";
+        minus.setAttribute("aria-label", "Decrease quantity");
+        minus.textContent = "−";
+        var input = document.createElement("input");
+        input.type = "number";
+        input.inputMode = "numeric";
+        input.min = "0";
+        input.step = "1";
+        input.className = "rs-qty-input";
+        input.value = String(qty);
+        input.setAttribute("aria-label", "Quantity delivered");
+        var plus = document.createElement("button");
+        plus.type = "button";
+        plus.className = "rs-step";
+        plus.setAttribute("aria-label", "Increase quantity");
+        plus.textContent = "+";
+        function currentQty() {
+          var n = parseInt(input.value, 10);
+          return isNaN(n) || n < 0 ? 0 : n;
+        }
+        function setQty(n) {
+          if (n < 0) n = 0;
+          input.value = String(n);
+          confirmBtn.textContent = "Confirm " + n;
+        }
+        minus.addEventListener("click", function () { setQty(currentQty() - 1); });
+        plus.addEventListener("click", function () { setQty(currentQty() + 1); });
+        input.addEventListener("input", function () { setQty(currentQty()); });
+        row.appendChild(minus);
+        row.appendChild(input);
+        row.appendChild(plus);
+        var actions = document.createElement("div");
+        actions.className = "rs-actions";
+        var confirmBtn = document.createElement("button");
+        confirmBtn.type = "button";
+        confirmBtn.className = "rs-btn confirm";
+        confirmBtn.textContent = "Confirm " + qty;
+        var err = document.createElement("p");
+        err.className = "rs-err";
+        confirmBtn.addEventListener("click", function () {
+          confirmLineDelivery(item, currentQty(), err, confirmBtn);
+        });
+        actions.appendChild(confirmBtn);
+        actions.appendChild(err);
+        li.appendChild(row);
+        li.appendChild(actions);
+      }
+      return li;
+    }
+
+    function confirmLineDelivery(item, actual, errEl, btn) {
+      actual = parseInt(actual, 10);
+      if (isNaN(actual) || actual < 0) actual = 0;
+      function showErr(msg) {
+        if (errEl) { errEl.textContent = msg || ""; errEl.classList.toggle("show", !!msg); }
+        if (msg) setDeliveryStatus(msg, "error");
+      }
+      var who = (checkedBy.value || "").trim();
+      if (!who) {
+        showErr("Enter your name in Checked by first.");
+        checkedBy.focus();
+        return Promise.resolve(false);
+      }
+      var date = (deliveryDate.value || todayLondon()).trim();
+      if (!date) {
+        deliveryDate.value = todayLondon();
+        date = deliveryDate.value;
+      }
+      var typ = item.kind || paperType(item.barcode, item.title || item.full_title) || "NEWSPAPER";
+      var expected = Number(item.expected != null ? item.expected : item.qty) || 0;
+      var method = (actual === expected) ? "confirm" : "changed";
+      var title = item.title || item.full_title || "title";
+      var edition = item.issue_display || item.edition || "";
+      var flag = "";
+      if (actual !== expected) {
+        var diff = actual - expected;
+        flag = (diff < 0 ? "SHORT " : "OVER ") + String(Math.abs(diff));
+      }
+      if (btn) btn.disabled = true;
+      showErr("");
+      setDeliveryStatus("Saving " + title + "...", "");
+      var name = "PAPER: " + cleanField(item.barcode || "") + " | " + cleanField(title) + " | " + who + " | " + method + " | expected " + String(expected) + " | actual " + String(actual) + " | edition " + edition + (flag ? " | " + flag : "") + " | " + typ;
+      return postPayload({
+        name: name,
+        photo: "",
+        lines: [{ date: date, qty: String(actual) }]
+      }).then(function () {
+        if (kind() !== typ) setKind(typ);
+        appendToday([{
+          barcode: item.barcode || "",
+          name: title,
+          qty: actual,
+          method: method,
+          expected: expected,
+          actual: actual,
+          edition: edition,
+          postedKind: typ,
+          postedMode: "delivery",
+          kind: typ
+        }]);
+        setDeliveryStatus(method === "changed"
+          ? "Saved " + title + ": expected " + expected + ", delivered " + actual
+          : "Confirmed " + title + ": delivered " + actual, "ok");
+        renderDeliverySheet();
+        return true;
+      }).catch(function () {
+        showErr("Could not save. Check your connection and try again.");
+        if (btn) btn.disabled = false;
+        return false;
+      });
+    }
+
+    function confirmAllDelivery() {
+      var who = (checkedBy.value || "").trim();
+      if (!who) {
+        setDeliveryStatus("Enter your name in Checked by first.", "error");
+        checkedBy.focus();
+        return Promise.resolve(false);
+      }
+      var left = deliveryProgress().items.filter(function (it) { return !it.done; });
+      if (!left.length) {
+        setDeliveryStatus("Every title is already confirmed.", "ok");
+        return Promise.resolve(true);
+      }
+      var allBtn = document.getElementById("confirmAllDeliveryBtn");
+      var fin = document.getElementById("finishDeliveryBtn");
+      if (allBtn) allBtn.disabled = true;
+      if (fin) fin.disabled = true;
+      var chain = Promise.resolve(true);
+      left.forEach(function (it) {
+        chain = chain.then(function (ok) {
+          if (!ok) return false;
+          return confirmLineDelivery(it, it.expected, null, null);
+        });
+      });
+      return chain.then(function (ok) {
+        if (allBtn) allBtn.disabled = false;
+        if (fin) fin.disabled = false;
+        renderDeliverySheet();
+        if (ok) setDeliveryStatus("All titles confirmed as delivered.", "ok");
+        return ok;
+      });
+    }
+
+    function finishDeliveryJob() {
+      var who = (checkedBy.value || "").trim();
+      if (!who) {
+        setDeliveryStatus("Enter your name in Checked by first.", "error");
+        checkedBy.focus();
+        return Promise.resolve(false);
+      }
+      if (deliveryJobSubmission()) {
+        setDeliveryStatus("This job is already finished.", "ok");
+        renderDeliverySheet();
+        return Promise.resolve(true);
+      }
+      var prog = deliveryProgress();
+      var left = prog.items.filter(function (it) { return !it.done; });
+      var start = left.length
+        ? (window.confirm("Some titles are not confirmed yet.\n\nConfirm the remaining titles as delivered, then finish the job?")
+            ? confirmAllDelivery()
+            : Promise.resolve(false))
+        : Promise.resolve(true);
+      return start.then(function (ok) {
+        if (!ok) return false;
+        prog = deliveryProgress();
+        var diffs = prog.items.filter(function (it) { return Number(it.actual) !== Number(it.expected); });
+        var status = (prog.done < prog.total) ? "PARTIAL" : "COMPLETE";
+        var diffText = diffs.map(function (it) {
+          return cleanField(it.title || it.full_title) + " expected " + it.expected + " actual " + it.actual;
+        }).join("; ");
+        var date = (deliveryDate.value || todayLondon()).trim();
+        var fin = document.getElementById("finishDeliveryBtn");
+        var allBtn = document.getElementById("confirmAllDeliveryBtn");
+        if (fin) fin.disabled = true;
+        if (allBtn) allBtn.disabled = true;
+        setDeliveryStatus("Saving job confirmation...", "");
+        var confirmName = "PAPERCONFIRM: " + status + " | " + prog.done + " of " + prog.total + " done | " + diffText + " | " + who;
+        return postPayload({
+          name: confirmName,
+          photo: photoData() || "",
+          lines: [{ date: date, qty: String(diffs.length) }]
+        }).then(function () {
+          markDeliveryJobFinished({ by: who, at: new Date().toISOString(), status: status.toLowerCase() });
+          renderDeliverySheet();
+          setDeliveryStatus(diffs.length ? "Job finished (some quantities different)" : "Job finished", "ok");
+          return true;
+        }).catch(function () {
+          setDeliveryStatus("Could not save. Check your connection and try again.", "error");
+          if (fin) fin.disabled = false;
+          if (allBtn) allBtn.disabled = false;
+          return false;
+        });
+      });
+    }
+
+    function loadDeliverySheet() {
+      return fetch("delivery_today.json").then(function (res) {
+        if (!res.ok) throw new Error("delivery");
+        return res.json();
+      }).then(function (data) {
+        deliverySheet = data || null;
+        renderDeliverySheet();
+      }).catch(function () {
+        if (!deliverySheet) {
+          var emptyEl = document.getElementById("deliverySheetEmpty");
+          if (emptyEl) {
+            emptyEl.textContent = "Today's delivery note could not be loaded.";
+            emptyEl.classList.remove("hidden");
+          }
+        }
+        renderDeliverySheet();
+      });
+    }
+
+    window.__paperDelivery.preview = function (state, info) {
+      if (state === "todo") _deliveryPreview = "todo";
+      else if (state === "changed") _deliveryPreview = "changed";
+      else if (state === "finished") {
+        info = info || {};
+        _deliveryPreview = {
+          finished: true,
+          by: info.by || (checkedBy && checkedBy.value) || "Kani",
+          at: info.at || new Date().toISOString(),
+          status: info.status || "complete"
+        };
+      } else {
+        _deliveryPreview = null;
+      }
+      renderDeliverySheet();
+    };
+    window.__paperDelivery.items = allDeliveryItems;
+    window.__paperDelivery.progress = deliveryProgress;
+    window.__paperDelivery.confirmLine = confirmLineDelivery;
+    window.__paperDelivery.confirmAll = confirmAllDelivery;
+    window.__paperDelivery.finish = finishDeliveryJob;
+    window.__paperDelivery.markFinished = markDeliveryJobFinished;
+    window.__paperDelivery.render = renderDeliverySheet;
+
+    (function hookDeliveryButtons() {
+      var allBtn = document.getElementById("confirmAllDeliveryBtn");
+      var fin = document.getElementById("finishDeliveryBtn");
+      var scan = document.getElementById("scanSecondary");
+      if (allBtn) allBtn.addEventListener("click", function () { confirmAllDelivery(); });
+      if (fin) fin.addEventListener("click", function () { finishDeliveryJob(); });
+      if (scan) {
+        scan.addEventListener("toggle", function () {
+          document.body.classList.toggle("scan-open", scan.open);
+          if (scan.open) {
+            var box = document.getElementById("scanCard");
+            if (box && box.scrollIntoView) box.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        });
+      }
+    })();
+
+
     function loadReturnSheet() {
       fetch("returns_today.json").then(function (res) {
         if (!res.ok) throw new Error("returns");
@@ -3322,6 +3929,7 @@
       if (current) updateKindWarn(current, foundName.value);
     });
     loadReturnSheet();
+    loadDeliverySheet();
   </script>
   <script src="../nav.js"></script>
 </body>
