@@ -501,42 +501,66 @@
   </style>
 
   <style id="return-sheet-styles">
-    /* Today's return sheet on the Returns tab */
-    #returnSheetCard { margin: 0 0 16px; }
-    #returnSheetCard h2 { margin: 0 0 6px; font-size: 1.15rem; }
-    .rs-total { margin: 0 0 8px; font-size: 1.15rem; font-weight: 800; color: #c62828; }
-    .rs-total.is-done { color: #17643F; }
-    .rs-instruct { margin: 0 0 8px; font-size: 0.98rem; font-weight: 800; line-height: 1.35; color: var(--text); }
-    .rs-meta { margin: 0 0 12px; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
-    .rs-sec { margin: 14px 0 8px; font-size: 0.95rem; font-weight: 800; }
+    /* Returns tab: one card per job, 14px minimum */
+    #returnSheetCard { margin: 0 0 16px; padding: 0; background: transparent; box-shadow: none !important; border: 0 !important; }
+    #returnSheetCard, #returnSheetCard p, #returnSheetCard li, #returnSheetCard button, #returnSheetCard summary, #returnSheetCard input {
+      font-size: 16px;
+    }
+    #jobsStack { display: flex; flex-direction: column; gap: 14px; }
+    .job-card {
+      background: #fff;
+      border: 1px solid var(--bk-line, #d5e3da);
+      border-radius: 18px;
+      padding: 14px 14px 16px;
+      box-shadow: 0 1px 4px rgba(24,52,42,.10);
+    }
+    .job-card.is-other { background: #f7f8f7; }
+    .job-head { display: flex; gap: 10px; align-items: flex-start; width: 100%; text-align: left; border: 0; background: transparent; padding: 0; color: inherit; }
+    button.job-head { cursor: pointer; }
+    .job-head-text { flex: 1 1 auto; min-width: 0; }
+    .job-kicker { margin: 0 0 2px; font-size: 14px; font-weight: 800; letter-spacing: 0.04em; color: #17643F; text-transform: uppercase; }
+    .job-card h2, .job-title {
+      margin: 0;
+      font-size: 1.15rem;
+      font-weight: 800;
+      line-height: 1.3;
+      color: #18342A;
+    }
+    .job-instruct { margin: 8px 0 0; font-size: 16px; font-weight: 700; line-height: 1.4; color: #18342A; }
+    .job-status {
+      flex: 0 0 auto;
+      max-width: 8.5rem;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.2;
+      border-radius: 999px;
+      padding: 8px 10px;
+      background: #E86B2A;
+      color: #fff;
+    }
+    .job-status.is-progress { background: #b45309; }
+    .job-status.is-finished { background: #17643F; }
+    .job-status.is-todo { background: #E86B2A; }
+    .job-body { margin-top: 12px; }
+    .job-body.is-collapsed { display: none; }
+    .job-step { margin: 14px 0 8px; font-size: 16px; font-weight: 800; color: #17643F; }
+    .job-step:first-child { margin-top: 0; }
     .rs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-    .rs-item { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 14px; padding: 10px; background: #fff; cursor: pointer; }
+    .rs-item { display: flex; gap: 10px; align-items: flex-start; flex-wrap: wrap; border: 1px solid var(--line, #d5e3da); border-radius: 14px; padding: 12px; background: #fff; cursor: default; }
     .rs-item.is-done { background: #e8f6ec; border-color: #b7e0c2; }
-    .rs-item.is-soldout { background: #f5f7f5; cursor: default; }
-    .rs-item.is-tonight { background: #fff8e8; border-color: #f0d8a8; cursor: default; }
-    .rs-thumb { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 10px; background: #eef5f0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #5f6b7a; font-weight: 800; font-size: 0.75rem; text-align: center; padding: 4px; }
+    .rs-item.is-soldout { background: #f0f1f0; border-color: #d9ddd9; }
+    .rs-item.is-tonight { background: #fff8e8; border-color: #f0d8a8; }
+    .rs-item.is-due { border-color: #f5b5b5; background: #fff8f8; box-shadow: inset 4px 0 0 #c62828; }
+    .rs-thumb { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 10px; background: #eef5f0; overflow: hidden; display: flex; align-items: center; justify-content: center; color: #5f6b7a; font-weight: 800; font-size: 14px; text-align: center; padding: 4px; }
     .rs-thumb img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
     .rs-meta-col { flex: 1 1 auto; min-width: 0; }
-    .rs-name { margin: 0; font-weight: 800; font-size: 1.02rem; line-height: 1.25; }
-    .rs-issue { margin: 2px 0 0; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
-    .rs-line { margin: 6px 0 0; font-size: 0.9rem; font-weight: 700; color: #18342A; }
-    .rs-note { margin: 4px 0 0; font-size: 0.8rem; font-weight: 600; color: var(--muted); }
-    .rs-badge { flex: 0 0 auto; align-self: center; min-width: 4.6rem; text-align: center; font-weight: 800; font-size: 0.85rem; border-radius: 999px; padding: 8px 10px; background: #E86B2A; color: #fff; }
-    .rs-item.is-done .rs-badge { background: #17643F; }
-    .rs-item.is-soldout .rs-badge { background: #5b6573; }
-    .rs-item.is-tonight .rs-badge { background: #b45309; }
-    .rs-tick { display: none; margin-left: 4px; }
-    .rs-item.is-done .rs-tick { display: inline; }
-    .rs-tonight { margin-top: 16px; padding-top: 4px; }
-
-    .rs-item.is-due { border-color: #f5b5b5; background: #fff8f8; box-shadow: inset 4px 0 0 #c62828; }
-    .rs-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-    .rs-btn { min-height: 48px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; border: 2px solid #E86B2A; background: #E86B2A; color: #fff; }
-    .rs-btn.scan { background: #fff; color: #E86B2A; }
-    .rs-btn:disabled { opacity: 0.55; cursor: default; }
-    .rs-item { cursor: default; flex-wrap: wrap; }
-    .rs-expected { margin: 6px 0 0; font-size: 1.02rem; font-weight: 800; color: #18342A; }
-    .rs-badge { align-self: flex-start; margin-top: 4px; }
+    .rs-name { margin: 0; font-weight: 800; font-size: 16px; line-height: 1.3; }
+    .rs-issue { margin: 4px 0 0; color: var(--muted, #5b6573); font-size: 14px; font-weight: 600; }
+    .rs-return-qty { margin: 8px 0 0; font-size: 1.35rem; font-weight: 800; color: #18342A; line-height: 1.2; }
+    .rs-done-line { margin: 8px 0 0; font-size: 16px; font-weight: 800; color: #17643F; line-height: 1.35; }
+    .rs-line { margin: 6px 0 0; font-size: 16px; font-weight: 700; color: #18342A; }
+    .rs-note { margin: 6px 0 0; font-size: 14px; font-weight: 600; color: #5b6573; }
     .rs-qty-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; flex: 1 1 100%; }
     .rs-step {
       flex: 0 0 48px; width: 48px; min-height: 48px; border-radius: 12px;
@@ -549,94 +573,63 @@
       border-radius: 12px; color: #18342A; background: #fff;
     }
     .rs-actions { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; flex: 1 1 100%; }
-    .rs-btn.confirm { background: #17643F; border-color: #17643F; color: #fff; min-height: 56px; font-size: 1.12rem; width: 100%; }
-    .rs-btn.scan { background: #fff; color: #E86B2A; width: 100%; }
-    .rs-err { display: none; margin-top: 8px; color: #c62828; font-weight: 700; font-size: 0.85rem; }
+    .rs-btn { min-height: 52px; border-radius: 12px; font-weight: 800; font-size: 16px; cursor: pointer; border: 2px solid #17643F; background: #17643F; color: #fff; width: 100%; }
+    .rs-btn.confirm { min-height: 56px; font-size: 1.12rem; }
+    .rs-btn.scan { background: #fff; color: #17643F; border-color: #17643F; min-height: 48px; font-size: 16px; }
+    .rs-btn:disabled { opacity: 0.55; cursor: default; }
+    .rs-err { display: none; margin-top: 8px; color: #c62828; font-weight: 700; font-size: 14px; }
     .rs-err.show { display: block; }
-    .confirm-note {
-      margin: 12px 0 0;
-      font-weight: 800;
-      font-size: 0.98rem;
-      color: #8a3b12;
-      text-align: center;
-      line-height: 1.35;
-    }
+    .sold-group { margin: 12px 0 4px; border: 1px solid #d9ddd9; border-radius: 12px; background: #f0f1f0; padding: 4px 10px 8px; }
+    .sold-group summary { font-size: 16px; font-weight: 800; color: #5b6573; cursor: pointer; padding: 8px 0; }
+    .sold-group .rs-list { margin-top: 6px; }
+    .confirm-note { margin: 8px 0 0; font-weight: 700; font-size: 16px; color: #8a3b12; text-align: left; line-height: 1.35; }
     .confirm-note.is-ready { color: #17643F; }
-    #confirmReturnBtn { margin-top: 12px; }
+    .finish-job-btn {
+      margin-top: 10px; width: 100%; min-height: 58px; border-radius: 14px;
+      font-weight: 800; font-size: 1.12rem; cursor: pointer;
+      border: 2px solid #c3d6ca; background: #eef3ef; color: #5b6573;
+    }
+    .finish-job-btn.is-ready { background: #E86B2A; border-color: #E86B2A; color: #fff; }
+    .job-finished {
+      margin-top: 10px; background: #17643F; color: #fff; border-radius: 14px;
+      padding: 16px 14px; font-size: 1.15rem; font-weight: 800;
+      text-align: center; line-height: 1.4;
+    }
+    .hidden { display: none !important; }
 
     .confirm-anyway {
-      position: fixed;
-      inset: 0;
-      z-index: 10070;
+      position: fixed; inset: 0; z-index: 10070;
       background: rgba(24,52,42,0.45);
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      padding: 12px;
-      padding-bottom: max(12px, env(safe-area-inset-bottom));
+      display: flex; align-items: flex-end; justify-content: center;
+      padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom));
     }
     .confirm-anyway-box {
-      background: #fff;
-      border-radius: 18px 18px 16px 16px;
-      width: 100%;
-      max-width: 480px;
-      max-height: min(88vh, 720px);
-      overflow: auto;
-      padding: 18px 16px 16px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
-      color: #18342A;
+      background: #fff; border-radius: 18px 18px 16px 16px;
+      width: 100%; max-width: 480px; max-height: min(88vh, 720px);
+      overflow: auto; padding: 18px 16px 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2); color: #18342A;
     }
-    .confirm-anyway-box h3 {
-      margin: 0 0 8px;
-      font-size: 1.25rem;
-      color: #17643F;
-    }
-    .confirm-anyway-box .ca-lead {
-      margin: 0 0 12px;
-      font-size: 1.05rem;
-      font-weight: 700;
-      line-height: 1.35;
-    }
+    .confirm-anyway-box h3 { margin: 0 0 8px; font-size: 1.25rem; color: #17643F; }
+    .confirm-anyway-box .ca-lead { margin: 0 0 12px; font-size: 16px; font-weight: 700; line-height: 1.35; }
     .ca-list { list-style: none; margin: 0 0 14px; padding: 0; }
-    .ca-list li {
-      border: 1px solid #d5e3da;
-      border-radius: 12px;
-      padding: 10px 12px;
-      margin-top: 8px;
-      background: #fff8f8;
-    }
-    .ca-list .ca-title { font-weight: 800; font-size: 1.08rem; }
-    .ca-list .ca-scan { margin-top: 2px; font-weight: 700; font-size: 1rem; color: #8a3b12; }
-    .ca-reason-label { display:block; font-weight: 800; font-size: 1.02rem; margin: 8px 0 8px; }
+    .ca-list li { border: 1px solid #d5e3da; border-radius: 12px; padding: 10px 12px; margin-top: 8px; background: #fff8f8; }
+    .ca-list .ca-title { font-weight: 800; font-size: 16px; }
+    .ca-list .ca-scan { margin-top: 2px; font-weight: 700; font-size: 16px; color: #8a3b12; }
+    .ca-reason-label { display:block; font-weight: 800; font-size: 16px; margin: 8px 0 8px; }
     .ca-reasons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
     .ca-reasons button {
-      min-height: 48px;
-      border-radius: 12px;
-      border: 2px solid #17643F;
-      background: #fff;
-      color: #17643F;
-      font-weight: 800;
-      font-size: 1rem;
-      cursor: pointer;
+      min-height: 48px; border-radius: 12px; border: 2px solid #17643F;
+      background: #fff; color: #17643F; font-weight: 800; font-size: 16px; cursor: pointer;
     }
     .ca-reasons button.on { background: #17643F; color: #fff; }
     .ca-reason-other {
-      width: 100%;
-      margin-top: 8px;
-      min-height: 48px;
-      font-size: 1.05rem;
-      padding: 12px;
-      border: 1px solid #c3d6ca;
-      border-radius: 10px;
+      width: 100%; margin-top: 8px; min-height: 48px; font-size: 16px;
+      padding: 12px; border: 1px solid #c3d6ca; border-radius: 10px;
     }
     .ca-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
     .ca-actions button {
-      min-height: 56px;
-      border-radius: 14px;
-      font-weight: 800;
-      font-size: 1.08rem;
-      cursor: pointer;
-      border: 2px solid #17643F;
+      min-height: 56px; border-radius: 14px; font-weight: 800; font-size: 16px;
+      cursor: pointer; border: 2px solid #17643F;
     }
     .ca-back { background: #fff; color: #17643F; }
     .ca-go { background: #17643F; color: #fff; border-color: #17643F; }
@@ -645,6 +638,7 @@
     body.returns #addBtn,
     body.returns #qtyLabel { display: none !important; }
   </style>
+
   <link rel="stylesheet" href="../scanned-list.css">
 </head>
 <body>
@@ -661,19 +655,49 @@
     <button type="button" id="kindMags" class="kind-btn" role="tab" aria-selected="false">Magazines<span class="kind-n" id="kindMagsN"></span></button>
   </div>
   <div class="card hidden" id="returnSheetCard">
-    <h2>What to return today</h2>
-    <p class="rs-total" id="returnSheetTotal"></p>
-    <p class="rs-instruct" id="returnSheetInstruct"></p>
-    <p class="rs-meta" id="returnSheetMeta"></p>
-    <ul id="returnSheetToday" class="rs-list"></ul>
-    <p id="returnSheetTodayEmpty" class="hint hidden">Nothing to return today</p>
-    <p id="confirmReturnHint" class="confirm-note"></p>
-    <button id="confirmReturnBtn" class="btn" type="button">Confirm return</button>
-    <div id="returnSheetTonight" class="rs-tonight hidden">
-      <h3 class="rs-sec">Tonight: count at close</h3>
-      <p class="rs-meta" id="returnSheetTonightMeta"></p>
-      <ul id="returnSheetTonightList" class="rs-list"></ul>
+    <div id="jobsStack">
+      <section class="job-card hidden" id="jobPack" data-job="pack">
+        <div class="job-head" id="jobPackHead">
+          <div class="job-head-text">
+            <p class="job-kicker" id="jobPackKicker">JOB 1</p>
+            <h2 id="jobPackTitle">Pack returns</h2>
+            <p class="job-instruct" id="jobPackInstruct">Confirm how many copies of each paper you are sending back, then finish the job.</p>
+          </div>
+          <span class="job-status is-todo" id="jobPackStatus">To do</span>
+        </div>
+        <div class="job-body" id="jobPackBody">
+          <div id="jobFinishedBanner" class="job-finished hidden" role="status"></div>
+          <p class="job-step" id="jobPackStep1">Step 1. Check each paper and confirm the quantity</p>
+          <ul id="returnSheetToday" class="rs-list"></ul>
+          <p id="returnSheetTodayEmpty" class="hint hidden">Nothing to return today</p>
+          <details id="soldOutGroup" class="sold-group hidden">
+            <summary id="soldOutSummary">Sold out, nothing to return (0)</summary>
+            <ul id="soldOutList" class="rs-list"></ul>
+          </details>
+          <p class="job-step" id="jobPackStep2">Step 2. Press Finish job</p>
+          <p id="confirmReturnHint" class="confirm-note"></p>
+          <button id="confirmReturnBtn" class="finish-job-btn" type="button">Finish job: send return</button>
+        </div>
+      </section>
+      <section class="job-card hidden is-other" id="jobTonight" data-job="tonight">
+        <button type="button" class="job-head" id="jobTonightToggle" aria-expanded="false" aria-controls="jobTonightBody">
+          <div class="job-head-text">
+            <p class="job-kicker" id="jobTonightKicker">JOB 2</p>
+            <h2 class="job-title" id="jobTonightTitle">Count unsold papers at close tonight</h2>
+            <p class="job-instruct" id="jobTonightInstruct">At close, count leftover copies of today's papers so you know what to send back tomorrow.</p>
+          </div>
+          <span class="job-status is-todo" id="jobTonightStatus">To do</span>
+        </button>
+        <div class="job-body is-collapsed" id="jobTonightBody">
+          <p class="rs-meta" id="returnSheetTonightMeta"></p>
+          <ul id="returnSheetTonightList" class="rs-list"></ul>
+        </div>
+      </section>
     </div>
+    <p id="returnSheetTotal" class="hidden"></p>
+    <p id="returnSheetInstruct" class="hidden"></p>
+    <p id="returnSheetMeta" class="hidden"></p>
+    <div id="returnSheetTonight" class="hidden"></div>
   </div>
   <p id="loadState">Loading titles...</p>
   <div class="card">
@@ -755,8 +779,8 @@
   <p class="hint">Add this page to your home screen for one-tap access.</p>
   <div id="confirmAnyway" class="confirm-anyway hidden" role="dialog" aria-label="Confirm return anyway">
     <div class="confirm-anyway-box">
-      <h3>Items still to scan</h3>
-      <p class="ca-lead" id="confirmAnywayLead">These titles are unscanned or short.</p>
+      <h3>Titles not yet confirmed</h3>
+      <p class="ca-lead" id="confirmAnywayLead">These titles are not yet confirmed.</p>
       <ul id="confirmAnywayList" class="ca-list"></ul>
       <span class="ca-reason-label" id="confirmAnywayReasonLabel">Reason (optional)</span>
       <div class="ca-reasons" role="group" aria-labelledby="confirmAnywayReasonLabel">
@@ -1308,7 +1332,7 @@
         : (ret
           ? "No titles added yet. Scan each newspaper or magazine being returned. Each scan adds one copy."
           : "No titles added yet. Scan each newspaper or magazine, enter how many arrived, then add it.");
-      saveDelivery.textContent = stock ? "Save stock take" : (ret ? "Confirm return" : "Save delivery");
+      saveDelivery.textContent = stock ? "Save stock take" : (ret ? "Finish job: send return" : "Save delivery");
       todayTitle.textContent = stock ? "Today's stock take" : (ret ? "Today's returns" : "Today's deliveries");
       todayQtyHead.textContent = stock ? "Counted" : "Qty";
       todayStockHead.textContent = stock ? "Till" : "Stock";
@@ -2106,7 +2130,7 @@
       var lead = document.getElementById("confirmAnywayLead");
       if (!box || !list) return;
       var prog = todayReturnProgress();
-      if (lead) lead.textContent = "Scanned " + prog.done + " of " + prog.total + ". These titles are still unscanned or short.";
+      if (lead) lead.textContent = "Confirmed " + prog.done + " of " + prog.total + ". These titles are not yet confirmed.";
       list.innerHTML = "";
       missing.forEach(function (it) {
         var li = document.createElement("li");
@@ -2134,41 +2158,165 @@
       return typed || chip;
     }
 
+    var PACK_FINISHED_KEY = "birkhill-paper-stockin-pack-finished-v1";
+    var _packPreview = null; // "in-progress" | "finished" | null
+    var _justFinishedPack = false;
+
+    function packJobDate() {
+      return (returnSheetData && returnSheetData.date) || todayLondon();
+    }
+
+    function shortPickup(disp) {
+      var s = String(disp || "");
+      return s.replace("Monday", "Mon").replace("Tuesday", "Tue").replace("Wednesday", "Wed")
+        .replace("Thursday", "Thu").replace("Friday", "Fri").replace("Saturday", "Sat").replace("Sunday", "Sun");
+    }
+
+    function formatJobTime(at) {
+      if (!at) return "";
+      var raw = String(at).trim();
+      var dt = null;
+      var tryFmts = [
+        function () { return new Date(raw); },
+        function () {
+          var m = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})[ T](\d{1,2}):(\d{2})(?::(\d{2}))?/);
+          if (!m) return null;
+          return new Date(Number(m[3]), Number(m[1]) - 1, Number(m[2]), Number(m[4]), Number(m[5]), Number(m[6] || 0));
+        }
+      ];
+      var i;
+      for (i = 0; i < tryFmts.length; i++) {
+        try { dt = tryFmts[i](); } catch (e) { dt = null; }
+        if (dt && !isNaN(dt.getTime())) break;
+        dt = null;
+      }
+      if (!dt) return raw;
+      try {
+        var parts = new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "Europe/London" }).formatToParts(dt);
+        var hour = "", min = "", dayp = "";
+        parts.forEach(function (p) {
+          if (p.type === "hour") hour = p.value;
+          if (p.type === "minute") min = p.value;
+          if (p.type === "dayPeriod") dayp = p.value.toLowerCase().replace(".", "");
+        });
+        return (hour + ":" + min + dayp).replace(" ", "");
+      } catch (e) {
+        return raw;
+      }
+    }
+
+    function readLocalPackFinish() {
+      try {
+        var o = JSON.parse(localStorage.getItem(PACK_FINISHED_KEY) || "null");
+        if (o && o.date === packJobDate()) return o;
+      } catch (e) {}
+      return null;
+    }
+
+    function markPackJobFinished(info) {
+      info = info || {};
+      var rec = {
+        date: packJobDate(),
+        at: info.at || new Date().toISOString(),
+        by: info.by || ((checkedBy && checkedBy.value) || "").trim(),
+        status: info.status || "complete",
+        reason: info.reason || "",
+        finished: true
+      };
+      try { localStorage.setItem(PACK_FINISHED_KEY, JSON.stringify(rec)); } catch (e) {}
+      _packPreview = null;
+      _justFinishedPack = true;
+      if (returnSheetData) {
+        returnSheetData.confirmation = Object.assign({}, returnSheetData.confirmation || {}, {
+          status: rec.status,
+          by: rec.by,
+          at: rec.at,
+          reason: rec.reason
+        });
+      }
+      return rec;
+    }
+
+    function packJobSubmission() {
+      if (_packPreview && _packPreview.finished) return _packPreview;
+      var local = readLocalPackFinish();
+      if (local) return local;
+      if (_packPreview === "in-progress") return null;
+      var conf = returnSheetData && returnSheetData.confirmation;
+      if (conf && (conf.status || conf.at || conf.by)) return conf;
+      return null;
+    }
+
+    function usefulNote(item) {
+      if (!item) return "";
+      var reason = String(item.confirm_reason || "").trim();
+      if (reason && reason !== "-" && !/^confirmed anyway/i.test(reason)) {
+        return "Reason: " + reason;
+      }
+      var note = String(item.note || "").replace(/Confirmed anyway:\s*-?\s*/gi, " ").replace(/\s+/g, " ").trim();
+      if (!note || note === "-" || /^sold out\.?$/i.test(note)) return "";
+      return note;
+    }
+
+    function doneLineText(item) {
+      var expected = Number(item.expected != null ? item.expected : item.qty) || 0;
+      var returned = item.returned != null ? Number(item.returned) : (Number(item.scanned) || 0);
+      if (returned !== expected) return "Returned " + returned + ", expected " + expected;
+      return "Returned " + returned + " \u2713";
+    }
+
     function updateConfirmLock() {
       var ret = isReturns();
       var hint = document.getElementById("confirmReturnHint");
       var note = document.getElementById("confirmReturnNote");
       var topBtn = document.getElementById("confirmReturnBtn");
+      var banner = document.getElementById("jobFinishedBanner");
+      var step2 = document.getElementById("jobPackStep2");
       if (!ret) {
         if (hint) { hint.textContent = ""; hint.classList.add("hidden"); }
         if (note) { note.textContent = ""; note.classList.add("hidden"); }
         if (topBtn) topBtn.classList.add("hidden");
+        if (banner) banner.classList.add("hidden");
         hideConfirmAnyway();
         saveDelivery.disabled = false;
         return;
       }
-      if (topBtn) {
-        topBtn.classList.remove("hidden");
-        topBtn.disabled = false;
-      }
+      var finished = packJobSubmission();
       var prog = todayReturnProgress();
       var unsaved = allReturnItems().length;
       var missing = missingDueLines();
+      var ready = !!(prog.hasSheet && prog.ready);
+      if (finished) {
+        if (topBtn) topBtn.classList.add("hidden");
+        if (step2) step2.classList.add("hidden");
+        if (hint) { hint.textContent = ""; hint.classList.add("hidden"); }
+        if (note) { note.textContent = ""; note.classList.add("hidden"); }
+        if (banner) {
+          var when = formatJobTime(finished.at);
+          var who = String(finished.by || "").trim();
+          banner.textContent = "JOB FINISHED \u2713" + (when ? (" at " + when) : "") + (who ? (" by " + who) : "");
+          banner.classList.remove("hidden");
+        }
+        saveDelivery.disabled = true;
+        return;
+      }
+      if (banner) { banner.textContent = ""; banner.classList.add("hidden"); }
+      if (step2) step2.classList.remove("hidden");
+      if (topBtn) {
+        topBtn.classList.remove("hidden");
+        topBtn.disabled = false;
+        topBtn.textContent = "Finish job: send return";
+        topBtn.classList.toggle("is-ready", ready);
+      }
       var msg = "";
-      var ready = true;
       if (prog.hasSheet && prog.total > 0 && missing.length) {
-        msg = "Confirmed " + prog.done + " of " + prog.total + ". Confirm return is available. If anything is still short you can confirm anyway.";
-        ready = false;
-      } else if (prog.hasSheet && prog.ready && unsaved === 0) {
-        msg = "All items confirmed";
-        ready = true;
-      } else if (prog.hasSheet && prog.ready && unsaved > 0) {
-        msg = "All items confirmed. Tap Confirm return.";
-        ready = true;
+        msg = "Confirmed " + prog.done + " of " + prog.total + ". You can still finish the job and say why if a title is short.";
+      } else if (prog.hasSheet && ready) {
+        msg = "All quantities confirmed. Press Finish job: send return.";
       } else if (!prog.hasSheet) {
-        msg = unsaved ? "Today's return sheet could not be loaded. You can still confirm scanned returns." : "";
-      } else {
-        msg = unsaved ? "Nothing due on today's list. You can still confirm scanned returns." : "Nothing to return today";
+        msg = unsaved ? "Today's return sheet could not be loaded. You can still finish scanned returns." : "";
+      } else if (prog.total === 0) {
+        msg = "Nothing to return today.";
       }
       [hint, note].forEach(function (el) {
         if (!el) return;
@@ -2263,8 +2411,13 @@
         checkedBy.focus();
         return;
       }
-      if (!list.length && !(ret && opts.anyway)) {
+      if (!list.length && !(ret && (opts.anyway || (todayReturnProgress().hasSheet && todayReturnProgress().total > 0)))) {
         setStatus("Add at least one title before saving.", "error");
+        return;
+      }
+      if (ret && packJobSubmission()) {
+        setStatus("This job is already finished.", "ok");
+        renderReturnSheet();
         return;
       }
       const saved = list.slice();
@@ -2346,7 +2499,14 @@
           hideConfirmAnyway();
           renderReturnSheet();
           var leftover = missingDueLines();
-          setStatus(leftover.length ? "Return confirmed anyway" : "Returns confirmed", "ok");
+          markPackJobFinished({
+            by: who,
+            at: new Date().toISOString(),
+            status: leftover.length ? "partial" : "complete",
+            reason: cleanField(opts.reason || "")
+          });
+          renderReturnSheet();
+          setStatus(leftover.length ? "Job finished (some titles short)" : "Job finished", "ok");
         } else {
           if (kind() !== saveKind && saveMode !== "stocktake") setKind(saveKind);
           appendToday(saved);
@@ -2377,6 +2537,22 @@
       if (go) go.addEventListener("click", function () {
         hideConfirmAnyway();
         saveCurrent({ anyway: true, reason: selectedConfirmReason() });
+      });
+      var tToggle = document.getElementById("jobTonightToggle");
+      if (tToggle) tToggle.addEventListener("click", function () {
+        var body = document.getElementById("jobTonightBody");
+        if (!body) return;
+        var open = body.classList.contains("is-collapsed");
+        setJobOpen(body, open);
+        tToggle.setAttribute("aria-expanded", open ? "true" : "false");
+      });
+      var packHead = document.getElementById("jobPackHead");
+      if (packHead) packHead.addEventListener("click", function (e) {
+        if (e.target && e.target.closest && e.target.closest("button")) return;
+        var body = document.getElementById("jobPackBody");
+        if (!body) return;
+        var open = body.classList.contains("is-collapsed");
+        setJobOpen(body, open);
       });
     })();
 
@@ -2590,11 +2766,12 @@
       listEl.innerHTML = "";
       var showEmpty = !tonight && items.length === 0;
       if (emptyEl) emptyEl.classList.toggle("hidden", !showEmpty);
+      var jobFinished = !tonight && !!packJobSubmission();
       items.forEach(function (item) {
         var lineKind = item.kind || kind;
         var li = document.createElement("li");
         var sold = !tonight && Number(item.qty) === 0;
-        li.className = "rs-item" + (tonight ? " is-tonight" : (item.done ? (sold ? " is-done is-soldout" : " is-done") : ""));
+        li.className = "rs-item" + (tonight ? " is-tonight" : (sold ? " is-soldout" : (item.done ? " is-done" : "")));
         var thumb = document.createElement("div");
         thumb.className = "rs-thumb";
         if (item.image) {
@@ -2610,47 +2787,61 @@
         var name = document.createElement("p");
         name.className = "rs-name";
         name.textContent = item.title || item.full_title || "";
+        col.appendChild(name);
         var issue = document.createElement("p");
         issue.className = "rs-issue";
         var d = item.issue_display || "";
         if (tonight) {
           issue.textContent = (d ? ("Issue " + d) : "") + (item.delivered != null ? ((d ? "  ·  " : "") + "delivered " + item.delivered) : "");
-        } else if (!d) {
-          issue.textContent = "";
-        } else if (/issue/i.test(d)) {
-          issue.textContent = d.charAt(0).toUpperCase() + d.slice(1);
+        } else if (d) {
+          issue.textContent = /issue/i.test(d) ? (d.charAt(0).toUpperCase() + d.slice(1)) : ("Issue " + d);
+        }
+        if (issue.textContent) col.appendChild(issue);
+        if (tonight) {
+          var tline = document.createElement("p");
+          tline.className = "rs-line";
+          var unsold = item.unsold != null ? Number(item.unsold) : (Number(item.qty) || 0);
+          var bits = [];
+          if (item.delivered != null) bits.push("delivered " + item.delivered);
+          if (item.sold != null) bits.push("sold " + item.sold);
+          bits.push("expect " + unsold + " unsold");
+          tline.textContent = bits.join(", ");
+          col.appendChild(tline);
+        } else if (sold) {
+          var sline = document.createElement("p");
+          sline.className = "rs-line";
+          sline.textContent = "Sold out";
+          col.appendChild(sline);
+        } else if (item.done || jobFinished) {
+          var done = document.createElement("p");
+          done.className = "rs-done-line";
+          if (item.done) {
+            done.textContent = doneLineText(item);
+          } else {
+            var returned = item.returned != null ? Number(item.returned) : (Number(item.scanned) || 0);
+            var expected = Number(item.qty) || 0;
+            if (returned === 0) done.textContent = "Not confirmed (expected " + expected + ")";
+            else if (returned !== expected) done.textContent = "Returned " + returned + ", expected " + expected;
+            else done.textContent = doneLineText(item);
+          }
+          col.appendChild(done);
+          var noteTxt = usefulNote(item);
+          if (noteTxt) {
+            var note = document.createElement("p");
+            note.className = "rs-note";
+            note.textContent = noteTxt;
+            col.appendChild(note);
+          }
         } else {
-          issue.textContent = "Issue " + d;
+          var retQty = document.createElement("p");
+          retQty.className = "rs-return-qty";
+          retQty.textContent = "Return: " + (Number(item.qty) || 0);
+          col.appendChild(retQty);
         }
-        var expected = Number(item.qty) || 0;
-        if (!tonight && !sold) {
-          var exp = document.createElement("p");
-          exp.className = "rs-expected";
-          exp.textContent = "Expected return: " + expected;
-          col.appendChild(name);
-          if (issue.textContent) col.appendChild(issue);
-          col.appendChild(exp);
-        } else {
-          col.appendChild(name);
-          if (issue.textContent) col.appendChild(issue);
-        }
-        var line = document.createElement("p");
-        line.className = "rs-line";
-        line.textContent = item.line_text || "";
-        col.appendChild(line);
-        if (item.note) {
-          var note = document.createElement("p");
-          note.className = "rs-note";
-          note.textContent = item.note;
-          col.appendChild(note);
-        }
-        var badge = document.createElement("div");
-        badge.className = "rs-badge";
-        badge.innerHTML = (item.status || "") + '<span class="rs-tick"> \u2713</span>';
         li.appendChild(thumb);
         li.appendChild(col);
-        li.appendChild(badge);
-        if (!tonight && !sold && !item.done && lineKind) {
+        if (!tonight && !sold && !item.done && !jobFinished && lineKind) {
+          var expected = Number(item.qty) || 0;
           var startVal = expected;
           var qtyRow = document.createElement("div");
           qtyRow.className = "rs-qty-row";
@@ -2682,12 +2873,12 @@
           confirmBtn.type = "button";
           confirmBtn.className = "rs-btn confirm";
           confirmBtn.setAttribute("data-act", "confirm");
-          confirmBtn.textContent = "Confirm " + startVal;
+          confirmBtn.textContent = "Confirm";
           var scanBtn = document.createElement("button");
           scanBtn.type = "button";
           scanBtn.className = "rs-btn scan";
           scanBtn.setAttribute("data-act", "scan");
-          scanBtn.textContent = "Scan";
+          scanBtn.textContent = "Scan instead";
           var err = document.createElement("p");
           err.className = "rs-err";
           actions.appendChild(confirmBtn);
@@ -2705,7 +2896,7 @@
           function syncConfirm() {
             var n = currentQty();
             qtyInput.value = String(n);
-            confirmBtn.textContent = "Confirm " + n;
+            retQty.textContent = "Return: " + n;
           }
           minus.addEventListener("click", function (e) {
             e.preventDefault();
@@ -2736,6 +2927,22 @@
       });
     }
 
+    function setJobStatus(el, text) {
+      if (!el) return;
+      el.textContent = text;
+      el.classList.remove("is-todo", "is-progress", "is-finished");
+      var cls = "is-todo";
+      if (text === "FINISHED") cls = "is-finished";
+      else if (/^In progress/i.test(text)) cls = "is-progress";
+      el.classList.add(cls);
+    }
+
+    function setJobOpen(body, open) {
+      if (!body) return;
+      body.classList.toggle("is-collapsed", !open);
+      body.classList.toggle("hidden", false);
+    }
+
     function renderReturnSheet() {
       var card = document.getElementById("returnSheetCard");
       if (!card || !returnSheetData) return;
@@ -2744,47 +2951,105 @@
       var rt = data.return_today || {};
       var news = (rt.newspapers || []).map(function (it) { return mergeSheetItem(it, localMap); });
       var mags = (rt.magazines || []).map(function (it) { return mergeSheetItem(it, localMap); });
-      var copy = liveScanCopy(news, mags, data);
-      var totalEl = document.getElementById("returnSheetTotal");
-      var instEl = document.getElementById("returnSheetInstruct");
-      var metaEl = document.getElementById("returnSheetMeta");
-      totalEl.textContent = copy.total_line;
-      totalEl.classList.toggle("is-done", copy.total_left === 0);
-      // The list is the instruction. Only show a line when everything is scanned, or nothing is due.
-      var hasItems = news.length + mags.length > 0;
-      if (copy.total_left === 0 && hasItems) instEl.textContent = copy.scan_now;
-      else instEl.textContent = "";
-      instEl.style.display = instEl.textContent ? "" : "none";
-      var meta = [];
-      if (rt.issue_display) meta.push(rt.issue_display + " issues");
-      if (rt.pickup_display) meta.push("pickup " + rt.pickup_display);
-      if (rt.recall_ref) meta.push("ref " + rt.recall_ref);
-      if (data.generated_display) meta.push("updated " + data.generated_display);
-      metaEl.textContent = meta.join("  ·  ");
-      var todayItems = mags.filter(function (x) { return x.qty > 0 && x.left > 0; })
-        .concat(news.filter(function (x) { return x.qty > 0 && x.left > 0; }))
-        .concat(mags.filter(function (x) { return !(x.qty > 0 && x.left > 0); }))
-        .concat(news.filter(function (x) { return !(x.qty > 0 && x.left > 0); }));
-      renderSheetList(document.getElementById("returnSheetToday"), document.getElementById("returnSheetTodayEmpty"), todayItems, "", false);
+      var all = mags.concat(news);
+      var dueItems = all.filter(function (x) { return Number(x.qty) > 0 && !x.done; });
+      var doneItems = all.filter(function (x) { return Number(x.qty) > 0 && x.done; });
+      var soldItems = all.filter(function (x) { return Number(x.qty) === 0; });
+      var packItems = dueItems.concat(doneItems);
+      var finished = packJobSubmission();
+      var prog = todayReturnProgress();
+      var packCard = document.getElementById("jobPack");
+      var tonightCard = document.getElementById("jobTonight");
+      var stack = document.getElementById("jobsStack") || card;
+      var hasPack = all.length > 0 || !!(rt.pickup_display || rt.recall_ref);
       var tn = data.tonight;
-      var box = document.getElementById("returnSheetTonight");
-      if (!tn || (!(tn.newspapers || []).length && !(tn.magazines || []).length)) {
-        box.classList.add("hidden");
-      } else {
-        box.classList.remove("hidden");
-        var tmeta = [];
-        if (tn.pickup_display) tmeta.push("for pickup " + tn.pickup_display);
-        if (tn.recall_ref) tmeta.push("ref " + tn.recall_ref);
-        if (tn.sold_as_at) tmeta.push("sold so far as at " + tn.sold_as_at);
-        document.getElementById("returnSheetTonightMeta").textContent = tmeta.join("  ·  ");
-        var tlist = document.getElementById("returnSheetTonightList");
-        var dummy = document.createElement("p");
-        dummy.className = "hidden";
-        renderSheetList(tlist, dummy, (tn.newspapers || []).concat(tn.magazines || []), "", true);
+      var hasTonight = !!(tn && ((tn.newspapers || []).length || (tn.magazines || []).length));
+      var packCurrent = hasPack && (!finished || _justFinishedPack);
+      var tonightCurrent = hasTonight && !packCurrent;
+
+      if (packCard) packCard.classList.toggle("hidden", !hasPack);
+      if (hasPack && packCard) {
+        var pickup = shortPickup(rt.pickup_display || "");
+        var ref = rt.recall_ref ? (" (ref " + rt.recall_ref + ")") : "";
+        var title = "Pack returns" + (pickup ? (" for pickup " + pickup) : "") + ref;
+        var kicker = document.getElementById("jobPackKicker");
+        var titleEl = document.getElementById("jobPackTitle");
+        if (titleEl) titleEl.textContent = title;
+        var inst = document.getElementById("jobPackInstruct");
+        if (inst) {
+          if (finished && !packCurrent) {
+            var when = formatJobTime(finished.at);
+            var who = String(finished.by || "").trim();
+            inst.textContent = "JOB FINISHED \u2713" + (when ? (" at " + when) : "") + (who ? (" by " + who) : "") + ". Tap to open.";
+          } else if (finished) {
+            inst.textContent = "";
+          } else {
+            inst.textContent = "Confirm how many copies of each paper you are sending back, then finish the job.";
+          }
+        }
+        var step1 = document.getElementById("jobPackStep1");
+        if (step1) {
+          step1.textContent = finished ? "What was returned" : "Step 1. Check each paper and confirm the quantity";
+        }
+        var statusTxt = "To do";
+        if (finished) statusTxt = "FINISHED";
+        else if (prog.total > 0 && prog.done > 0) statusTxt = "In progress " + prog.done + " of " + prog.total;
+        else if (prog.total > 0) statusTxt = "To do";
+        setJobStatus(document.getElementById("jobPackStatus"), statusTxt);
+        packCard.classList.toggle("is-other", !packCurrent);
+        var packBody = document.getElementById("jobPackBody");
+        setJobOpen(packBody, packCurrent || !hasTonight);
+        if (kicker) kicker.textContent = packCurrent || !hasTonight ? "JOB 1" : "JOB 2";
+        renderSheetList(document.getElementById("returnSheetToday"), document.getElementById("returnSheetTodayEmpty"), packItems, "", false);
+        var soldBox = document.getElementById("soldOutGroup");
+        var soldList = document.getElementById("soldOutList");
+        var soldSum = document.getElementById("soldOutSummary");
+        if (soldBox && soldList) {
+          if (soldItems.length) {
+            soldBox.classList.remove("hidden");
+            soldSum.textContent = "Sold out, nothing to return (" + soldItems.length + ")";
+            renderSheetList(soldList, null, soldItems, "", false);
+          } else {
+            soldBox.classList.add("hidden");
+            soldList.innerHTML = "";
+          }
+        }
       }
+
+      if (tonightCard) tonightCard.classList.toggle("hidden", !hasTonight);
+      if (hasTonight && tonightCard) {
+        var tpickup = shortPickup(tn.pickup_display || "");
+        var tref = tn.recall_ref ? (" (ref " + tn.recall_ref + ")") : "";
+        var tTitle = document.getElementById("jobTonightTitle");
+        if (tTitle) tTitle.textContent = "Count unsold papers at close tonight" + (tpickup ? (", for pickup " + tpickup) : "") + tref;
+        var tInst = document.getElementById("jobTonightInstruct");
+        if (tInst) tInst.textContent = "At close, count leftover copies of today's papers so you know what to send back tomorrow.";
+        setJobStatus(document.getElementById("jobTonightStatus"), "To do");
+        tonightCard.classList.toggle("is-other", !tonightCurrent);
+        var tKicker = document.getElementById("jobTonightKicker");
+        if (tKicker) tKicker.textContent = tonightCurrent ? "JOB 1" : "JOB 2";
+        var tmeta = [];
+        if (tn.sold_as_at) tmeta.push("Sold so far as at " + tn.sold_as_at);
+        var tmetaEl = document.getElementById("returnSheetTonightMeta");
+        if (tmetaEl) tmetaEl.textContent = tmeta.join("  ·  ");
+        var tlist = (tn.newspapers || []).concat(tn.magazines || []);
+        renderSheetList(document.getElementById("returnSheetTonightList"), null, tlist, "", true);
+        var tBody = document.getElementById("jobTonightBody");
+        setJobOpen(tBody, tonightCurrent);
+        var tToggle = document.getElementById("jobTonightToggle");
+        if (tToggle) tToggle.setAttribute("aria-expanded", tonightCurrent ? "true" : "false");
+      }
+
+      if (stack && packCard && tonightCard && hasPack && hasTonight) {
+        if (tonightCurrent) {
+          stack.insertBefore(tonightCard, packCard);
+        } else {
+          stack.insertBefore(packCard, tonightCard);
+        }
+      }
+
       if (typeof updateConfirmLock === "function") updateConfirmLock();
     }
-
 
     var magAwaiting = null;
 
@@ -2870,6 +3135,24 @@
 
     window.__paperReturns.confirmLine = confirmLineReturn;
     window.__paperReturns.startReturnScan = startReturnScan;
+    window.__paperReturns.packJobSubmission = packJobSubmission;
+    window.__paperReturns.markPackJobFinished = markPackJobFinished;
+    window.__paperReturns.previewPack = function (state, info) {
+      if (state === "in-progress") _packPreview = "in-progress";
+      else if (state === "finished") {
+        info = info || {};
+        _packPreview = {
+          finished: true,
+          by: info.by || (checkedBy && checkedBy.value) || "Kani",
+          at: info.at || new Date().toISOString(),
+          status: info.status || "complete",
+          reason: info.reason || ""
+        };
+      } else {
+        _packPreview = null;
+      }
+      renderReturnSheet();
+    };
     window.__paperReturns.dueLines = function () {
       if (!returnSheetData) return [];
       var localMap = localReturnScanMap();
