@@ -99,7 +99,8 @@
 </main>
 <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
-  <script>
+  <script src="invoice.js"></script>
+<script>
 (function () {
   "use strict";
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
@@ -136,7 +137,7 @@
   }
   window.addEventListener("online", flush); setInterval(flush, 30000);
   function sendDraft(doc) {
-    var s = JSON.stringify({ kind: doc.kind, sid: doc.sid, ref: doc.ref, date: doc.date, staff: doc.staff, notes: doc.notes || "", lines: doc.lines, returns: doc.returns || [], source: doc.source || "app" });
+    var s = JSON.stringify({ kind: doc.kind, sid: doc.sid, ref: doc.ref, date: doc.date, staff: doc.staff, notes: doc.notes || "", lines: doc.lines, returns: doc.returns || [], source: doc.source || "app", scan: doc.scan || undefined, delivered_checked: doc.delivered_checked || undefined });
     var size = 30000, parts = Math.max(1, Math.ceil(s.length / size));
     for (var i = 0; i < parts; i++) queueEv({ t: "draft", id: doc.id, rev: doc.rev, part: i, parts: parts, by: staff() || doc.staff, d: s.slice(i * size, (i + 1) * size) });
   }
@@ -199,7 +200,7 @@
   function saveLocal(doc, st_) { var loc = jget(K.docs, {}); doc.updated = londonAt(); if (st_) doc.localStatus = st_; loc[doc.id] = doc; jset(K.docs, loc); }
   function say(id, t, k) { $(id).innerHTML = "<div class='msg " + (k || "ok") + "'>" + esc(t) + "</div>"; }
   // tabs
-  var TABS = [["home", "Home"], ["new", "New delivery"], ["ud", "Milk and bread"], ["drafts", "Drafts"], ["approval", "Pending Approval"], ["errors", "Posting Errors"], ["posted", "Posted Deliveries"], ["suppliers", "Suppliers"], ["reports", "Supplier Reports"], ["manager", "Manager"]];
+  var TABS = [["home", "Home"], ["scan", "Invoice Scanner"], ["new", "New delivery"], ["ud", "Milk and bread"], ["drafts", "Drafts"], ["approval", "Pending Approval"], ["errors", "Posting Errors"], ["posted", "Posted Deliveries"], ["suppliers", "Suppliers"], ["reports", "Supplier Reports"], ["manager", "Manager"]];
   function counts() {
     var c = { drafts: 0, approval: 0, errors: 0 };
     allDocs().forEach(function (d) { var s = status(d); if (s === "draft" || s === "local" || s === "recorded") c.drafts++; if (s === "pending_approval") c.approval++; if (s === "error" || s === "needs_fix") c.errors++; });
@@ -217,7 +218,7 @@
   VIEWS.home = function () {
     var c = counts(), posted = allDocs().filter(function (d) { return status(d) === "posted"; }).length;
     $("view").innerHTML = "<div class='tiles'>" +
-      tile("new", "&#128666;", "New delivery", "Type, scan or import an EDN") + tile("ud", "&#129371;", "Milk and bread", "Unique Dairies quick check") +
+      tile("scan", "&#129534;", "Invoice Scanner", "Photo or PDF of the invoice makes the draft") + tile("new", "&#128666;", "New delivery", "Type, scan or import an EDN") + tile("ud", "&#129371;", "Milk and bread", "Unique Dairies quick check") +
       tile("drafts", c.drafts, "Drafts", "Saved, not sent to the till") + tile("approval", c.approval, "Pending Approval", "Manager checks and approves") +
       tile("errors", c.errors, "Posting Errors", "Fix or send again") + tile("posted", posted, "Posted Deliveries", "In the till, stock before and after") +
       tile("suppliers", (SI.suppliers || []).length, "Suppliers", "Profiles and till link") + tile("reports", "&#128202;", "Supplier Reports", "Spend, deliveries, audit log") + "</div>" +
@@ -268,8 +269,10 @@
       "<label class='f'>Invoice or delivery note number</label><input id='nRef' type='text' autocomplete='off'>" +
       "<div class='row'><div><label class='f'>Delivery date</label><input id='nDate' type='date' value='" + londonISO() + "'></div><div><label class='f'>Staff name</label><input id='nStaff' type='text' value='" + esc(staff()) + "'></div></div>" +
       "<label class='f'>Parfetts or Eden EDN file, or a CSV of barcode, cases, case size, case cost, VAT (optional)</label><input id='nFile' type='file' accept='.csv,text/csv'>" +
-      "<div class='m' style='margin-top:6px'>Dhamecha PDF invoices and GloPOS Stock In Templates: send them to Grok Bot and it makes the draft here.</div>" +
+      "<button class='btn sec' id='nScan' style='margin-top:10px'>&#129534; Invoice Scanner: photo or PDF of the invoice</button>" +
+      "<div class='m' style='margin-top:6px'>Dhamecha and Eden Farm invoices: use the Invoice Scanner. GloPOS Stock In Templates: send them to Grok Bot and it makes the draft here.</div>" +
       "<button class='btn' id='nGo' style='margin-top:12px'>Start draft</button><div id='nMsg'></div></div>";
+    $("nScan").onclick = function () { SCAN.sid = $("nSup").value || ""; go("scan"); };
     $("nSup").onchange = function () { var s = (SI.suppliers || []).filter(function (x) { return x.id === $("nSup").value; })[0]; if (s && s.import_type === "ud_daily" && confirm("Use the quick Milk and bread screen?")) go("ud"); };
     $("nGo").onclick = function () {
       var sid = $("nSup").value, who = $("nStaff").value.trim();
@@ -338,6 +341,7 @@
       var units = num(l.rcv) * num(l.upc) - num(l.damaged); if (units < 0) iss.push("Damaged is more than received for " + nm); if (units > 0) ok++;
     });
     if (!ok) iss.push("Nothing to post yet");
+    if (d.scan && !d.delivered_checked) iss.push("Tick 'Delivered quantities checked' after checking what actually arrived");
     return iss;
   }
   function renderDoc() {
@@ -348,6 +352,16 @@
       h += "<div class='row'><div><label class='f'>Invoice or delivery note</label><input id='dRef' type='text' value='" + esc(d.ref || "") + "'></div><div><label class='f'>Delivery date</label><input id='dDate' type='date' value='" + esc(d.date || "") + "'></div></div>" +
         "<div class='row'><div><label class='f'>Staff name</label><input id='dStaff' type='text' value='" + esc(d.staff || staff()) + "'></div><div><label class='f'>Supplier</label><select id='dSup'>" + (SI.suppliers || []).map(function (x) { return "<option value='" + x.id + "'" + (x.id === d.sid ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</select></div></div>";
     } else h += "<div class='m'>Ref " + esc(d.ref) + " &middot; " + ukDate(d.date) + " &middot; staff " + esc(d.staff || "") + (d.approval ? " &middot; approved by " + esc(d.approval.by) : "") + "</div>";
+    if (d.scan) {
+      var sc = d.scan, nfl = (d.lines || []).filter(function (l) { return (l.flags || []).length && !l.checked && !l.leave_out; }).length;
+      h += "<div class='note' style='margin-top:6px'><b>Invoice scan</b> " + esc(sc.inv_no || "") + " &middot; " + esc(sc.method || "") + " &middot; " + (sc.pages || 0) + " page(s) &middot; " + (sc.lines || 0) + " lines &middot; invoice lines total " + money(sc.sum) +
+        (sc.totals && sc.totals.goods != null ? (sc.totals_match ? ", agrees with the invoice total" : ", does NOT agree with the invoice total " + money(sc.totals.goods)) : "") + (nfl ? " &middot; " + nfl + " line(s) were hard to read: check them" : "") +
+        (d.files && d.files.length ? " &middot; <a href='#' id='dInv'>Invoice pictures</a>" : "") + "</div>";
+      (sc.warnings || []).forEach(function (w) { h += "<div class='lm'>" + esc(w) + "</div>"; });
+      if (d.box_check && !d.box_check.ok) h += "<div class='note'>Box re-read: " + esc((d.box_check.notes || []).join("; ") || "totals did not agree") + "</div>";
+      h += "<div class='m' style='margin-top:6px'>Expected = what the invoice says. Change Received if short or extra, add Damaged units, tick Leave out if an item did not come. Items that came but are not on the invoice: Add a product below.</div>" +
+        (ed ? "<label style='display:block;margin-top:8px;font-weight:800'><input type='checkbox' id='dChecked'" + (d.delivered_checked ? " checked" : "") + "> Delivered quantities checked</label>" : (d.delivered_checked ? "<div class='m'>Delivered quantities checked by " + esc(d.delivered_checked.by || "") + "</div>" : ""));
+    }
     h += "<div class='m' style='margin-top:6px'><b>" + money(tt.t) + "</b> ex VAT &middot; " + money(tt.ti) + " inc VAT &middot; " + tt.u + " units</div>";
     if (s === "needs_fix") (d.issues || []).forEach(function (x) { h += "<div class='flag'>" + esc(x) + "</div>"; });
     (d.warnings || []).forEach(function (x) { h += "<div class='note'>" + esc(x) + "</div>"; });
@@ -370,7 +384,9 @@
       $("dCode").onkeydown = function (e) { if (e.key === "Enter") findProduct($("dCode").value); };
       $("dScan").onclick = function () { if (cam.on) stopCam(); else startCam(function (code) { stopCam(); $("dCode").value = code; findProduct(code); }); };
       bindLines();
+      if ($("dChecked")) $("dChecked").onchange = function () { d.delivered_checked = this.checked ? { by: d.staff || staff(), at: londonAt() } : null; touch(); };
     }
+    if ($("dInv")) $("dInv").onclick = function (e) { e.preventDefault(); viewInvoice(d.id); };
     renderActs();
   }
   function lineHtml(d, l, i, ed) {
@@ -378,7 +394,7 @@
     var hasExp = l.exp !== "" && l.exp != null, short = hasExp && num(l.rcv) < num(l.exp), extra = hasExp && num(l.rcv) > num(l.exp);
     var h = "<div class='line" + (bad ? " bad" : "") + (l.leave_out ? " out" : "") + "' data-i='" + i + "'><div class='lh'><div class='pic'>" + picHtml(l.pid) + "</div><div style='flex:1;min-width:0'>" +
       "<div class='ln'>" + esc(p ? p.n + (p.s && p.n.indexOf(p.s) < 0 ? " " + p.s : "") : (l.inv_name || l.name || "Not on the till")) + "</div>" +
-      "<div class='lm'>" + (l.bc ? "Barcode " + esc(l.bc) : "No barcode") + (p ? " &middot; till " + p.id + " &middot; stock " + p.q + " &middot; sells " + money(p.p) : "") + "</div>" +
+      "<div class='lm'>" + (l.bc ? "Barcode " + esc(l.bc) + (l.bc_src === "till" ? " (from the till product, not on the invoice)" : "") : "No barcode") + (p ? " &middot; till " + p.id + " &middot; stock " + p.q + " &middot; sells " + money(p.p) : "") + "</div>" +
       (l.inv_name && p ? "<div class='lm'>Invoice: " + esc(l.inv_name) + (l.inv_code ? " (" + esc(l.inv_code) + ")" : "") + "</div>" : "") +
       (p && p.ld ? "<div class='lm'>Last buy " + ukDate(p.ld) + " " + esc(p.ls) + ": " + money(p.lcc) + " for " + (p.lupc || "?") + "</div>" : "") + "</div></div>";
     if (ed) {
@@ -392,6 +408,8 @@
     if (l.cost_src && l.cost_src !== "invoice") h += "<div class='note'>Cost from " + esc(l.cost_src) + "</div>";
     if (p && l.case_cost !== "" && l.case_cost != null && num(l.upc) && p.c > 0 && Math.abs(num(l.case_cost) / num(l.upc) - p.c) / p.c > 0.1) h += "<div class='note'>Cost change: till " + money(p.c) + ", this " + money(num(l.case_cost) / num(l.upc)) + " a unit. Manager approval updates the till cost.</div>";
     if (l.note) h += "<div class='note'>" + esc(l.note) + "</div>";
+    if ((l.flags || []).length && !l.leave_out) h += "<div class='" + (l.checked ? "lm" : "flag") + "'>" + (l.checked ? "Checked after reading problems: " : "Hard to read on the invoice: ") + esc(l.flags.join("; ")) + "</div>";
+    if (ed && l.match === "suggested" && !l.confirmed && (l.alts || []).length) h += "<div class='lm' style='margin-top:4px'>Other possible matches:</div><div class='row' style='flex-wrap:wrap'>" + l.alts.filter(function (a) { return BYID[a]; }).map(function (a) { return "<button class='btn small sec' data-alt='" + a + "' style='flex:0 0 auto'>" + esc(BYID[a].n) + "</button>"; }).join("") + "</div>";
     if (!l.pid && !l.leave_out) h += "<div class='flag'>Not on the till. Find the right product below, or tap Leave out. New lines are never added.</div>";
     if (ed && (!l.pid || (l.match === "suggested" && !l.confirmed))) h += (l.match === "suggested" ? "<div class='note'>Suggested match from earlier deliveries. Check it is the same product.</div>" : "") + "<div class='row' style='margin-top:6px'>" + (l.pid ? "<button class='btn small' data-a='confirm' style='flex:0 0 auto'>Confirm match</button>" : "") + "<input data-a='q' type='search' placeholder='Search till product' value='" + esc((l.inv_name || "").split(" ").slice(0, 2).join(" ")) + "'><button class='btn small sec' data-a='search' style='flex:0 0 auto'>Search</button></div><div class='search-res' data-a='res'></div>";
     if (ed) h += "<div style='text-align:right;margin-top:6px'><button class='btn small sec' data-a='del'>Remove line</button></div>";
@@ -402,11 +420,12 @@
     Array.prototype.forEach.call($("lines").querySelectorAll(".line"), function (el) {
       var i = +el.getAttribute("data-i"), l = cur.doc.lines[i];
       Array.prototype.forEach.call(el.querySelectorAll("[data-f]"), function (inp) {
-        inp.onchange = function () { var f = inp.getAttribute("data-f"); if (f === "leave_out") l.leave_out = inp.checked; else if (f === "vat" || f === "bb") l[f] = inp.value; else { l[f] = inp.value === "" ? "" : num(inp.value); if (f === "case_cost") l.cost_src = "typed by " + (cur.doc.staff || staff() || "staff"); } touch(); rerenderLine(i); };
+        inp.onchange = function () { var f = inp.getAttribute("data-f"); if ((l.flags || []).length) l.checked = true; if (f === "leave_out") l.leave_out = inp.checked; else if (f === "vat" || f === "bb") l[f] = inp.value; else { l[f] = inp.value === "" ? "" : num(inp.value); if (f === "case_cost") l.cost_src = "typed by " + (cur.doc.staff || staff() || "staff"); } touch(); rerenderLine(i); };
       });
       var a = function (n) { return el.querySelector("[data-a='" + n + "']"); };
       if (a("del")) a("del").onclick = function () { if (confirm("Remove this line?")) { cur.doc.lines.splice(i, 1); touch(); renderDoc(); } };
       if (a("confirm")) a("confirm").onclick = function () { l.confirmed = true; touch(); rerenderLine(i); };
+      Array.prototype.forEach.call(el.querySelectorAll("[data-alt]"), function (b) { b.onclick = function () { var p = BYID[+b.getAttribute("data-alt")]; l.pid = p.id; l.name = p.n; l.match = "manual"; l.confirmed = true; if (l.bc_src === "till" || !l.bc) { l.bc = p.b[0] || ""; l.bc_src = "till"; } touch(); rerenderLine(i); }; });
       if (a("search")) a("search").onclick = function () { a("res").innerHTML = searchHtml(a("q").value); Array.prototype.forEach.call(a("res").querySelectorAll(".item"), function (r) { r.onclick = function () { var p = BYID[+r.getAttribute("data-pid")]; l.pid = p.id; l.name = p.n; l.match = "manual"; l.confirmed = true; if (!l.bc) l.bc = p.b[0] || ""; if (!l.vat) l.vat = vatOf(p); touch(); rerenderLine(i); }; }); };
     });
   }
@@ -564,9 +583,17 @@
       "<table class='t'><tr><th>Supplier</th><th class='n'>Deliveries 120d</th><th class='n'>Spend 30d ex VAT</th><th>Last</th><th class='n'>Short / extra / damaged lines</th><th class='n'>Returns</th></tr>" +
       r.map(function (x) { return "<tr><td>" + esc(x.name) + "</td><td class='n'>" + x.till_deliveries_120d + "</td><td class='n'>" + money(x.spend_30d_ex) + "</td><td>" + ukDate(x.last_delivery) + "</td><td class='n'>" + x.short_lines + " / " + x.extra_lines + " / " + x.damaged_lines + "</td><td class='n'>" + x.returns_posted + "</td></tr>"; }).join("") + "</table>" +
       "<button class='btn small sec' id='rPrint' style='margin-top:10px'>Print</button></div>";
+    var inv = SI.invoices || [];
+    h += "<div class='card'><h2>Invoice history</h2><div class='m'>Invoices scanned or imported into this app. Pictures and PDFs are kept encrypted.</div>" + (inv.length ?
+      "<table class='t'><tr><th>Date</th><th>Supplier</th><th>Invoice</th><th>Status</th><th class='n'>Pages</th><th></th></tr>" + inv.map(function (x) {
+        return "<tr><td>" + ukDate(x.date) + "</td><td>" + esc(supName(x.sid)) + "</td><td>" + esc(x.inv_no || x.ref) + "</td><td>" + esc(STATUS[x.status] || x.status) + (x.box_check && !x.box_check.ok ? " &#9888;&#65039;" : "") + "</td><td class='n'>" + (x.pages || 0) + "</td><td>" +
+          (x.viewer ? "<button class='btn small sec' data-inv='" + esc(x.id) + "'>View</button>" : "") + " <button class='btn small sec' data-doc='" + esc(x.id) + "'>Draft</button></td></tr>";
+      }).join("") + "</table>" : "<div class='empty'>No scanned invoices yet.</div>") + "</div>";
     h += "<div class='card'><h2>Audit log</h2><div class='m'>Staff, approver, posting time, supplier, products and stock changes.</div><table class='t'><tr><th>Time</th><th>Action</th><th>Document</th><th>Staff / approver</th><th>Details</th></tr>" +
       a.slice(0, 150).map(function (x) { return "<tr><td>" + esc(String(x.at).replace("T", " ").slice(5, 16)) + "</td><td>" + esc(String(x.action).replace(/_/g, " ")) + "</td><td>" + esc(x.doc) + "<br>" + esc(x.supplier) + "</td><td>" + esc(x.staff) + (x.approver ? " / " + esc(x.approver) : "") + "</td><td>" + esc(String(typeof x.detail === "string" ? x.detail : JSON.stringify(x.detail)).slice(0, 220)) + ((x.products || []).length ? "<br>" + x.products.map(function (p) { return esc(p.name) + " " + p.before + " &gt; " + p.after; }).join("<br>") : "") + "</td></tr>"; }).join("") + "</table></div>";
     $("view").innerHTML = h; $("rPrint").onclick = function () { window.print(); };
+    each("[data-inv]", function (b) { b.onclick = function () { viewInvoice(b.getAttribute("data-inv")); }; });
+    each("[data-doc]", function (b) { b.onclick = function () { openDoc(b.getAttribute("data-doc")); }; });
   };
 
   // manager
@@ -615,6 +642,214 @@
   }
   function stopCam() { cam.on = false; clearTimeout(cam.t); if (cam.zx) { try { cam.zx.reset(); } catch (e) {} cam.zx = null; } if (cam.stream) cam.stream.getTracks().forEach(function (t) { t.stop(); }); cam.stream = null; var v = $("video"); if (v) { v.srcObject = null; v.classList.add("hidden"); } }
 
+  // ---------------- Invoice Scanner (photos or PDF -> OCR / PDF text -> lines -> Stock In draft)
+  var SCAN = { pages: [], parsed: null, sid: "", busy: false, method: "" };
+  function absUrl(p) { return new URL(p, location.href).href; }
+  function loadScript(src) { return new Promise(function (ok, no) { if (document.querySelector("script[data-src='" + src + "']")) return ok(); var s = document.createElement("script"); s.src = src; s.setAttribute("data-src", src); s.onload = ok; s.onerror = function () { no(new Error("Could not load " + src)); }; document.head.appendChild(s); }); }
+  var ocrWorker = null;
+  function getOcr(progress) {
+    if (ocrWorker) return Promise.resolve(ocrWorker);
+    return loadScript("ocr/tesseract.min.js").then(function () {
+      return Tesseract.createWorker("eng", 1, { workerPath: absUrl("ocr/worker.min.js"), corePath: absUrl("ocr/"), langPath: absUrl("ocr/lang"), gzip: true,
+        logger: function (m) { if (progress && m.status) progress(m.status + (m.progress ? " " + Math.round(m.progress * 100) + "%" : "")); } });
+    }).then(function (w) { return w.setParameters({ tessedit_pageseg_mode: "6", preserve_interword_spaces: "1" }).then(function () { ocrWorker = w; return w; }); });
+  }
+  function getPdf() { return loadScript("ocr/pdf.min.js").then(function () { window.pdfjsLib.GlobalWorkerOptions.workerSrc = absUrl("ocr/pdf.worker.min.js"); return window.pdfjsLib; }); }
+  function imageToCanvas(file, max) {
+    return new Promise(function (ok, no) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () { var w = img.naturalWidth, h = img.naturalHeight, k = Math.min(1, max / Math.max(w, h)); var cv = document.createElement("canvas"); cv.width = Math.round(w * k); cv.height = Math.round(h * k); var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height); URL.revokeObjectURL(url); ok(cv); };
+      img.onerror = function () { URL.revokeObjectURL(url); no(new Error("That picture could not be opened")); };
+      img.src = url;
+    });
+  }
+  function canvasBlob(cv, q) { return new Promise(function (ok) { cv.toBlob(function (b) { ok(b); }, "image/jpeg", q || 0.8); }); }
+  function addFiles(files) {
+    Array.prototype.forEach.call(files || [], function (f) {
+      if (/pdf$/i.test(f.type) || /\.pdf$/i.test(f.name)) SCAN.pages.push({ kind: "pdf", file: f, name: f.name });
+      else if (/^image\//.test(f.type) || /\.(jpe?g|png|heic|webp)$/i.test(f.name)) SCAN.pages.push({ kind: "image", file: f, name: f.name || "photo" });
+    });
+    SCAN.parsed = null; renderScan();
+  }
+  VIEWS.scan = function () { renderScan(); };
+  function scanSupOpts(sel) { return "<option value=''>Work it out from the invoice</option>" + (SI.suppliers || []).filter(function (s) { return s.active !== false; }).map(function (s) { return "<option value='" + s.id + "'" + (s.id === sel ? " selected" : "") + ">" + esc(s.name) + "</option>"; }).join(""); }
+  function renderScan() {
+    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Take a photo of each page of the invoice, or upload photos or the PDF. The app reads the invoice number, date and lines, matches them to till products and makes a Stock In draft for you to check. Nothing is sent to the till until a manager approves it.</div>" +
+      "<label class='f'>Supplier</label><select id='scSup'>" + scanSupOpts(SCAN.sid) + "</select>" +
+      "<div class='row' style='margin-top:10px'><label class='btn' style='text-align:center'>&#128247; Photo of a page<input id='scCam' type='file' accept='image/*' capture='environment' class='hidden'></label>" +
+      "<label class='btn sec' style='text-align:center'>&#128196; Upload photos or PDF<input id='scFile' type='file' accept='image/*,application/pdf,.pdf' multiple class='hidden'></label></div>" +
+      "<div class='m' style='margin-top:6px'>Several pages? Take one photo per page, in order. Flat, bright, whole page in the frame.</div></div>";
+    if (SCAN.pages.length) {
+      h += "<div class='card'><h2>Pages (" + SCAN.pages.length + ")</h2><div class='list'>" + SCAN.pages.map(function (p, i) {
+        return "<div class='item' style='cursor:default'><div class='t'>" + (p.kind === "pdf" ? "&#128196; PDF: " : "&#128247; Page " + (i + 1) + ": ") + esc(p.name) + "</div><div class='m'>" + (p.kind === "pdf" ? "All pages in the PDF are read" : "") +
+          "</div><div class='row' style='margin-top:6px'>" + (i ? "<button class='btn small sec' data-up='" + i + "' style='flex:0 0 auto'>Move up</button>" : "") + "<button class='btn small sec' data-rm='" + i + "' style='flex:0 0 auto'>Remove</button></div></div>";
+      }).join("") + "</div><button class='btn' id='scRead' style='margin-top:10px'" + (SCAN.busy ? " disabled" : "") + ">Read invoice</button><div id='scProg' class='m' style='margin-top:6px'></div></div>";
+    }
+    if (SCAN.parsed) h += scanResultHtml();
+    $("view").innerHTML = h;
+    $("scSup").onchange = function () { SCAN.sid = $("scSup").value; if (SCAN.parsed) { SCAN.parsed = reparse(SCAN.parsed.text); renderScan(); } };
+    $("scCam").onchange = function () { addFiles(this.files); };
+    $("scFile").onchange = function () { addFiles(this.files); };
+    each("[data-rm]", function (b) { b.onclick = function () { SCAN.pages.splice(+b.getAttribute("data-rm"), 1); SCAN.parsed = null; renderScan(); }; });
+    each("[data-up]", function (b) { b.onclick = function () { var i = +b.getAttribute("data-up"), t = SCAN.pages[i]; SCAN.pages[i] = SCAN.pages[i - 1]; SCAN.pages[i - 1] = t; SCAN.parsed = null; renderScan(); }; });
+    if ($("scRead")) $("scRead").onclick = readInvoice;
+    if ($("scMake")) $("scMake").onclick = makeDraftFromScan;
+    if ($("scSupGo")) $("scSupGo").onclick = function () { go("suppliers"); };
+    if ($("scUd")) $("scUd").onclick = function () { go("ud"); };
+    ["scInv", "scDate"].forEach(function (id) { if ($(id)) $(id).onchange = function () { SCAN.parsed.inv_no = $("scInv").value.trim(); SCAN.parsed.date = $("scDate").value; dupCheck(SCAN.parsed); renderScan(); }; });
+  }
+  function prog(t) { if ($("scProg")) $("scProg").textContent = t; }
+  function readInvoice() {
+    if (SCAN.busy) return; SCAN.busy = true; $("scRead").disabled = true;
+    var texts = [], methods = {}, i = 0;
+    function next() {
+      if (i >= SCAN.pages.length) return Promise.resolve();
+      var p = SCAN.pages[i++], n = i;
+      if (p.kind === "pdf") {
+        prog("Opening PDF...");
+        return getPdf().then(function (lib) { return p.file.arrayBuffer().then(function (buf) { return lib.getDocument({ data: new Uint8Array(buf) }).promise; }); }).then(function (pdf) {
+          var k = 0;
+          function pg() {
+            if (++k > pdf.numPages) return Promise.resolve();
+            return pdf.getPage(k).then(function (page) {
+              return page.getTextContent().then(function (tc) {
+                var t = BHInvoice.layoutPage(tc.items);
+                if (t.replace(/\s/g, "").length > 40) { texts.push(t); methods["PDF text"] = 1; return pg(); }
+                prog("PDF page " + k + " is a picture, reading it with OCR...");   // scanned PDF: render and OCR
+                var vp = page.getViewport({ scale: 2.5 }), cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height;
+                return page.render({ canvasContext: cv.getContext("2d"), viewport: vp }).promise.then(function () { return getOcr(prog); }).then(function (w) { return w.recognize(cv); })
+                  .then(function (r) { texts.push(r.data.text); methods.OCR = 1; return pg(); });
+              });
+            });
+          }
+          return pg();
+        }).then(next);
+      }
+      prog("Reading page " + n + " of " + SCAN.pages.length + " (first time loads the reader, about 8 MB)...");
+      return imageToCanvas(p.file, 2400).then(function (cv) { p.canvas = cv; return getOcr(function (s) { prog("Page " + n + ": " + s); }).then(function (w) { return w.recognize(cv); }); })
+        .then(function (r) { texts.push(r.data.text); methods.OCR = 1; p.conf = r.data.confidence; }).then(next);
+    }
+    next().then(function () {
+      SCAN.method = Object.keys(methods).join(" + ");
+      SCAN.parsed = reparse(texts.join("\n"));
+      SCAN.busy = false; renderScan();
+    }).catch(function (e) { SCAN.busy = false; prog("Could not read the invoice: " + (e && e.message || e)); if ($("scRead")) $("scRead").disabled = false; });
+  }
+  function scanCtx(sid) {
+    var hist = (SI.sup_hist || {})[sid] || [];
+    if (!scanCtx.products) { scanCtx.products = []; for (var id in BYID) scanCtx.products.push(BYID[id]); }
+    return { codes: (SI.codes || {})[sid] || {}, byId: BYID, hist: hist, products: scanCtx.products, lookup: lookup };
+  }
+  function reparse(text) {
+    var r = BHInvoice.parse(text, SCAN.sid || "");
+    r.text = text; r.method = SCAN.method;
+    if (!r.sid) {   // milk and bread with no supplier on the paper: Unique Dairies is the default
+      var udp = {}; (SI.ud || []).forEach(function (u) { udp[u.pid] = 1; });
+      var ctx0 = scanCtx(""), m = r.lines.map(function (l) { return BHInvoice.matchLine(l, ctx0).pid; }).filter(Boolean);
+      if (m.length && m.filter(function (p) { return udp[p]; }).length >= m.length / 2) { r.sid = "SUP-003"; r.warnings.push("Mostly milk and bread, so Unique Dairies (North) Ltd was picked as the supplier. Change it above if wrong."); }
+    }
+    var ctx = scanCtx(r.sid);
+    r.lines.forEach(function (l) { var m = BHInvoice.matchLine(l, ctx); l.pid = m.pid; l.match = m.match; l.alts = m.alts; l.score = m.score; });
+    dupCheck(r);
+    return r;
+  }
+  function dupCheck(r) {
+    r.dup = null; r.dupWarn = null;
+    var inv = String(r.inv_no || "").trim();
+    if (inv) {
+      var mine = allDocs().filter(function (d) { return d.sid === r.sid && d.kind !== "return" && ["discarded", "rejected"].indexOf(status(d)) < 0 && (((d.scan || {}).inv_no === inv) || (inv.length >= 5 && String(d.ref || "").indexOf(inv) >= 0)); })[0];
+      if (mine) r.dup = "This invoice is already in the app: " + (mine.ref || mine.id) + " (" + (STATUS[status(mine)] || status(mine)) + "). Open it from Drafts instead of scanning again.";
+      var t = inv.length >= 5 ? (SI.till_inv || {})[inv] : null;
+      if (!r.dup && t) r.dup = "Invoice " + inv + " is already in the till: StockIn " + t[0] + " '" + t[1] + "' on " + ukDate(t[2]) + ", " + money(t[3]) + ". It cannot be posted twice.";
+    }
+    if (!r.dup && r.date && r.sid) {
+      var d0 = new Date(r.date + "T12:00:00").getTime(), hs = ((SI.invoice_history || {})[r.sid] || []).filter(function (x) { return Math.abs(new Date(x.date + "T12:00:00").getTime() - d0) <= 864e5 * 1.01; });
+      if (hs.length) r.dupWarn = "The till already has " + hs.map(function (h) { return supName(r.sid) + " stock-in '" + h.ref + "' on " + ukDate(h.date) + " for " + money(h.ex); }).join(", ") + " (this invoice " + money(r.sum) + "). Check this is not the same delivery.";
+    }
+  }
+  function scanResultHtml() {
+    var r = SCAN.parsed, flagged = r.lines.filter(function (l) { return l.flags.length; }).length, matched = r.lines.filter(function (l) { return l.pid; }).length;
+    var h = "<div class='card'><h2>What the app read</h2><div class='m'>Read with " + esc(r.method || "?") + ". Supplier: <b>" + esc(r.sid ? supName(r.sid) : "not recognised") + "</b>" + (r.detected && r.detected !== r.sid ? " (invoice looks like " + esc(supName(r.detected)) + ")" : "") + "</div>";
+    if (!r.sid) h += "<div class='flag'>Supplier not recognised. Pick it above. New supplier? A manager can add it on the Suppliers screen. <button class='btn small sec' id='scSupGo'>Suppliers</button></div>";
+    if (r.sid === "SUP-003") h += "<div class='note'>Unique Dairies milk and bread can also be checked on the quick screen. <button class='btn small sec' id='scUd'>Milk and bread</button></div>";
+    h += "<div class='row'><div><label class='f'>Invoice number</label><input id='scInv' type='text' value='" + esc(r.inv_no) + "'></div><div><label class='f'>Invoice date</label><input id='scDate' type='date' value='" + esc(r.date) + "'></div></div>" +
+      "<div class='m' style='margin-top:6px'>" + r.lines.length + " lines &middot; lines add up to " + money(r.sum) + (r.totals.goods != null ? " &middot; invoice goods total " + money(r.totals.goods) + (r.totals_match ? " &#9989; agrees" : " &#9888;&#65039; does not agree") : "") + " &middot; " + matched + " matched to till products &middot; " + flagged + " line(s) to check</div>";
+    r.warnings.forEach(function (w) { h += "<div class='note'>" + esc(w) + "</div>"; });
+    if (r.dup) h += "<div class='msg err'>" + esc(r.dup) + "</div>";
+    if (r.dupWarn) h += "<div class='msg warn'>" + esc(r.dupWarn) + "</div>";
+    h += "<table class='t' style='margin-top:8px'><tr><th></th><th>Invoice line</th><th class='n'>Qty</th><th class='n'>Case</th><th class='n'>Cost</th><th>VAT</th></tr>" + r.lines.map(function (l) {
+      var p = BYID[l.pid];
+      return "<tr><td style='width:44px'><div class='pic' style='width:40px;height:40px;flex-basis:40px'>" + picHtml(l.pid) + "</div></td><td>" + esc(l.desc) + (l.code ? " <span class='lm'>(" + esc(l.code) + ")</span>" : "") +
+        "<div class='lm'>" + (p ? (l.match === "suggested" ? "Suggested: " : "Till: ") + esc(p.n) : "Not matched to a till product") + "</div>" + (l.flags.length ? "<div class='lm' style='color:#b45309'>" + esc(l.flags.join("; ")) + "</div>" : "") + "</td>" +
+        "<td class='n'>" + (l.qty == null ? "?" : l.qty) + "</td><td class='n'>" + (l.upc == null ? "?" : l.upc) + "</td><td class='n'>" + (l.case_cost == null ? "?" : money(l.case_cost)) + "</td><td>" + (l.vat === "" ? "?" : l.vat + "%") + "</td></tr>";
+    }).join("") + "</table>";
+    h += "<button class='btn' id='scMake' style='margin-top:12px'" + (r.dup || !r.lines.length ? " disabled" : "") + ">Create Stock In draft</button>" +
+      "<div class='m' style='margin-top:6px'>Question marks are left blank on purpose: costs, barcodes and VAT are never guessed. Fill them in from the invoice on the draft.</div></div>";
+    return h;
+  }
+  function makeDraftFromScan() {
+    var r = SCAN.parsed, who = staff();
+    if (!r.sid) { alert("Pick the supplier first."); return; }
+    if (r.dup) return;
+    if (!who) { who = (prompt("Your name") || "").trim(); if (!who) return; try { localStorage.setItem("birkhill-staff-name", who); } catch (e) {} }
+    var lines = r.lines.map(function (x) {
+      var p = BYID[x.pid];
+      var l = mkLine(p, { bc: x.bc || "", inv_name: (x.desc + (x.size ? " " + x.size : "")).trim(), inv_code: x.code || "", exp: x.qty == null ? "" : x.qty, rcv: x.qty == null ? 0 : x.qty,
+        upc: x.upc == null ? "" : x.upc, case_cost: x.case_cost == null ? "" : x.case_cost, vat: x.vat || "", match: x.match === "none" ? "none" : x.match, cost_src: x.case_cost == null ? "" : "invoice" });
+      if (x.upc == null) { l.upc = ""; }
+      if (p && !x.bc && l.bc) l.bc_src = "till";
+      l.flags = x.flags.slice(); l.alts = x.alts || []; if (x.value != null) l.inv_value = x.value;
+      if (x.match === "code") l.confirmed = true;
+      return l;
+    });
+    var doc = { id: newId("S"), kind: "delivery", sid: r.sid, ref: (supName(r.sid).split(" (")[0] + " " + (r.inv_no || "")).trim(), date: r.date || londonISO(), staff: who, lines: lines, rev: 0,
+      source: "Invoice scan", localStatus: "local", unsent: true,
+      scan: { inv_no: r.inv_no || "", method: r.method, lines: r.lines.length, sum: r.sum, totals: r.totals, totals_match: !!r.totals_match, warnings: r.warnings, pages: SCAN.pages.length, read_at: londonAt(), date_read: !!r.date } };
+    saveLocal(doc);
+    uploadPages(doc.id, SCAN.pages.slice());
+    SCAN = { pages: [], parsed: null, sid: "", busy: false, method: "" };
+    openDoc(doc.id);
+  }
+  // ---- encrypted upload of the invoice pages (only the box can open them), kept in IndexedDB until sent
+  var IDB = null;
+  function idb() { if (IDB) return IDB; IDB = new Promise(function (ok, no) { var r = indexedDB.open("birkhill-si-files", 1); r.onupgradeneeded = function () { r.result.createObjectStore("q", { keyPath: "key" }); }; r.onsuccess = function () { ok(r.result); }; r.onerror = function () { no(r.error); }; }); return IDB; }
+  function idbDo(mode, fn) { return idb().then(function (db) { return new Promise(function (ok, no) { var tx = db.transaction("q", mode), st = tx.objectStore("q"), out = fn(st); tx.oncomplete = function () { ok(out && out.result !== undefined ? out.result : out); }; tx.onerror = function () { no(tx.error); }; }); }); }
+  function b64(buf) { var b = new Uint8Array(buf), s = "", i; for (i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); }
+  function encryptFile(buf) {
+    var key, iv = crypto.getRandomValues(new Uint8Array(12));
+    return crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt"]).then(function (k) { key = k; return Promise.all([crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, k, buf), crypto.subtle.exportKey("raw", k), crypto.subtle.digest("SHA-256", buf)]); })
+      .then(function (r) { return rsaEnc({ k: b64(r[1]) }).then(function (wk) { return { data: r[0], iv: b64(iv), wk: wk, sha: Array.prototype.map.call(new Uint8Array(r[2]), function (x) { return ("0" + x.toString(16)).slice(-2); }).join("") }; }); });
+  }
+  function uploadPages(docId, pages) {
+    var jobs = [];
+    pages.forEach(function (p, i) {
+      jobs.push((p.kind === "pdf" ? p.file.arrayBuffer() : (p.canvas ? Promise.resolve(p.canvas) : imageToCanvas(p.file, 2400)).then(function (cv) { return canvasBlob(cv, 0.8); }).then(function (b) { return b.arrayBuffer(); }))
+        .then(function (buf) { if (buf.byteLength > 15e6) throw new Error("file too big to keep (over 15 MB)"); return encryptFile(buf); })
+        .then(function (e) { return idbDo("readwrite", function (st) { return st.put({ key: docId + "|" + i, meta: { t: "file", id: docId, n: i, of: pages.length, kind: p.kind === "pdf" ? "pdf" : "page", mime: p.kind === "pdf" ? "application/pdf" : "image/jpeg", iv: e.iv, wk: e.wk, sha: e.sha, by: staff() }, data: e.data }); }); }));
+    });
+    Promise.all(jobs).then(function () { flushFiles(); }).catch(function (e) { alert("The invoice pictures could not be saved for history: " + (e && e.message || e) + ". The draft is fine."); });
+  }
+  var fileSending = false;
+  function flushFiles() {
+    if (fileSending || !window.indexedDB) return; fileSending = true;
+    idbDo("readonly", function (st) { return st.getAll(); }).then(function (all) {
+      var it = all && all[0]; if (!it) { fileSending = false; pill(); return; }
+      var body = JSON.stringify({ name: "SI1: " + JSON.stringify(it.meta), photo: "data:image/jpeg;base64," + b64(it.data), lines: [{ date: londonISO(), qty: "0" }] });
+      return fetch(ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: body })
+        .then(function () { return idbDo("readwrite", function (st) { return st.delete(it.key); }); })
+        .then(function () { fileSending = false; flushFiles(); });
+    }).catch(function () { fileSending = false; setTimeout(flushFiles, 20000); });
+  }
+  function filesWaiting() { return idbDo("readonly", function (st) { return st.count(); }).catch(function () { return 0; }); }
+  window.addEventListener("online", flushFiles); setInterval(flushFiles, 45000); setTimeout(flushFiles, 3000);
+  function viewInvoice(id) {
+    $("view").innerHTML = "<div class='card'><div class='row' style='align-items:center'><h2 style='margin:0'>Invoice pictures</h2><div style='flex:0 0 auto'><button class='btn small sec' id='ivBack'>Back</button></div></div><div id='ivBody' class='m'>Loading...</div></div>";
+    $("ivBack").onclick = function () { history.back(); go("reports"); };
+    fetch("inv/" + id + ".json").then(function (r) { if (!r.ok) throw new Error("not on the site yet"); return r.json(); }).then(function (j) {
+      $("ivBody").innerHTML = j.pages.map(function (src, i) { return "<div class='m'>Page " + (i + 1) + "</div><img alt='Invoice page " + (i + 1) + "' src='" + src + "' style='width:100%;border:1px solid #ddd;border-radius:8px;margin-bottom:10px'>"; }).join("") || "No pages.";
+    }).catch(function (e) { $("ivBody").textContent = "Pictures are kept encrypted on the box; they show here after the next update (" + e.message + ")."; });
+  }
+
   load().then(function () {
     mgrBar(); pill(); flush();
     var qp = new URLSearchParams(location.search), t = qp.get("tab") || "home";
@@ -622,7 +857,7 @@
   }).catch(function () {
     $("view").innerHTML = "<div class='msg err'>Data locked or not loaded. Open this app once from the full link Vijay sent (it ends in #k=...).</div>";
   });
-  window.__si = { lookup: lookup, allDocs: allDocs, clientCheck: clientCheck, parseEDN: parseEDN, go: go };
+  window.__si = { lookup: lookup, allDocs: allDocs, clientCheck: clientCheck, parseEDN: parseEDN, go: go, scan: function () { return SCAN; }, filesWaiting: filesWaiting };
 })();
 </script>
   <script src="../nav.js"></script>
