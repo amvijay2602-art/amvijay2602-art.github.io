@@ -358,6 +358,13 @@
         (sc.totals && sc.totals.goods != null ? (sc.totals_match ? ", agrees with the invoice total" : ", does NOT agree with the invoice total " + money(sc.totals.goods)) : "") + (nfl ? " &middot; " + nfl + " line(s) were hard to read: check them" : "") +
         (d.files && d.files.length ? " &middot; <a href='#' id='dInv'>Invoice pictures</a>" : "") + "</div>";
       (sc.warnings || []).forEach(function (w) { h += "<div class='lm'>" + esc(w) + "</div>"; });
+      if (d.compare) {
+        var cpc = d.compare.price_changes || [], cun = d.compare.unmatched || [];
+        h += "<div class='note' style='margin-top:6px'><b>Checked against the till by Grok Bot</b> &middot; " + d.compare.matched + " of " + d.compare.lines + " lines matched (" + (d.compare.by_code || 0) + " sure, " + (d.compare.suggested || 0) + " to confirm) &middot; " + cun.length + " not on the till &middot; " + cpc.length + " cost change(s)" +
+          (d.auto && d.auto.scan_agrees === false ? " &middot; staff scan differed from the PDF: " + esc((d.auto.scan_diffs || []).slice(0, 3).join("; ")) : (d.auto && d.auto.scan_agrees ? " &middot; staff scan agrees with the PDF" : "")) + "</div>";
+        if (cpc.length) h += "<details><summary class='lm'>Cost changes</summary>" + cpc.map(function (x) { return "<div class='lm'>" + esc(x.name) + (x.match === "suggested" && !x.confirmed ? " (match to confirm)" : "") + ": " + esc(x.what) + "</div>"; }).join("") + "</details>";
+        (d.also_from || []).forEach(function (a) { h += "<div class='lm'>Same invoice also received: " + esc(a.source) + (a.agrees ? ", agrees" : ", differs: " + esc((a.diffs || []).slice(0, 3).join("; "))) + "</div>"; });
+      }
       if (d.box_check && !d.box_check.ok) h += "<div class='note'>Box re-read: " + esc((d.box_check.notes || []).join("; ") || "totals did not agree") + "</div>";
       h += "<div class='m' style='margin-top:6px'>Expected = what the invoice says. Change Received if short or extra, add Damaged units, tick Leave out if an item did not come. Items that came but are not on the invoice: Add a product below.</div>" +
         (ed ? "<label style='display:block;margin-top:8px;font-weight:800'><input type='checkbox' id='dChecked'" + (d.delivered_checked ? " checked" : "") + "> Delivered quantities checked</label>" : (d.delivered_checked ? "<div class='m'>Delivered quantities checked by " + esc(d.delivered_checked.by || "") + "</div>" : ""));
@@ -396,7 +403,8 @@
       "<div class='ln'>" + esc(p ? p.n + (p.s && p.n.indexOf(p.s) < 0 ? " " + p.s : "") : (l.inv_name || l.name || "Not on the till")) + "</div>" +
       "<div class='lm'>" + (l.bc ? "Barcode " + esc(l.bc) + (l.bc_src === "till" ? " (from the till product, not on the invoice)" : "") : "No barcode") + (p ? " &middot; till " + p.id + " &middot; stock " + p.q + " &middot; sells " + money(p.p) : "") + "</div>" +
       (l.inv_name && p ? "<div class='lm'>Invoice: " + esc(l.inv_name) + (l.inv_code ? " (" + esc(l.inv_code) + ")" : "") + "</div>" : "") +
-      (p && p.ld ? "<div class='lm'>Last buy " + ukDate(p.ld) + " " + esc(p.ls) + ": " + money(p.lcc) + " for " + (p.lupc || "?") + "</div>" : "") + "</div></div>";
+      (p && p.ld ? "<div class='lm'>Last buy " + ukDate(p.ld) + " " + esc(p.ls) + ": " + money(p.lcc) + " for " + (p.lupc || "?") + "</div>" : "") +
+      ((l.changes || []).filter(function (c) { return c !== "Not matched to a till product"; }).length ? "<div class='lm' style='color:#b45309;font-weight:700'>" + esc(l.changes.filter(function (c) { return c !== "Not matched to a till product"; }).join(" &middot; ")).replace(/&amp;middot;/g, "&middot;") + "</div>" : "") + "</div></div>";
     if (ed) {
       h += "<div class='grid'><div><label>Expected cases</label><input data-f='exp' type='number' inputmode='decimal' value='" + esc(l.exp) + "'></div><div><label>Received cases</label><input data-f='rcv' type='number' inputmode='decimal' value='" + esc(l.rcv) + "'></div><div><label>Case size (units)</label><input data-f='upc' type='number' inputmode='decimal' value='" + esc(l.upc) + "'></div>" +
         "<div><label>Case cost ex VAT</label><input data-f='case_cost' type='number' inputmode='decimal' step='0.01' value='" + esc(l.case_cost) + "'></div><div><label>VAT</label><select data-f='vat'>" + VATS.map(function (v) { return "<option value='" + v[0] + "'" + (String(l.vat == null ? "" : l.vat) === v[0] ? " selected" : "") + ">" + v[1] + "</option>"; }).join("") + "</select></div><div><label>Damaged units</label><input data-f='damaged' type='number' inputmode='numeric' value='" + esc(l.damaged || 0) + "'></div>" +
@@ -731,7 +739,7 @@
     }
     next().then(function () {
       SCAN.method = Object.keys(methods).join(" + ");
-      SCAN.parsed = reparse(texts.join("\n"));
+      SCAN.parsed = reparse(texts.join("\n\f"));
       SCAN.busy = false; renderScan();
     }).catch(function (e) { SCAN.busy = false; prog("Could not read the invoice: " + (e && e.message || e)); if ($("scRead")) $("scRead").disabled = false; });
   }
@@ -743,6 +751,8 @@
   function reparse(text) {
     var r = BHInvoice.parse(text, SCAN.sid || "");
     r.text = text; r.method = SCAN.method;
+    var parts = BHInvoice.splitInvoices ? BHInvoice.splitInvoices(text) : [];
+    if (parts.length > 1) { r.multi = parts.length; r.warnings.unshift("This file holds " + parts.length + " invoices (" + parts.map(function (x) { return x.inv_no; }).join(", ") + "). Just create the draft: Grok Bot splits it into one draft per invoice and checks each against the till."); }
     if (!r.sid) {   // milk and bread with no supplier on the paper: Unique Dairies is the default
       var udp = {}; (SI.ud || []).forEach(function (u) { udp[u.pid] = 1; });
       var ctx0 = scanCtx(""), m = r.lines.map(function (l) { return BHInvoice.matchLine(l, ctx0).pid; }).filter(Boolean);

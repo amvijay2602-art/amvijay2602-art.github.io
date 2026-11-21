@@ -40,13 +40,14 @@
   // ---------- OCR clean up helpers
   function fixNum(tok) {   // repair common OCR slips inside a number token
     if (tok == null) return "";
-    var t = String(tok).trim().replace(/^[£$E]/, "").replace(/[Pp]+$/, "").replace(/,/g, ".").replace(/:/g, ".");
+    var t = String(tok).trim().replace(/^[£$E]/, "").replace(/(\d)[PpdD]+$/, "$1").replace(/,/g, ".").replace(/:/g, ".");
     t = t.replace(/[Oo]/g, "0").replace(/[Il|!i]/g, "1").replace(/[Ss]/g, "5").replace(/B/g, "8");
     return t;
   }
   function money(tok) {    // a price printed with 2 decimals; OCR may drop the point ("499" for 4.99)
     var t = fixNum(tok);
     if (/^\d+\.\d{2}$/.test(t)) return parseFloat(t);
+    if (/^\d+\.\d{2}00$/.test(t)) return parseFloat(t.slice(0, -2));   // Dhamecha sometimes prints 4 decimals ("11.9900")
     if (/^\d+\.\d$/.test(t)) return null;
     if (/^\d{3,}$/.test(t)) return { nodot: parseInt(t, 10) / 100 };
     return null;
@@ -85,7 +86,7 @@
       var toks = ln.trim().split(/\s+/);
       if (toks.length < 6) return;
       var code = fixNum(toks[0]);
-      if (!/^\d{6}$/.test(code)) return;
+      if (!/^\d{5,6}$/.test(code)) return;
       if (/^(Item|Code)$/i.test(toks[1] || "")) return;
       var flags = [], vl = vatLetter(toks[toks.length - 1]), vat = vl.c, end = toks.length - 1;
       if (!vat) flags.push("VAT code not read"); else if (!vl.sure) flags.push("VAT code unclear (read '" + vl.raw + "'), check");
@@ -111,9 +112,9 @@
       var desc = descToks.join(" ");
       if (!desc) {   // wrapped description printed above and below
         var up = (raw[i - 1] || "").trim(), dn = (raw[i + 1] || "").trim();
-        desc = ((/^\d{6}\s/.test(up) ? "" : up) + " " + (/^\d{6}\s/.test(dn) ? "" : dn)).trim();
+        desc = ((/^\d{5,6}\s|T&S/.test(up) ? "" : up) + " " + (/^\d{5,6}\s|T&S|Trolley/.test(dn) ? "" : dn)).trim();
       }
-      res.lines.push({ code: code, desc: desc, size: size, upc: uos, qty: qty, case_cost: price, value: typeof ext === "number" ? ext : null,
+      res.lines.push({ row: i, code: code, desc: desc, size: size, upc: uos, qty: qty, case_cost: price, value: typeof ext === "number" ? ext : null,
         vat: vat ? { A: "20", B: "5", Z: "0" }[vat] : "", vat_code: vat, flags: flags });
     });
     // OCR slip in an item code: same description, case size and cost, code one digit apart -> same item
@@ -144,6 +145,27 @@
       if (o.upc != null) o.flags = o.flags.filter(function (f) { return f !== "Case size (UOS) not read"; });
       if (o.vat_code && o.flags.some(function (f) { return f === "VAT code not read"; })) o.flags = o.flags.filter(function (f) { return f !== "VAT code not read"; });
     });
+    // Promotions ("T&S:HL... BUY 1 GET 2nd FREE  -7.69") printed among the items; the same lines are repeated in a summary after
+    // the "Trolley:" line, which is ignored. Each one comes off the item it names (word match), else the item printed just above it.
+    var trolley = raw.length; raw.some(function (ln, i) { if (/Trolley\s*:/i.test(ln)) { trolley = i; return true; } return false; });
+    res.promos = [];
+    raw.slice(0, trolley).forEach(function (ln, i) {
+      var pm = /T\s*&\s*S\s*:?\s*(\S+)\s+(.*?)\s+-\s*£?(\d+[.,]\d{2})\s*$/.exec(ln); if (!pm) return;
+      var amt = parseFloat(fixNum(pm[3])), txt = pm[2], pw = txt.toLowerCase().replace(/[^a-z0-9 ]/g, " ").split(/\s+/).filter(function (w) { return w.length >= 4 && !/^(free|with|buy|from|only)$/.test(w); });
+      var best = null, bs = 0;
+      out.forEach(function (o) { var dw = o.desc.toLowerCase(), sc = pw.filter(function (w) { return dw.indexOf(w.slice(0, 4)) >= 0; }).length; if (sc > bs) { bs = sc; best = o; } });
+      var how = "named in the promotion";
+      if (!best) { var above = null; res.lines.forEach(function (l) { if (l.row < i) above = l; }); if (above) best = out.filter(function (o) { return o.code === above.code; })[0]; how = "printed above it"; }
+      res.promos.push({ code: pm[1], text: txt, amount: amt, item: best ? best.code : "" });
+      if (!best || !best.qty || best.case_cost == null) { res.warnings.push("Promotion " + pm[1] + " (-£" + amt.toFixed(2) + ") could not be put on an item, check"); return; }
+      best.discount = r2((best.discount || 0) + amt);
+      if (best.list_case_cost == null) best.list_case_cost = best.case_cost;
+      best.value = r2((best.value || 0) - amt);
+      best.case_cost = r2(best.value / best.qty);
+      best.flags = best.flags.filter(function (f) { return !/^Promotion/.test(f); });
+      best.flags.push("Promotion -£" + best.discount.toFixed(2) + " taken off (" + how + "): net £" + best.case_cost.toFixed(2) + " a case, list £" + best.list_case_cost.toFixed(2));
+    });
+    out.forEach(function (o) { delete o.row; });
     // VAT analysis box: goods per VAT code must match the lines
     var va = {}, vm, vr = /^\s*(\S{1,3})\s+(\d{1,2})\s+£?\s*([\d.,]+)\s+£?\s*\S+\s*/gm;
     while ((vm = vr.exec(text))) { var vl2 = vatLetter(vm[1]); if (vl2.c && /^(0|5|20)$/.test(vm[2])) va[vl2.c] = parseFloat(fixNum(vm[3])); }
@@ -242,6 +264,17 @@
     return res;
   }
 
+  function splitInvoices(text) {   // [{inv_no, text}] in file order; one entry when the file holds one invoice
+    var pages = String(text).split("\f"), groups = [], cur = null;
+    pages.forEach(function (pg) {
+      var m = /INVOICE[:;\s]*([0-9OoIl]{5,7})/i.exec(pg), no = m ? fixNum(m[1]) : "";
+      if (!pg.trim()) return;
+      if (no && (!cur || cur.inv_no !== no)) { cur = { inv_no: no, text: "" }; groups.push(cur); }
+      if (!cur) { cur = { inv_no: "", text: "" }; groups.push(cur); }
+      cur.text += (cur.text ? "\f" : "") + pg;
+    });
+    return groups.length ? groups : [{ inv_no: "", text: text }];
+  }
   function parse(text, sidHint) {
     var sid = sidHint || detectSupplier(text), r;
     if (sid === "SUP-002") r = parseDhamecha(text);
@@ -317,5 +350,5 @@
     return { pid: null, match: "none", score: 0, alts: cands.slice(0, 3).map(function (c) { return c.pid; }) };
   }
 
-  return { layoutPage: layoutPage, parse: parse, detectSupplier: detectSupplier, parseDhamecha: parseDhamecha, parseEden: parseEden, parseGeneric: parseGeneric, matchLine: matchLine, sim: sim, fixNum: fixNum };
+  return { layoutPage: layoutPage, parse: parse, splitInvoices: splitInvoices, detectSupplier: detectSupplier, parseDhamecha: parseDhamecha, parseEden: parseEden, parseGeneric: parseGeneric, matchLine: matchLine, sim: sim, fixNum: fixNum };
 });
