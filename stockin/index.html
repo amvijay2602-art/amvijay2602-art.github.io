@@ -105,7 +105,7 @@
   "use strict";
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
   var K = { queue: "birkhill-si-queue-v1", docs: "birkhill-si-local-docs-v1", mgr: "birkhill-si-manager-v1" };
-  var STATUS = { draft: "Draft", needs_fix: "Needs fixing", pending_approval: "Waiting for manager", approved: "Approved, sending to till", sending: "Sending to till", posted: "Posted", error: "Posting error", recorded: "Return recorded", discarded: "Discarded", local: "Not sent yet" };
+  var STATUS = { draft: "Draft", needs_fix: "Needs fixing", pending_approval: "Waiting for manager", approved: "Approved, sending to till", sending: "Sending to till", posted: "Posted", error: "Posting error", recorded: "Return recorded", discarded: "Discarded", no_stock: "No stock lines (till rolls etc), nothing to post", local: "Not sent yet" };
   var VATS = [["", "VAT?"], ["20", "20%"], ["5", "5%"], ["0", "0%"], ["NA", "N/A"]];
   var SI = null, PR = null, BYID = {}, BYBC = {}, cur = { tab: "home", doc: null };
   function $(id) { return document.getElementById(id); }
