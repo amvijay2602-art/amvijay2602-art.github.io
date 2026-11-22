@@ -181,19 +181,47 @@
         var p = { id: a[0], n: a[1], s: a[2], b: a[3], q: a[4], c: a[5], p: a[6], vat: a[7], upc: a[8], cc: a[9], i: a[10], ld: a[11], ls: a[12], lcc: a[13], lupc: a[14], sup: a[15] };
         BYID[p.id] = p; p.b.forEach(function (b) { var k = bkey(b); if (k && (!BYBC[k] || BYBC[k].q === 0)) BYBC[k] = p; });
       });
-      $("dataNote").textContent = "Updated " + SI.generated_display + ". Till posting is " + (SI.writes_enabled ? "on" : "switched off on the box") + ".";
-      var loc = jget(K.docs, {}), sd = docsById();
-      Object.keys(loc).forEach(function (id) { if (sd[id] && (sd[id].rev || 0) >= (loc[id].rev || 0) && !loc[id].unsent) delete loc[id]; });
-      jset(K.docs, loc);
+      $("dataNote").textContent = "Updated " + SI.generated_display + ". " + (SI.writes_enabled ? "Deliveries save to the till as drafts." : "Till posting is switched off on the box.");
+      sweepLocal();
     });
   }
+  var DONE_STATUS = { posted: 1, discarded: 1, no_stock: 1, till_draft: 1 };
   function docsById() { var o = {}; (SI ? SI.docs : []).forEach(function (d) { o[d.id] = d; }); return o; }
+  function invNos(d) {
+    var s = String(d.ref || "") + " " + ((d.scan || {}).inv_no || "");
+    return s.match(/\d{5,}/g) || [];
+  }
+  function tillHit(d) {
+    var t = SI.till_inv || {}, hit = null;
+    invNos(d).forEach(function (n) { if (t[n] && !hit) hit = t[n]; });
+    return hit;
+  }
+  function sweepLocal() {
+    var loc = jget(K.docs, {}), sd = docsById(), changed = false;
+    Object.keys(loc).forEach(function (id) {
+      var L = loc[id], S = sd[id];
+      if (S && (S.rev || 0) >= (L.rev || 0) && !L.unsent) { delete loc[id]; changed = true; return; }
+      if (S && DONE_STATUS[S.status]) { delete loc[id]; changed = true; return; }
+      var hit = tillHit(L) || (S && tillHit(S));
+      var lines = L.lines || (S && S.lines) || [];
+      var allOut = lines.length && lines.every(function (l) { return l.leave_out; });
+      if (hit || (allOut && (S || hit))) { delete loc[id]; changed = true; }
+    });
+    if (changed) jset(K.docs, loc);
+  }
   function allDocs() {
     var o = docsById(), loc = jget(K.docs, {});
-    Object.keys(loc).forEach(function (id) { if (!o[id] || (loc[id].rev || 0) >= (o[id].rev || 0)) o[id] = Object.assign({}, o[id] || {}, loc[id]); });
+    Object.keys(loc).forEach(function (id) {
+      var S = o[id], L = loc[id];
+      if (S && DONE_STATUS[S.status]) return;
+      if (!S || (L.rev || 0) >= (S.rev || 0)) o[id] = Object.assign({}, S || {}, L);
+    });
     return Object.keys(o).map(function (k) { return o[k]; }).filter(function (d) { return status(d) !== "discarded"; }).sort(function (a, b) { return String(b.updated || b.created || "").localeCompare(String(a.updated || a.created || "")); });
   }
-  function status(d) { return d.localStatus || d.status || "draft"; }
+  function status(d) {
+    if (d.status && DONE_STATUS[d.status]) return d.status;
+    return d.localStatus || d.status || "draft";
+  }
   function supName(sid) { var s = (SI.suppliers || []).filter(function (x) { return x.id === sid; })[0]; return s ? s.name : (sid || "No supplier"); }
   function lookup(code) { var d = digits(code); if (!d) return null; var k = bkey(d); return BYBC[k] || (d.length === 12 ? BYBC[bkey("0" + d)] : null) || (d.length <= 7 ? BYID[parseInt(d, 10)] : null) || null; }
   function picHtml(pid) { var p = BYID[pid]; return p && p.i ? "<img alt='' src='../count/img/" + esc(p.i) + "' onerror=\"this.parentNode.innerHTML='&#128230;'\">" : "&#128230;"; }
@@ -219,10 +247,10 @@
     var c = counts(), posted = allDocs().filter(function (d) { return status(d) === "posted"; }).length;
     $("view").innerHTML = "<div class='tiles'>" +
       tile("scan", "&#129534;", "Invoice Scanner", "Photo or PDF of the invoice makes the draft") + tile("new", "&#128666;", "New delivery", "Type, scan or import an EDN") + tile("ud", "&#129371;", "Milk and bread", "Unique Dairies quick check") +
-      tile("drafts", c.drafts, "Drafts", "Saved, not sent to the till") + tile("approval", c.approval, "Pending Approval", "Manager checks and approves") +
+      tile("drafts", c.drafts, "Drafts", "Saved, not sent to the till") + tile("approval", c.approval, "Pending Approval", "Till drafts waiting to be finished") +
       tile("errors", c.errors, "Posting Errors", "Fix or send again") + tile("posted", posted, "Posted Deliveries", "In the till, stock before and after") +
       tile("suppliers", (SI.suppliers || []).length, "Suppliers", "Profiles and till link") + tile("reports", "&#128202;", "Supplier Reports", "Spend, deliveries, audit log") + "</div>" +
-      "<div class='card' style='margin-top:12px'><h2>How it works</h2><div class='m'>Draft &gt; Check Products &gt; Match Supplier &gt; Manager Approval &gt; Saved on till as draft &gt; finish it on the till Stock In screen &gt; Posted. Nothing here adds stock: the box saves a till draft, and stock goes in only when the draft is finished on the till. Quick item scans still go in the Chiller app Stock In tab; Grok Bot can turn a day's scans into a draft here.</div></div>";
+      "<div class='card' style='margin-top:12px'><h2>How it works</h2><div class='m'>Invoice in &gt; compared with the till &gt; saved on the till as a draft automatically (no manager approval) &gt; finish it on the till Stock In screen &gt; Posted. Nothing here adds stock or changes a selling price. Invoices already on the till, or with every line left out, are closed automatically. Quick item scans still go in the Chiller app Stock In tab; Grok Bot can turn a day's scans into a draft here.</div></div>";
     each(".tile", function (b) { b.onclick = function () { go(b.getAttribute("data-go")); }; });
   };
   function docTotal(d) { var t = 0; (d.lines || []).forEach(function (l) { if (l.leave_out || !l.pid) return; if (d.kind === "return") t += num(l.ret) * num(l.unit_cost); else if (num(l.upc)) t += num(l.case_cost) / num(l.upc) * (num(l.rcv) * num(l.upc) - num(l.damaged)); }); return t; }
@@ -240,14 +268,14 @@
   function bindOpen() { each(".item[data-id]", function (el) { el.onclick = function () { openDoc(el.getAttribute("data-id")); }; }); }
   VIEWS.drafts = function () {
     var td = (SI.till_drafts || []).slice(0, 15);
-    $("view").innerHTML = "<div class='card'><h2>Drafts</h2><div class='m'>Saved in this app and not sent to the till. Returns waiting for the driver to collect are here too.</div></div>" +
+    $("view").innerHTML = "<div class='card'><h2>Drafts</h2><div class='m'>Saved in this app and not yet sent to the till. New invoices are saved to the till as drafts automatically. Invoices already on the till, or with every line left out, are closed and do not stay here. Returns waiting for the driver to collect are here too.</div></div>" +
       docList(function (d) { return ["draft", "local", "recorded"].indexOf(status(d)) >= 0; }, "No drafts.") +
-      "<div class='card'><h2>Drafts saved in the GloPOS Manager app</h2><div class='m'>Already in the till's own draft list, not posted. Ask Grok Bot to bring one in here so it goes through approval instead of being keyed twice.</div>" +
+      "<div class='card'><h2>Drafts saved in the GloPOS Manager app</h2><div class='m'>Already in the till's own draft list, not posted. Finish them on the till's Stock In screen. Do not key the same invoice again.</div>" +
       (td.length ? "<table class='t'><tr><th>No.</th><th>Ref</th><th>Date</th><th class='n'>Lines</th><th class='n'>Ex VAT</th></tr>" + td.map(function (t) { return "<tr><td>" + t.id + "</td><td>" + esc(t.ref) + "</td><td>" + ukDate(t.date) + "</td><td class='n'>" + t.lines + "</td><td class='n'>" + money(t.ex) + "</td></tr>"; }).join("") + "</table>" : "<div class='empty'>None.</div>") + "</div>";
     bindOpen();
   };
   VIEWS.approval = function () {
-    $("view").innerHTML = "<div class='card'><h2>Pending Approval</h2><div class='m'>Checked and matched. A manager opens each one, reads the warnings and cost changes, then approves. Approved deliveries go to the till at the next update.</div></div>" +
+    $("view").innerHTML = "<div class='card'><h2>Pending Approval</h2><div class='m'>New invoices are saved to the till as drafts automatically, with no manager approval. This list shows deliveries being saved, and drafts already on the till waiting to be finished on the till's Stock In screen. Stock is not added until then. Returns still need a manager.</div></div>" +
       docList(function (d) { return ["pending_approval", "approved", "sending", "till_draft"].indexOf(status(d)) >= 0; }, "Nothing waiting.");
     bindOpen();
   };
@@ -340,7 +368,10 @@
       if (!l.vat) iss.push("VAT missing for " + nm);
       var units = num(l.rcv) * num(l.upc) - num(l.damaged); if (units < 0) iss.push("Damaged is more than received for " + nm); if (units > 0) ok++;
     });
-    if (!ok) iss.push((d.lines || []).length && (d.lines || []).every(function (l) { return l.leave_out; }) ? "Nothing to post yet: every line is ticked Leave out. Untick Leave out on the items that came." : "Nothing to post yet: no line has a till product and a received quantity above 0.");
+    var allOut = (d.lines || []).length && (d.lines || []).every(function (l) { return l.leave_out; });
+    var hit = tillHit(d);
+    if (hit) iss.push("Already on the till (StockIn " + hit[0] + "). This draft will be closed; it will not be posted again.");
+    else if (!ok) iss.push(allOut ? "Nothing to post yet: every line is ticked Leave out. This draft will be closed automatically." : "Nothing to post yet: no line has a till product and a received quantity above 0.");
     if (d.scan && !d.delivered_checked) iss.push("Tick 'Delivered quantities checked' after checking what actually arrived");
     return iss;
   }
@@ -468,7 +499,7 @@
     var d = cur.doc, s = status(d), m = mgr(), h = "";
     if (editable(d)) {
       h += "<button class='btn sec' id='aSave'>Save draft (does not change the till)</button>";
-      h += "<button class='btn' id='aSend' style='margin-top:8px'>Check products and send for approval</button>";
+      h += "<button class='btn' id='aSend' style='margin-top:8px'>Check products and save to the till as a draft</button>";
       if (["draft", "local", "needs_fix"].indexOf(s) >= 0) h += "<button class='btn small sec' id='aDiscard' style='margin-top:8px'>Discard draft</button>";
     }
     if (s === "recorded" && d.kind === "return") h += "<div class='m'>Tap when the driver has taken the returns. Change a quantity first if it is different.</div>" + d.lines.map(function (l, i) { return "<div class='row' style='align-items:center'><div>" + esc(l.name) + "</div><input data-ri='" + i + "' type='number' value='" + esc(l.ret) + "' style='flex:0 0 90px'></div>"; }).join("") + "<button class='btn o' id='aRconf' style='margin-top:8px'>Confirm return collected</button>";
@@ -482,10 +513,19 @@
     function bump() { d.rev = Math.max(d.rev || 0, (docsById()[d.id] || {}).rev || 0) + 1; }
     b("aSave", function () { bump(); sendDraft(d); d.unsent = false; d.localStatus = "draft"; saveLocal(d); say("aMsg", "Draft saved. The till is not changed.", "ok"); renderTabs(); });
     b("aSend", function () {
+      var hit = tillHit(d);
+      var allOut = (d.lines || []).length && (d.lines || []).every(function (l) { return l.leave_out; });
+      if (hit || allOut) {
+        d.status = d.localStatus = hit ? "posted" : "no_stock";
+        if (hit) d.till = { till_id: hit[0], ref: hit[1] };
+        d.unsent = false; saveLocal(d);
+        say("aMsg", hit ? ("Already on the till (StockIn " + hit[0] + "). This draft is closed; nothing was posted again.") : "Every line is ticked Leave out, so this draft is closed. Nothing was sent to the till.", "ok");
+        renderTabs(); return;
+      }
       var iss = clientCheck(d);
       if (iss.length) { $("aMsg").innerHTML = "<div class='msg err'><b>Check Products found " + iss.length + " problem(s):</b><br>" + iss.slice(0, 15).map(esc).join("<br>") + "</div>"; return; }
-      bump(); sendDraft(d); queueEv({ t: "submit", id: d.id, rev: d.rev, by: staff() || d.staff }); d.unsent = false; d.localStatus = "pending_approval"; saveLocal(d);
-      say("aMsg", "Sent for manager approval. Check Products and Match Supplier passed on this phone; the box checks again against the till.", "ok"); renderTabs();
+      bump(); sendDraft(d); queueEv({ t: "submit", id: d.id, rev: d.rev, by: staff() || d.staff }); d.unsent = false; d.localStatus = "approved"; saveLocal(d);
+      say("aMsg", "Checked. It will be saved on the till as a draft at the next update. Finish it on the till's Stock In screen. Stock is not added until then.", "ok"); renderTabs();
     });
     b("aDiscard", function () { if (!confirm("Discard this draft?")) return; queueEv({ t: "discard", id: d.id, by: staff() }); d.localStatus = "discarded"; saveLocal(d); go("drafts"); });
     b("aRconf", function () { var ls = d.lines.map(function (l, i) { return { pid: l.pid, ret: num($("acts").querySelector("[data-ri='" + i + "']").value) }; }); queueEv({ t: "rconfirm", id: d.id, by: staff(), lines: ls }); d.localStatus = "pending_approval"; saveLocal(d); say("aMsg", "Return confirmed. When a manager approves it, till stock goes down.", "ok"); renderTabs(); });
@@ -511,7 +551,7 @@
         "<div class='q'><button type='button' data-m='" + i + "'>-</button><input data-r='" + i + "' type='number' inputmode='numeric' value='" + esc(v) + "' placeholder='" + it.expected + "'><button type='button' data-p='" + i + "'>+</button></div><div class='ret'><input data-t='" + i + "' type='number' inputmode='numeric' value='" + esc(r) + "' placeholder='0'></div></div>";
     });
     if (!items.length) h += "<div class='empty'>No milk or bread lines found in recent till stock-ins.</div>";
-    h += "<button class='btn' id='uSend' style='margin-top:12px'>Save and send for approval</button><div id='uMsg'></div></div>";
+    h += "<button class='btn' id='uSend' style='margin-top:12px'>Save and send to the till as a draft</button><div id='uMsg'></div></div>";
     var rets = allDocs().filter(function (d) { return d.kind === "return" && d.sid === "SUP-003" && ["recorded", "pending_approval", "approved"].indexOf(status(d)) >= 0; });
     h += "<div class='card'><h2>Returns waiting</h2>" + (rets.length ? "<div class='list'>" + rets.map(function (d) { return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(d.ref) + " <span class='st " + status(d) + "'>" + esc(STATUS[status(d)]) + "</span></div><div class='m'>" + d.lines.map(function (l) { return esc(l.name) + " " + l.ret; }).join(", ") + "</div></div>"; }).join("") + "</div>" : "<div class='empty'>None.</div>") + "</div>";
     var hist = SI.ud_history || [];
@@ -530,8 +570,8 @@
       var doc = { id: s.id || newId("U"), kind: "ud", sid: "SUP-003", ref: (s.ref || "").trim(), date: londonISO(), staff: who, lines: lines, returns: returns, source: "Milk and bread screen" };
       s.id = doc.id; jset(key, s);
       doc.rev = Math.max(((jget(K.docs, {})[doc.id] || {}).rev || 0), ((docsById()[doc.id] || {}).rev || 0)) + 1;
-      sendDraft(doc); queueEv({ t: "submit", id: doc.id, rev: doc.rev, by: who }); doc.localStatus = "pending_approval"; saveLocal(doc);
-      say("uMsg", "Sent for manager approval." + (returns.length ? " Returns are recorded; confirm them under Drafts when the driver takes them." : ""), "ok"); renderTabs();
+      sendDraft(doc); queueEv({ t: "submit", id: doc.id, rev: doc.rev, by: who }); doc.localStatus = "approved"; saveLocal(doc);
+      say("uMsg", "Saved. It will be saved on the till as a draft at the next update." + (returns.length ? " Returns are recorded; confirm them under Drafts when the driver takes them." : ""), "ok"); renderTabs();
     };
   };
   // suppliers
