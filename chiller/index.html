@@ -1139,7 +1139,7 @@
     .p20-top { display: flex; gap: 10px; align-items: flex-start; }
     .p20-thumb { flex: 0 0 72px; width: 72px; height: 72px; border-radius: 10px; background: #eef5f0; overflow: hidden; }
     .p20-thumb img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
-    .p20-thumb.is-empty { background: #eef5f0; }
+    .p20-thumb.is-empty { background: #eef5f0; display:flex; align-items:center; justify-content:center; text-align:center; padding:4px; font-size:0.68rem; font-weight:800; color:#7a3b3b; line-height:1.15; }
     .p20-meta { flex: 1 1 auto; min-width: 0; }
     .p20-name { margin: 0; font-weight: 800; font-size: 1.02rem; line-height: 1.25; }
     .p20-cat { margin: 2px 0 0; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
@@ -1842,7 +1842,7 @@
       const isGap = mode === "gap";
       const items = isGap ? gapItems : dateItems;
       if (checkListTitle) {
-        checkListTitle.textContent = isGap ? "Today's gap check" : "Today's date check";
+        checkListTitle.textContent = isGap ? "Today's gap check" : (p20Kind === "weekly" ? "Weekly full check" : "Today's date check");
       }
       if (!window.BirkhillScannedList) return;
       BirkhillScannedList.render({
@@ -2037,7 +2037,10 @@
       setStatus("Skipped " + name + ". Next item.", "ok");
     });
 
-    const P20_KEY = "birkhill-chiller-priority20-v1";
+    const P20_KEY_DAILY = "birkhill-chiller-priority20-v1";
+    const P20_KEY_WEEKLY = "birkhill-chiller-weekly-full-v1";
+    let P20_KEY = P20_KEY_DAILY;
+    let p20Kind = "daily";
     let p20Data = null;
     let p20Results = {};
     let p20Photos = {};
@@ -2070,7 +2073,7 @@
       });
       const uniq = [];
       urls.forEach(function (u) { if (u && uniq.indexOf(u) < 0) uniq.push(u); });
-      if (!uniq.length) return '<div class="p20-thumb is-empty" aria-hidden="true"></div>';
+      if (!uniq.length) return '<div class="p20-thumb is-empty">Photo missing</div>';
       return '<div class="p20-thumb"><img alt="" src="' + uniq[0].replace(/"/g, "") + '" data-cands="' + uniq.join("|").replace(/"/g, "") + '"></div>';
     }
 
@@ -2084,7 +2087,10 @@
           if (ix < cands.length) img.src = cands[ix];
           else {
             img.style.display = "none";
-            if (img.parentNode) img.parentNode.classList.add("is-empty");
+            if (img.parentNode) {
+              img.parentNode.classList.add("is-empty");
+              if (!img.parentNode.textContent.trim()) img.parentNode.appendChild(document.createTextNode("Photo missing"));
+            }
           }
         });
       });
@@ -2243,6 +2249,48 @@
       });
     }
 
+    function p20SetKind(kind) {
+      p20Kind = kind === "weekly" ? "weekly" : "daily";
+      P20_KEY = p20Kind === "weekly" ? P20_KEY_WEEKLY : P20_KEY_DAILY;
+      const h2 = document.querySelector("#priority20Card h2");
+      const lead = document.querySelector("#priority20Card .p20-lead");
+      if (p20Kind === "weekly") {
+        if (h2) h2.textContent = "Weekly full check";
+        if (lead) lead.innerHTML = "Please check the date on every chiller product and remove anything with 3 days or less left. <span id=\"p20Progress\"></span>";
+      } else {
+        if (h2) h2.textContent = "Today's 20 priority checks";
+        if (lead) lead.innerHTML = "Short dates (3 days or less) must be removed. <span id=\"p20Progress\"></span>";
+      }
+    }
+    function p20IsTodayList(data) {
+      return !!(data && data.date === todayLondon() && Array.isArray(data.items) && data.items.length);
+    }
+    function p20Apply(data, kind) {
+      p20SetKind(kind);
+      p20LoadResults();
+      p20Data = data;
+      p20Render();
+      if (typeof dcUpdate === "function") dcUpdate();
+    }
+    function p20LoadFallback() {
+      p20SetKind("daily");
+      p20LoadResults();
+      fetch("priority20.json").then(function (res) {
+        if (!res.ok) throw new Error("priority20");
+        return res.json();
+      }).then(function (data) {
+        p20Data = (data && Array.isArray(data.items)) ? data : null;
+        p20Render();
+        if (typeof dcUpdate === "function") dcUpdate();
+      }).catch(function () {
+        p20Data = null;
+        p20Render();
+        if (typeof dcUpdate === "function") dcUpdate();
+        const empty = document.getElementById("p20Empty");
+        if (empty) empty.classList.remove("hidden");
+      });
+    }
+
     (function initPriority20() {
       const list = document.getElementById("priority20List");
       if (list) {
@@ -2278,24 +2326,14 @@
           li.classList.toggle("is-short", left !== null && left <= 3);
         });
       }
-      p20LoadResults();
-      fetch("priority20.json").then(function (res) {
-        if (!res.ok) throw new Error("priority20");
+      fetch("weekly_full.json").then(function (res) {
+        if (!res.ok) throw new Error("weekly");
         return res.json();
       }).then(function (data) {
-        if (!data || data.date !== todayLondon() || !Array.isArray(data.items)) {
-          p20Data = data && Array.isArray(data.items) ? data : null;
-        } else {
-          p20Data = data;
-        }
-        p20Render();
-        dcUpdate();
+        if (p20IsTodayList(data)) p20Apply(data, "weekly");
+        else p20LoadFallback();
       }).catch(function () {
-        p20Data = null;
-        p20Render();
-        dcUpdate();
-        const empty = document.getElementById("p20Empty");
-        if (empty) empty.classList.remove("hidden");
+        p20LoadFallback();
       });
     })();
 
