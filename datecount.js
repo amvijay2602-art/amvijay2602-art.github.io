@@ -48,17 +48,20 @@
   // item: { key, id, barcode, name, size, till, inList, scan }
   DC.prototype._row = function (s, item, r, edit) {
     var bq = r.st === "counted" && r.date ? (r.batch || r.count) : 0;
+    var oos = r.st === "counted" && Number(r.count) === 0;   // zero count: Out of Stock, no date needed (22 Nov 2026)
     row("COUNT", [s.id, this.o.key, this.o.dept, item.id || item.key, item.barcode || "", item.name, item.size || "",
       "till " + (Number(item.till) || 0), "count " + (r.st === "skip" ? "SKIP" : r.count), "bb " + (r.date || "none"),
-      "scan " + (r.st === "skip" ? "skip" : (item.scan || "ok")), s.staff, "dtype " + (r.st === "skip" ? "-" : (r.date ? "useby" : "nodate")),
+      "scan " + (r.st === "skip" ? "skip" : (item.scan || "ok")), s.staff, "dtype " + (r.st === "skip" ? "-" : (oos ? "oos" : (r.date ? "useby" : "nodate"))),
       "batches " + (r.st === "counted" && r.date ? r.date + ":" + bq : ""), "held " + (r.held || 0),
-      "note " + (r.st === "skip" ? "Skipped at date check" : "Date check " + (r.result || "OK")), "edit " + (edit ? "yes" : "no"), "v2"],
+      "note " + (r.st === "skip" ? "Skipped at date check" : (oos ? "Out of Stock, date skipped" : "Date check " + (r.result || "OK"))), "edit " + (edit ? "yes" : "no"),
+      "stock " + (oos ? "Out of Stock" : "-"), "v2"],
       r.st === "skip" ? 0 : r.count, r.date || londonISO());
   };
   DC.prototype.count = function (item, qty, dateIso, result, batchQty) {
     var s = this.ensure(); var prev = s.res[item.key];
     var q = Math.max(0, Math.round(Number(qty) || 0));
     var b = batchQty == null || batchQty === "" ? q : Math.max(0, Number(batchQty) || 0);
+    if (q === 0) dateIso = "";   // zero count never carries a date
     var r = { st: "counted", count: q, date: dateIso || "", result: result || "OK", batch: Math.min(b, q), held: result === "REMOVE" ? Math.min(b, q) : 0,
               name: item.name, inList: !!item.inList || !!(prev && prev.inList), at: Date.now() };
     s.res[item.key] = r; this.save(s); this._row(s, item, r, !!prev);
@@ -76,18 +79,27 @@
     if (s) Object.keys(s.res).forEach(function (key) { var r = s.res[key]; if (r.st === "counted") { c++; if (r.inList) cl++; } else { k++; if (r.inList) kl++; skippedNames.push(r.name); } });
     var total = Math.max(s ? s.total : this.total(), 0);
     var nr = Math.max(0, total - cl - kl);
-    return { session: s, checked: c, skipped: k, notReached: nr, total: Math.max(total, c + k), skippedNames: skippedNames };
+    return { session: s, checked: c, skipped: k, notReached: nr, total: Math.max(total, c + k), skippedNames: skippedNames,
+             listChecked: cl, listSkipped: kl, listDone: cl + kl, sessionId: s ? s.id : "" };
   };
-  DC.prototype.finish = function () {
+  // Active session id, or "" when no check is running (a finished check never comes back).
+  DC.prototype.sessionId = function () { var s = this.get(); return s ? s.id : ""; };
+  DC.prototype.pending = function () { return jget(QKEY, []).length; };
+  // opts.onClose: called after staff tap OK, so the app can clear its screen for the next check.
+  DC.prototype.finish = function (opts) {
+    opts = opts || {};
     var s = this.get();
     var sm = this.summary();
     if (s) {
       var st = (sm.skipped === 0 && sm.notReached === 0) ? "Complete" : "Incomplete";
       row("COUNTDONE", [s.id, this.o.key, this.o.dept, "counted " + sm.checked + " of " + sm.total, "skipped " + sm.skipped, s.staff,
         "status " + st, "staff " + s.staff, "notreached " + sm.notReached, "datecheck", "v2"], sm.checked);
-      s.finished = true; this.save(s);
+      s.finished = true; s.finishedText = londonTime(); this.save(s);
+      jset(this.k + "-last", { id: s.id, date: s.date, at: Date.now(), checked: sm.checked, skipped: sm.skipped, notReached: sm.notReached });
     }
-    showSummary(sm, !!s);
+    flush();
+    sm.pending = jget(QKEY, []).length;
+    showSummary(sm, !!s, opts);
     return sm;
   };
 
@@ -113,16 +125,19 @@
       ".dc-box p{margin:6px 0;font-size:.92rem}.dc-box button{width:100%;margin-top:10px;min-height:48px;border:0;border-radius:12px;background:#17643F;color:#fff;font-weight:800;font-size:1.05rem}";
     document.head.appendChild(st);
   }
-  function showSummary(sm, had) {
+  function showSummary(sm, had, opts) {
+    opts = opts || {};
     css();
     var m = document.createElement("div"); m.className = "dc-modal";
     m.innerHTML = '<div class="dc-box" role="dialog" aria-label="Date check finished"><h3>Date check finished</h3>' +
-      (had ? "" : "<p>Nothing was checked or skipped in this run.</p>") +
+      (had ? "" : "<p>Nothing new since the last Finish. Everything saved before was already sent.</p>") +
       '<div class="dc-stats"><div class="dc-stat"><b>' + sm.checked + '</b>Checked</div><div class="dc-stat sk"><b>' + sm.skipped + '</b>Skipped</div><div class="dc-stat nr"><b>' + sm.notReached + "</b>Not reached</div></div>" +
       (sm.skippedNames.length ? "<p><b>Skipped:</b> " + sm.skippedNames.map(esc).join(", ") + "</p>" : "") +
       "<p>Shelf counts are saved as a stock count for Vijay. The till is not changed.</p>" +
+      (sm.pending ? "<p><b>" + sm.pending + " line(s) still sending.</b> They stay on this phone and keep sending by themselves.</p>" : "") +
+      (opts.onClose ? "<p>Tap OK to clear the screen for the next check.</p>" : "") +
       '<button type="button">OK</button></div>';
-    m.querySelector("button").onclick = function () { m.remove(); };
+    m.querySelector("button").onclick = function () { m.remove(); if (opts.onClose) { try { opts.onClose(sm); } catch (e) {} } };
     document.body.appendChild(m);
   }
   function qtyHtml(cls, label) {

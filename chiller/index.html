@@ -487,6 +487,9 @@
       line-height: 1.3;
     }
     .stock-compare .dc-qty-wrap { margin-top: 0; }
+    .stock-compare { grid-template-columns: minmax(0, 1fr) minmax(176px, 1.25fr); }
+    .stock-compare .dc-qty { grid-template-columns: 48px minmax(60px, 1fr) 48px !important; }
+    .stock-compare .till-stock { font-size: 1.25rem; }
 
     .scan-actions {
       display: grid;
@@ -1166,6 +1169,18 @@
     .p20-finishbar { display: flex; gap: 10px; align-items: center; margin: 0 0 12px; padding: 8px 10px; background: #eef5f0; border: 1px solid #d5e3da; border-radius: 12px; }
     .p20-finishbar span { flex: 1 1 auto; font-size: 0.85rem; font-weight: 700; color: #18342A; }
     .p20-finishbar .dc-btn { flex: 0 0 auto; padding: 0 18px; }
+    /* Finish then clear (22 Nov 2026): zero count = Out of Stock, no date; ready banner after Finish */
+    .p20-item.is-zero .p20-fields, .p20-item.is-zero .p20-photo, .p20-item.is-zero .p20-photoprev { display: none !important; }
+    .p20-oos-hint { display: none; margin: 8px 0 0; font-weight: 800; font-size: 0.9rem; color: #b8501a; }
+    .p20-item.is-zero .p20-oos-hint { display: block; }
+    .p20-item.is-oos { background: #fff4ec; border-color: #f3c7a8; }
+    .p20-item.is-oos .p20-done-flag { color: #b8501a; }
+    #datePanel.is-zero .line, #datePanel.is-zero .lines-label { display: none; }
+    .dc-oos-hint { display: none; margin: 8px 0 0; font-weight: 800; color: #b8501a; }
+    #datePanel.is-zero .dc-oos-hint { display: block; }
+    .dc-ready { margin: 0 0 12px; padding: 12px; border-radius: 12px; background: #e8f6ec; border: 1px solid #b7e0c2; font-weight: 700; color: #17643F; }
+    .dc-ready button { display: block; width: 100%; margin-top: 10px; min-height: 48px; border: 0; border-radius: 12px; background: #17643F; color: #fff; font-weight: 800; font-size: 1.05rem; }
+    .list-finish { width: 100%; margin-top: 12px; }
   </style>
 
   <style id="birkhill-theme">
@@ -1202,6 +1217,7 @@
     <h2>Today's 20 priority checks</h2>
     <p class="p20-lead">Short dates (3 days or less) must be removed. <span id="p20Progress"></span></p>
     <div class="p20-finishbar"><span id="dcProgress">Count each line on the shelf. Skip if you can't, Finish when you stop.</span><button type="button" id="p20Finish" class="dc-btn finish solid">Finish</button></div>
+    <div id="dcReady" class="dc-ready hidden"><span id="dcReadyText">Check finished. The screen is clear and ready for the next check.</span><button type="button" id="dcStartNew">Start new check</button></div>
     <ul id="priority20List" class="p20-list"></ul>
     <p id="p20Empty" class="hint hidden">Today's list could not be loaded. You can still scan below.</p>
   </div>
@@ -1264,6 +1280,7 @@
           <button type="button" class="dc-plus" aria-label="One more">+</button>
         </div></div>
       </div>
+      <p class="dc-oos-hint">0 on shelf: Out of Stock. No date needed. Tap Save.</p>
       <button id="save" class="save-btn" type="button">Save</button>
       <div class="dc-row2">
         <button id="dcSkip" class="dc-btn" type="button">Skip</button>
@@ -1281,6 +1298,7 @@
       </label>
       <button id="saveGap" class="save-btn" type="button">Save</button>
       <button id="saveNext" class="save-btn" type="button">Save and next gap</button>
+      <button id="gapFinish" class="dc-btn finish list-finish" type="button">Finish gap check</button>
     </div>
     </div>
     <div id="wastePanel" class="hidden">
@@ -1451,6 +1469,7 @@
       <ul id="wasteItemList" class="bk-scan-list"></ul>
       <p id="wasteEmptyList" class="hint">No items yet. Scan each out-of-date P&amp;P product, enter how many are going back, then save.</p>
       <p class="hint">Show this list to the P&amp;P driver.</p>
+      <button id="wasteFinish" class="dc-btn finish list-finish" type="button">Finish P&amp;P waste</button>
     </div>
     <div id="stockInListCard" class="bk-scanned hidden">
       <h2>Scanned items</h2>
@@ -1458,6 +1477,7 @@
       <div id="stockInTodayHead" class="hidden"></div>
       <ul id="stockInItemList" class="bk-scan-list"></ul>
       <p id="stockInEmptyList" class="hint">No items yet. Choose the supplier, then scan products, enter the qty and use-by date, and save.</p>
+      <button id="stockInFinish" class="dc-btn finish list-finish" type="button">Finish stock in</button>
     </div>
     <div id="wastageListCard" class="bk-scanned hidden">
       <h2>Scanned items</h2>
@@ -1466,6 +1486,7 @@
       <ul id="wastageItemList" class="bk-scan-list"></ul>
       <p id="wastageEmptyList" class="hint">No items yet. Choose the supplier, then scan products, enter the qty and reason, and save.</p>
       <div id="wastageTotals" class="hidden"></div>
+      <button id="wastageFinish" class="dc-btn finish list-finish" type="button">Finish waste</button>
     </div>
     <div id="status"></div>
   </div>
@@ -1478,7 +1499,7 @@
   </div>
   <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
-  <script src="../datecount.js"></script>
+  <script src="../datecount.js?v=20261122fin"></script>
   <script src="../barcode-scan.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
@@ -1653,6 +1674,7 @@
       const typed = document.getElementById("checkCodeInput");
       if (typed) typed.value = "";
       if (typeof stopCheckCamera === "function") stopCheckCamera();
+      if (typeof dcManualZero === "function") dcManualZero();
     }
 
     function postPayload(payload) {
@@ -1679,6 +1701,17 @@
     saveBtn.addEventListener("click", function () {
       const name = nameInput.value.trim();
       const lines = collectLines();
+      const shelfZero = shelfInput.value.trim() !== "" && Number(shelfInput.value.trim()) === 0;
+      if (name && shelfZero) {
+        // Zero count: Out of Stock, skip the date, save and go to the next product. Till not changed.
+        const dcZero = dcItemManual(name, checkBarcode);
+        if (dc) { dc.count(dcZero, 0, "", "OOS", 0); dcUpdate(); }
+        addDateListItem({ name: name, barcode: checkBarcode || "", lines: [], result: "OOS", time: nowLondonTime(), at: Date.now() });
+        clearForm();
+        if (typeof p20Render === "function") p20Render();
+        setStatus("Saved " + name + " as Out of Stock. Next item.", "ok");
+        return;
+      }
       if (!name || lines.length === 0) {
         setStatus("Please enter the product name and at least one date.", "error");
         return;
@@ -1862,6 +1895,7 @@
               (item.note ? "  ·  " + item.note : "") +
               (item.time ? "  ·  " + item.time : "");
           }
+          if (item.result === "OOS") return "Out of Stock" + (item.time ? "  ·  " + item.time : "");
           if (Array.isArray(item.lines)) {
             return item.lines.map(function (line) {
               const qty = (line.qty === undefined || line.qty === "") ? "" : String(line.qty);
@@ -2004,7 +2038,15 @@
       if (!dc || !el) return;
       const sm = dc.summary();
       el.textContent = sm.session ? ("This check: " + sm.checked + " checked, " + sm.skipped + " skipped, " + sm.notReached + " not reached.") : "Count each line on the shelf. Skip if you can't, Finish when you stop.";
+      if (sm.session) { const rb = document.getElementById("dcReady"); if (rb) rb.classList.add("hidden"); }
+      if (typeof p20UpdateProgress === "function") p20UpdateProgress();
     }
+    // Manual form: 0 on shelf hides the date lines (Out of Stock, no date needed).
+    function dcManualZero() {
+      const v = shelfInput ? shelfInput.value.trim() : "";
+      datePanel.classList.toggle("is-zero", v !== "" && Number(v) === 0);
+    }
+    if (shelfInput) shelfInput.addEventListener("input", dcManualZero);
     function p20FocusNext(n) {
       const list = document.getElementById("priority20List");
       if (!list) return;
@@ -2017,13 +2059,41 @@
         }
       }
     }
+    // Finish (22 Nov 2026): one session for the header and the summary. After OK the phone is
+    // cleared for the next check. Everything was already sent (COUNT rows wait in the send queue
+    // until they go). Nothing on the server is deleted and the till is never changed.
     function dcFinish() {
       if (!dc) return;
-      dc.finish();
-      dcUpdate();
-      p20Render();
-      setStatus("Date check finished.", "ok");
+      dc.finish({ onClose: dcResetAfterFinish });
+      setStatus("Date check finished. Tap OK to clear the screen.", "ok");
     }
+    function dcResetAfterFinish(sm) {
+      p20Results = {};
+      p20Photos = {};
+      p20SaveResults();
+      const list = document.getElementById("priority20List");
+      if (list) list.innerHTML = "";   // drop typed dates and counts from the old check
+      dateItems = [];
+      persistCheckLists();
+      clearForm();
+      p20Render();
+      renderCheckList();
+      dcUpdate();
+      const rb = document.getElementById("dcReady");
+      const rt = document.getElementById("dcReadyText");
+      if (rt) rt.textContent = sm && sm.session ? ("Check finished at " + nowLondonTime() + ": " + sm.checked + " checked, " + sm.skipped + " skipped. The screen is clear and ready for the next check.")
+        : "The screen is clear and ready for the next check.";
+      if (rb) rb.classList.remove("hidden");
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
+      setStatus("Ready for the next check.", "ok");
+    }
+    document.getElementById("dcStartNew").addEventListener("click", function () {
+      const rb = document.getElementById("dcReady");
+      if (rb) rb.classList.add("hidden");
+      const first = document.querySelector("#priority20List .p20-item");
+      if (first) { try { first.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }
+      setStatus("New check. Count the first line.", "ok");
+    });
     document.getElementById("p20Finish").addEventListener("click", dcFinish);
     document.getElementById("dcFinish").addEventListener("click", dcFinish);
     document.getElementById("dcSkip").addEventListener("click", function () {
@@ -2045,16 +2115,32 @@
     let p20Results = {};
     let p20Photos = {};
 
+    // Ticks on the list belong to the running check (session) only, so the header and the
+    // Finish summary always count the same thing. Ticks from a finished check are dropped from the
+    // screen (they were already sent).
     function p20LoadResults() {
       try {
         const raw = JSON.parse(localStorage.getItem(P20_KEY) || "null");
-        if (raw && raw.date === todayLondon() && raw.results) p20Results = raw.results;
+        const sid = dc ? dc.sessionId() : "";
+        if (raw && raw.date === todayLondon() && raw.results && sid && (!raw.session || raw.session === sid)) p20Results = raw.results;
         else p20Results = {};
       } catch (e) { p20Results = {}; }
     }
 
+    function p20PruneResults() {
+      if (!p20Data || !Array.isArray(p20Data.items)) return;
+      const sid = dc ? dc.sessionId() : "";
+      let changed = false;
+      p20Data.items.forEach(function (it) {
+        const k = String(it.n);
+        if (!p20Results[k]) return;
+        if (!sid || (dc && dc.status(dcKeyP20(it)) !== "counted")) { delete p20Results[k]; changed = true; }
+      });
+      if (changed) p20SaveResults();
+    }
+
     function p20SaveResults() {
-      try { localStorage.setItem(P20_KEY, JSON.stringify({ date: todayLondon(), results: p20Results })); } catch (e) {}
+      try { localStorage.setItem(P20_KEY, JSON.stringify({ date: todayLondon(), session: dc ? dc.sessionId() : "", results: p20Results })); } catch (e) {}
     }
 
     function p20Thumb(item) {
@@ -2109,8 +2195,10 @@
       const el = document.getElementById("p20Progress");
       if (!el || !p20Data || !p20Data.items) { if (el) el.textContent = ""; return; }
       const n = p20Data.items.length;
-      const done = p20Data.items.filter(function (it) { return p20Results[String(it.n)]; }).length;
-      el.textContent = done ? (done + " of " + n + " done.") : (n + " to check.");
+      const sm = dc ? dc.summary() : null;
+      const done = sm && sm.session ? sm.listChecked : 0;
+      const skipped = sm && sm.session ? sm.listSkipped : 0;
+      el.textContent = (done || skipped) ? (done + " of " + n + " done" + (skipped ? ", " + skipped + " skipped" : "") + ".") : (n + " to check.");
     }
 
     function p20Render() {
@@ -2140,12 +2228,13 @@
         const done = saved && saved.result;
         let cls = "p20-item";
         if (done === "REMOVE") cls += " is-removed";
+        else if (done === "OOS") cls += " is-done is-oos";
         else if (done) cls += " is-done";
         if (isShort && !done) cls += " is-short";
         const dcSt = dc ? dc.status(dcKeyP20(it)) : null;
         const shelfNow = (saved && saved.shelf != null) ? String(saved.shelf) : "";
         if (!done && dcSt === "skip") cls += " is-skipped";
-        const flag = done ? ('<div class="p20-done-flag">' + (done === "REMOVE" ? "Removed" : "OK") + (saved.date ? "  ·  " + formatUkDate(saved.date) : "") + (shelfNow !== "" ? "  ·  on shelf " + shelfNow : "") + "</div>") : (dcSt === "skip" ? '<div class="dc-flag-skip">Skipped</div>' : "");
+        const flag = done === "OOS" ? '<div class="p20-done-flag">Out of Stock  ·  on shelf 0</div>' : done ? ('<div class="p20-done-flag">' + (done === "REMOVE" ? "Removed" : "OK") + (saved.date ? "  ·  " + formatUkDate(saved.date) : "") + (shelfNow !== "" ? "  ·  on shelf " + shelfNow : "") + "</div>") : (dcSt === "skip" ? '<div class="dc-flag-skip">Skipped</div>' : "");
         const photoHint = p20Photos[key] ? "Date photo attached" : "Optional: photo of the date";
         return '<li class="' + cls + '" data-n="' + key + '">' +
           '<div class="p20-top">' + p20Thumb(it) +
@@ -2157,6 +2246,7 @@
           '<input class="p20-date" type="date" aria-label="Use by or best before for ' + String(it.name || "").replace(/"/g, "") + '" value="' + dateVal + '">' +
           '<input class="p20-qty" type="number" inputmode="numeric" min="1" step="1" placeholder="Qty" aria-label="Quantity" value="' + qtyVal + '">' +
           "</div>" +
+          '<p class="p20-oos-hint">0 on shelf: Out of Stock. No date needed. Tap OK.</p>' +
           '<div class="stock-compare">' + tillHtml(it.barcode, it.stock) +
           '<div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty"><button type="button" class="dc-minus" aria-label="One less">&minus;</button>' +
           '<input class="dc-shelf p20-shelf" type="number" inputmode="numeric" min="0" step="1" placeholder="How many?" aria-label="Quantity on shelf" value="' + shelfNow + '">' +
@@ -2177,6 +2267,7 @@
         if (k.date !== null && li.querySelector(".p20-date")) li.querySelector(".p20-date").value = k.date;
         if (k.qty !== null && li.querySelector(".p20-qty")) li.querySelector(".p20-qty").value = k.qty;
         if (k.shelf !== null && li.querySelector(".p20-shelf")) li.querySelector(".p20-shelf").value = k.shelf;
+        if (k.shelf !== null && k.shelf !== "" && Number(k.shelf) === 0) li.classList.add("is-zero");
       });
       p20BindThumbs(list);
       p20UpdateProgress();
@@ -2209,6 +2300,19 @@
       const qtyEl = li.querySelector(".p20-qty");
       const dateVal = dateEl ? dateEl.value.trim() : "";
       const qtyVal = (qtyEl && qtyEl.value.trim()) ? qtyEl.value.trim() : "1";
+      if (shelfRaw !== "" && !isNaN(Number(shelfRaw)) && Number(shelfRaw) === 0) {
+        // Zero count: Out of Stock, skip the date, save and go to the next product. Till not changed.
+        p20SetErr(li, "");
+        if (dc) dc.count(dcItemP20(item), 0, "", "OOS", 0);
+        p20Results[n] = { result: "OOS", date: "", qty: "0", shelf: 0, time: nowLondonTime(), at: Date.now() };
+        p20SaveResults();
+        addDateListItem({ name: item.name, barcode: item.barcode || "", lines: [], result: "OOS", time: nowLondonTime(), at: Date.now() });
+        setStatus("Saved " + item.name + " as Out of Stock. Next item.", "ok");
+        p20Render();
+        dcUpdate();
+        p20FocusNext(n);
+        return;
+      }
       if (!dateVal) {
         p20SetErr(li, "Please enter the use-by or best-before date.");
         if (dateEl) dateEl.focus();
@@ -2227,8 +2331,8 @@
       if (item.barcode) savedName += " [" + item.barcode + "]";
       savedName += " | " + result;
       postPayload({ name: savedName, photo: p20Photos[n] || "", lines: [{ date: dateVal, qty: String(qtyVal) }] }).then(function () {
-        p20Results[n] = { result: result, date: dateVal, qty: qtyVal, shelf: Number(shelfRaw), time: nowLondonTime(), at: Date.now() };
         if (dc) dc.count(dcItemP20(item), Number(shelfRaw), dateVal, result, Number(qtyVal));
+        p20Results[n] = { result: result, date: dateVal, qty: qtyVal, shelf: Number(shelfRaw), time: nowLondonTime(), at: Date.now() };
         dcUpdate();
         p20SaveResults();
         addDateListItem({
@@ -2269,6 +2373,7 @@
       p20SetKind(kind);
       p20LoadResults();
       p20Data = data;
+      p20PruneResults();
       p20Render();
       if (typeof dcUpdate === "function") dcUpdate();
     }
@@ -2280,6 +2385,7 @@
         return res.json();
       }).then(function (data) {
         p20Data = (data && Array.isArray(data.items)) ? data : null;
+        p20PruneResults();
         p20Render();
         if (typeof dcUpdate === "function") dcUpdate();
       }).catch(function () {
@@ -2319,6 +2425,12 @@
           });
         });
         list.addEventListener("input", function (ev) {
+          if (ev.target.classList.contains("p20-shelf")) {
+            const lz = ev.target.closest(".p20-item");
+            const v = ev.target.value.trim();
+            if (lz) lz.classList.toggle("is-zero", v !== "" && Number(v) === 0);
+            return;
+          }
           if (!ev.target.classList.contains("p20-date")) return;
           const li = ev.target.closest(".p20-item");
           if (!li || p20Results[li.getAttribute("data-n")]) return;
@@ -4081,6 +4193,49 @@
     renderWastageList();
     updateWastageSnapshot();
     updateWastageInfoLines();
+
+    /* Finish then clear for the list modes (22 Nov 2026). Every line was sent when it was saved, so
+       Finish shows a short summary, then clears this phone's list and form for the next job.
+       Nothing on the server is deleted. The till is never changed. */
+    function listFinish(title, items, unitsOf, onClear) {
+      if (window.BirkhillDateCount) BirkhillDateCount.css();
+      const n = items.length;
+      const units = items.reduce(function (a, it) { return a + (Number(unitsOf(it)) || 0); }, 0);
+      const m = document.createElement("div");
+      m.className = "dc-modal";
+      m.innerHTML = '<div class="dc-box" role="dialog" aria-label="' + title + '"><h3>' + title + "</h3>" +
+        (n ? ('<div class="dc-stats" style="grid-template-columns:1fr 1fr"><div class="dc-stat"><b>' + n + "</b>Lines</div><div class=\"dc-stat\"><b>" + units + "</b>Units</div></div>" +
+              "<p>Every line was sent when you saved it. The till is not changed.</p>")
+           : "<p>Nothing new to finish.</p>") +
+        "<p>Tap OK to clear the screen for the next job.</p><button type=\"button\">OK</button></div>";
+      m.querySelector("button").onclick = function () {
+        m.remove();
+        try { onClear(); } catch (e) {}
+        try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
+        setStatus("Done. Ready for the next job.", "ok");
+      };
+      document.body.appendChild(m);
+    }
+    document.getElementById("gapFinish").addEventListener("click", function () {
+      listFinish("Gap check finished", gapItems, function () { return 1; }, function () {
+        gapItems = []; persistCheckLists(); clearForm(); renderCheckList();
+      });
+    });
+    document.getElementById("wasteFinish").addEventListener("click", function () {
+      listFinish("P&P waste finished", wasteItems, function (it) { return it.qty; }, function () {
+        wasteItems = []; wastePersist(); wasteHideFound(); wasteBarcodeInput.value = ""; wasteRenderList();
+      });
+    });
+    document.getElementById("stockInFinish").addEventListener("click", function () {
+      listFinish("Stock in finished", stockInItems, function (it) { return it.qty; }, function () {
+        stockInItems = []; persistStockInList(); stockInClearProduct(); renderStockInList();
+      });
+    });
+    document.getElementById("wastageFinish").addEventListener("click", function () {
+      listFinish("Waste finished", wastageItems, function (it) { return it.qty; }, function () {
+        wastageItems = []; persistWastageList(); wastageClearProduct(); renderWastageList();
+      });
+    });
 
   </script>
   <script src="../nav.js"></script>
