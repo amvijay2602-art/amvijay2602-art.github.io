@@ -58,7 +58,7 @@
     .item .t { font-weight: 800; } .m { color: #5b6573; font-size: .85rem; margin-top: 2px; }
     .st { display: inline-block; font-size: .75rem; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: #eef5f0; color: var(--bk-g); }
     .st.draft { background: #eef2ff; color: #3730a3; } .st.needs_fix, .st.error { background: #fdecec; color: #c62828; }
-    .st.pending_approval { background: #fef3c7; color: #8a4b08; } .st.approved, .st.sending { background: #e0f2fe; color: #075985; }
+    .st.pending_approval { background: #fef3c7; color: #8a4b08; } .st.approved, .st.sending, .st.till_draft { background: #e0f2fe; color: #075985; }
     .st.posted { background: #e8f6ec; color: #1b7a3d; } .st.recorded { background: #f3e8ff; color: #6b21a8; } .st.local { background: #fff7ed; color: #9a3412; }
     .line { border: 1px solid #e3ebe6; border-radius: 14px; padding: 10px; margin-bottom: 10px; background: #fff; }
     .line.bad { border-color: #f1a5a5; background: #fffafa; } .line.out { opacity: .55; }
@@ -105,7 +105,7 @@
   "use strict";
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
   var K = { queue: "birkhill-si-queue-v1", docs: "birkhill-si-local-docs-v1", mgr: "birkhill-si-manager-v1" };
-  var STATUS = { draft: "Draft", needs_fix: "Needs fixing", pending_approval: "Waiting for manager", approved: "Approved, sending to till", sending: "Sending to till", posted: "Posted", error: "Posting error", recorded: "Return recorded", discarded: "Discarded", no_stock: "No stock lines (till rolls etc), nothing to post", local: "Not sent yet" };
+  var STATUS = { draft: "Draft", needs_fix: "Needs fixing", pending_approval: "Waiting for manager", approved: "Approved, sending to till", sending: "Sending to till", till_draft: "Saved on till as draft", posted: "Posted", error: "Posting error", recorded: "Return recorded", discarded: "Discarded", no_stock: "No stock lines (till rolls etc), nothing to post", local: "Not sent yet" };
   var VATS = [["", "VAT?"], ["20", "20%"], ["5", "5%"], ["0", "0%"], ["NA", "N/A"]];
   var SI = null, PR = null, BYID = {}, BYBC = {}, cur = { tab: "home", doc: null };
   function $(id) { return document.getElementById(id); }
@@ -203,7 +203,7 @@
   var TABS = [["home", "Home"], ["scan", "Invoice Scanner"], ["new", "New delivery"], ["ud", "Milk and bread"], ["drafts", "Drafts"], ["approval", "Pending Approval"], ["errors", "Posting Errors"], ["posted", "Posted Deliveries"], ["suppliers", "Suppliers"], ["reports", "Supplier Reports"], ["manager", "Manager"]];
   function counts() {
     var c = { drafts: 0, approval: 0, errors: 0 };
-    allDocs().forEach(function (d) { var s = status(d); if (s === "draft" || s === "local" || s === "recorded") c.drafts++; if (s === "pending_approval") c.approval++; if (s === "error" || s === "needs_fix") c.errors++; });
+    allDocs().forEach(function (d) { var s = status(d); if (s === "draft" || s === "local" || s === "recorded") c.drafts++; if (s === "pending_approval" || s === "till_draft") c.approval++; if (s === "error" || s === "needs_fix") c.errors++; });
     return c;
   }
   function renderTabs() {
@@ -222,7 +222,7 @@
       tile("drafts", c.drafts, "Drafts", "Saved, not sent to the till") + tile("approval", c.approval, "Pending Approval", "Manager checks and approves") +
       tile("errors", c.errors, "Posting Errors", "Fix or send again") + tile("posted", posted, "Posted Deliveries", "In the till, stock before and after") +
       tile("suppliers", (SI.suppliers || []).length, "Suppliers", "Profiles and till link") + tile("reports", "&#128202;", "Supplier Reports", "Spend, deliveries, audit log") + "</div>" +
-      "<div class='card' style='margin-top:12px'><h2>How it works</h2><div class='m'>Draft &gt; Check Products &gt; Match Supplier &gt; Manager Approval &gt; Send to Till &gt; Confirm Till Receipt &gt; Posted. Saving a draft never changes the till. Quick item scans still go in the Chiller app Stock In tab; Grok Bot can turn a day's scans into a draft here.</div></div>";
+      "<div class='card' style='margin-top:12px'><h2>How it works</h2><div class='m'>Draft &gt; Check Products &gt; Match Supplier &gt; Manager Approval &gt; Saved on till as draft &gt; finish it on the till Stock In screen &gt; Posted. Nothing here adds stock: the box saves a till draft, and stock goes in only when the draft is finished on the till. Quick item scans still go in the Chiller app Stock In tab; Grok Bot can turn a day's scans into a draft here.</div></div>";
     each(".tile", function (b) { b.onclick = function () { go(b.getAttribute("data-go")); }; });
   };
   function docTotal(d) { var t = 0; (d.lines || []).forEach(function (l) { if (l.leave_out || !l.pid) return; if (d.kind === "return") t += num(l.ret) * num(l.unit_cost); else if (num(l.upc)) t += num(l.case_cost) / num(l.upc) * (num(l.rcv) * num(l.upc) - num(l.damaged)); }); return t; }
@@ -248,7 +248,7 @@
   };
   VIEWS.approval = function () {
     $("view").innerHTML = "<div class='card'><h2>Pending Approval</h2><div class='m'>Checked and matched. A manager opens each one, reads the warnings and cost changes, then approves. Approved deliveries go to the till at the next update.</div></div>" +
-      docList(function (d) { return ["pending_approval", "approved", "sending"].indexOf(status(d)) >= 0; }, "Nothing waiting.");
+      docList(function (d) { return ["pending_approval", "approved", "sending", "till_draft"].indexOf(status(d)) >= 0; }, "Nothing waiting.");
     bindOpen();
   };
   VIEWS.errors = function () {
@@ -386,7 +386,7 @@
       "<table class='t'><tr><th>Product</th><th class='n'>Qty</th><th class='n'>Before</th><th class='n'>After</th><th class='n'>Till now</th></tr>" + d.till.lines.map(function (l) { return "<tr><td>" + esc(l.name) + "</td><td class='n'>" + l.units + "</td><td class='n'>" + l.before + "</td><td class='n'>" + l.after + "</td><td class='n'>" + l.now + "</td></tr>"; }).join("") + "</table></div>";
     if ((d.history || []).length) h += "<div class='card'><h2>History</h2>" + d.history.slice().reverse().map(function (x) { return "<div class='m'>" + esc(String(x.at).replace("T", " ").slice(0, 16)) + " &middot; " + esc(x.what) + (x.by ? " &middot; " + esc(x.by) : "") + "</div>"; }).join("") + "</div>";
     $("view").innerHTML = h;
-    $("dBack").onclick = function () { go(s === "posted" ? "posted" : (s === "pending_approval" || s === "approved") ? "approval" : (s === "error" || s === "needs_fix") ? "errors" : "drafts"); };
+    $("dBack").onclick = function () { go(s === "posted" ? "posted" : (s === "pending_approval" || s === "approved" || s === "till_draft") ? "approval" : (s === "error" || s === "needs_fix") ? "errors" : "drafts"); };
     if (ed) {
       ["dRef", "dDate", "dStaff", "dSup"].forEach(function (id) { $(id).onchange = function () { d.ref = $("dRef").value.trim(); d.date = $("dDate").value; d.staff = $("dStaff").value.trim(); d.sid = $("dSup").value; touch(); }; });
       $("dFind").onclick = function () { findProduct($("dCode").value); };
@@ -475,6 +475,7 @@
     if (s === "pending_approval") h += m ? "<button class='btn' id='aApprove' style='margin-top:8px'>Approve and send to till (" + esc(m.name) + ")</button><button class='btn sec' id='aReject' style='margin-top:8px'>Send back to staff</button>" : "<div class='msg warn'>A manager must approve this. Log in on the Manager tab.</div>";
     if (s === "error" && m) h += "<button class='btn o' id='aRetry' style='margin-top:8px'>Retry sending to till</button>";
     if (s === "approved" && m) h += "<button class='btn sec' id='aReject' style='margin-top:8px'>Cancel approval</button>";
+    if (s === "till_draft") h += "<div class='msg ok'>Saved on the till as draft " + esc(((d.till_draft || {}).review_id) || "") + ". Open it on the till's Stock In screen and finish it there. Stock is not added until then. Do not post it from anywhere else.</div>";
     h += "<div id='aMsg'></div>";
     $("acts").innerHTML = h;
     var b = function (id, fn) { if ($(id)) $(id).onclick = fn; };
@@ -490,8 +491,8 @@
     b("aRconf", function () { var ls = d.lines.map(function (l, i) { return { pid: l.pid, ret: num($("acts").querySelector("[data-ri='" + i + "']").value) }; }); queueEv({ t: "rconfirm", id: d.id, by: staff(), lines: ls }); d.localStatus = "pending_approval"; saveLocal(d); say("aMsg", "Return confirmed. When a manager approves it, till stock goes down.", "ok"); renderTabs(); });
     b("aApprove", function () {
       var w = (d.warnings || []).length ? "\n\nWarnings:\n" + d.warnings.join("\n") : "";
-      if (!confirm("Approve " + supName(d.sid) + " " + (d.ref || "") + " for " + money(lineTotals(d).t) + " ex VAT? It will be posted to the till." + w)) return;
-      signed("approve", d.id, d.rev).then(function () { d.localStatus = "approved"; saveLocal(d); say("aMsg", "Approved. It goes to the till at the next update and shows in Posted Deliveries once the till confirms it.", "ok"); renderTabs(); });
+      if (!confirm("Approve " + supName(d.sid) + " " + (d.ref || "") + " for " + money(lineTotals(d).t) + " ex VAT? It will be saved on the till as a draft stock in. Stock goes in when the draft is finished on the till." + w)) return;
+      signed("approve", d.id, d.rev).then(function () { d.localStatus = "approved"; saveLocal(d); say("aMsg", "Approved. It is saved on the till as a draft at the next update. Finish it on the till's Stock In screen; it shows in Posted Deliveries once that is done.", "ok"); renderTabs(); });
     });
     b("aReject", function () { var r = prompt("Reason for sending it back", ""); if (r === null) return; signed("reject", d.id, d.rev, { reason: r }).then(function () { d.localStatus = d.kind === "return" ? "recorded" : "draft"; saveLocal(d); say("aMsg", "Sent back.", "ok"); renderTabs(); }); });
     b("aRetry", function () { signed("retry", d.id, d.rev).then(function () { d.localStatus = "approved"; saveLocal(d); say("aMsg", "It will be sent again at the next update. It can never post twice.", "ok"); }); });
