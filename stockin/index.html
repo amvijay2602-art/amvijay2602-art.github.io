@@ -340,7 +340,7 @@
       if (!l.vat) iss.push("VAT missing for " + nm);
       var units = num(l.rcv) * num(l.upc) - num(l.damaged); if (units < 0) iss.push("Damaged is more than received for " + nm); if (units > 0) ok++;
     });
-    if (!ok) iss.push("Nothing to post yet");
+    if (!ok) iss.push((d.lines || []).length && (d.lines || []).every(function (l) { return l.leave_out; }) ? "Nothing to post yet: every line is ticked Leave out. Untick Leave out on the items that came." : "Nothing to post yet: no line has a till product and a received quantity above 0.");
     if (d.scan && !d.delivered_checked) iss.push("Tick 'Delivered quantities checked' after checking what actually arrived");
     return iss;
   }
@@ -369,6 +369,8 @@
       h += "<div class='m' style='margin-top:6px'>Expected = what the invoice says. Change Received if short or extra, add Damaged units, tick Leave out if an item did not come. Items that came but are not on the invoice: Add a product below.</div>" +
         (ed ? "<label style='display:block;margin-top:8px;font-weight:800'><input type='checkbox' id='dChecked'" + (d.delivered_checked ? " checked" : "") + "> Delivered quantities checked</label>" : (d.delivered_checked ? "<div class='m'>Delivered quantities checked by " + esc(d.delivered_checked.by || "") + "</div>" : ""));
     }
+    var lcp = jget(K.docs, {})[d.id], svd = docsById()[d.id];
+    if (lcp && svd && lcp.unsent && (lcp.rev || 0) < (svd.rev || 0)) h += "<div class='note'>This phone had unsaved changes to an older copy of this draft. Grok Bot updated it on the box since then, so the box copy is shown. Check the lines and change them again if needed.</div>";
     h += "<div class='m' style='margin-top:6px'><b>" + money(tt.t) + "</b> ex VAT &middot; " + money(tt.ti) + " inc VAT &middot; " + tt.u + " units</div>";
     if (s === "needs_fix") (d.issues || []).forEach(function (x) { h += "<div class='flag'>" + esc(x) + "</div>"; });
     (d.warnings || []).forEach(function (x) { h += "<div class='note'>" + esc(x) + "</div>"; });
