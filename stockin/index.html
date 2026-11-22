@@ -70,6 +70,10 @@
     .grid label { font-size: .75rem; font-weight: 800; color: #5b6573; display: block; }
     .grid input, .grid select { min-height: 42px; padding: 6px 8px; }
     .flag { font-size: .82rem; font-weight: 700; color: #c62828; margin-top: 6px; } .note { font-size: .82rem; font-weight: 700; color: #8a4b08; margin-top: 6px; }
+    .price-alert { background: #fef3c7; color: #8a4b08; border: 1px solid #f5d48a; border-radius: 12px; padding: 10px 12px; margin-top: 8px; font-size: .92rem; font-weight: 700; }
+    .price-alert b { display: block; margin-bottom: 4px; }
+    .st.pricechg { background: #fef3c7; color: #8a4b08; }
+    .line.pricechg { border-color: #e6b35c; background: #fffbeb; }
     .pill { position: fixed; top: 8px; right: 8px; z-index: 9999; background: #fef3c7; color: #8a4b08; border-radius: 999px; padding: 4px 10px; font-size: .8rem; font-weight: 800; }
     .mgrbar { position: fixed; top: 8px; left: 8px; z-index: 9999; background: var(--bk-g); color: #fff; border-radius: 999px; padding: 4px 10px; font-size: .8rem; font-weight: 800; }
     table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -117,6 +121,46 @@
   function staff() { try { return localStorage.getItem("birkhill-staff-name") || ""; } catch (e) { return ""; } }
   function money(n) { return n == null || n === "" || isNaN(Number(n)) ? "-" : "\u00a3" + Number(n).toFixed(2); }
   function num(v) { var n = parseFloat(v); return isNaN(n) ? 0 : n; }
+
+  function costChanged(oldC, neu) {
+    if (!(oldC > 0) || neu == null || isNaN(neu)) return false;
+    var oldP = Math.round(oldC * 100), newP = Math.round(neu * 100);
+    if (oldP === newP) return false;
+    var diff = Math.abs(newP - oldP) / 100;
+    if (diff >= 0.02) return true;
+    return (diff / oldC) * 100 >= 3;
+  }
+  function pmpFromName(s) {
+    s = String(s || "").replace(/\?/g, "\u00a3");
+    var m = s.match(/\u00a3\s?(\d{1,2}(?:\.\d{1,2})?)/) || s.match(/\bPM\s?\u00a3?\s?(\d{1,2}\.\d{2})\b/i);
+    if (m) { var v = parseFloat(m[1]); if (v >= 0.05 && v <= 60) return Math.round(v * 100) / 100; }
+    return null;
+  }
+  function suggestedSell(cost, vat, sell, name) {
+    var pm = pmpFromName(name);
+    if (pm != null) return pm;
+    if (!(cost > 0)) return null;
+    var v = (vat === "NA" || vat === "" || vat == null) ? 0 : num(vat);
+    var need = cost * (1 + v / 100) / (1 - 0.30);
+    var p = Math.ceil((need * 100) / 10) * 10 - 1;
+    var prop = Math.max(p, 9) / 100;
+    if (sell > 0 && prop <= sell) return Math.round(sell * 100) / 100;
+    return Math.round(prop * 100) / 100;
+  }
+  function lineCostAlert(l, p) {
+    if (!p || l.leave_out || l.case_cost === "" || l.case_cost == null || !num(l.upc) || !(p.c > 0)) return null;
+    var neu = num(l.case_cost) / num(l.upc);
+    if (!costChanged(p.c, neu)) return null;
+    var pct = ((neu - p.c) / p.c) * 100;
+    var sug = suggestedSell(neu, l.vat != null && l.vat !== "" ? l.vat : vatOf(p), p.p, (p.n || "") + " " + (l.inv_name || ""));
+    return { old: p.c, neu: neu, pct: pct, sell: p.p, suggested: sug };
+  }
+  function docCostAlerts(d) {
+    return (d.lines || []).map(function (l) {
+      var a = lineCostAlert(l, BYID[l.pid]);
+      return a ? { name: (BYID[l.pid] && BYID[l.pid].n) || l.name || l.inv_name || "", a: a } : null;
+    }).filter(Boolean);
+  }
   function londonParts() { var f = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).formatToParts(new Date()); var o = {}; f.forEach(function (p) { o[p.type] = p.value; }); return o; }
   function londonISO() { var o = londonParts(); return o.year + "-" + o.month + "-" + o.day; }
   function londonAt() { var o = londonParts(); return o.year + "-" + o.month + "-" + o.day + "T" + (o.hour === "24" ? "00" : o.hour) + ":" + o.minute + ":" + o.second; }
@@ -259,8 +303,10 @@
     if (!ds.length) return "<div class='card empty'>" + empty + "</div>";
     return "<div class='list'>" + ds.map(function (d) {
       var s = status(d), n = (d.lines || []).filter(function (l) { return !l.leave_out; }).length;
-      return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(supName(d.sid)) + " &middot; " + esc(d.ref || d.id) + " <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span></div>" +
+      var chg = docCostAlerts(d);
+      return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(supName(d.sid)) + " &middot; " + esc(d.ref || d.id) + " <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span>" + (chg.length ? " <span class='st pricechg'>Price changes: " + chg.length + "</span>" : "") + "</div>" +
         "<div class='m'>" + esc(ukDate(d.date)) + " &middot; " + n + " lines &middot; " + money(docTotal(d)) + " ex VAT &middot; " + esc(d.staff || "") + (d.kind === "return" ? " &middot; supplier return" : "") + (d.source ? " &middot; " + esc(d.source) : "") + "</div>" +
+        (chg.length ? "<div class='note'>Supplier price changes: " + chg.map(function (x) { return esc(x.name) + " " + money(x.a.old) + " → " + money(x.a.neu) + " (" + (x.a.pct >= 0 ? "+" : "") + x.a.pct.toFixed(0) + "%)"; }).join("; ") + "</div>" : "") +
         (d.error ? "<div class='flag'>" + esc(d.error) + "</div>" : "") + ((d.issues || []).length && s === "needs_fix" ? "<div class='flag'>" + esc(d.issues.length + " problem(s): " + d.issues[0]) + "</div>" : "") +
         (d.waiting && s === "approved" ? "<div class='note'>" + esc(d.waiting) + "</div>" : "") + (d.till ? "<div class='m'>Till " + (d.kind === "return" ? "StockReturn " : "StockIn ") + esc(d.till.till_id) + (d.reconcile && d.reconcile.ok ? ", reconciled" : d.reconcile ? ", MISMATCH" : "") + "</div>" : "") + "</div>";
     }).join("") + "</div>";
@@ -403,6 +449,15 @@
     var lcp = jget(K.docs, {})[d.id], svd = docsById()[d.id];
     if (lcp && svd && lcp.unsent && (lcp.rev || 0) < (svd.rev || 0)) h += "<div class='note'>This phone had unsaved changes to an older copy of this draft. Grok Bot updated it on the box since then, so the box copy is shown. Check the lines and change them again if needed.</div>";
     h += "<div class='m' style='margin-top:6px'><b>" + money(tt.t) + "</b> ex VAT &middot; " + money(tt.ti) + " inc VAT &middot; " + tt.u + " units</div>";
+    var chg = docCostAlerts(d);
+    if (chg.length) {
+      h += "<div class='price-alert'><b>Supplier price changes: " + chg.length + " line" + (chg.length === 1 ? "" : "s") + "</b>" +
+        chg.map(function (x) {
+          var a = x.a, sug = a.suggested != null ? "; suggested sell " + money(a.suggested) + (a.sell && Math.abs(a.sell - a.suggested) >= 0.005 ? " (till " + money(a.sell) + ")" : "") : "";
+          return "<div>" + esc(x.name) + ": till cost " + money(a.old) + " → invoice " + money(a.neu) + " (" + (a.pct >= 0 ? "+" : "") + a.pct.toFixed(0) + "%)" + sug + "</div>";
+        }).join("") +
+        "<div class='lm' style='margin-top:4px'>The till cost does not change until this draft is finished on the till. Selling prices still wait for your yes.</div></div>";
+    }
     if (s === "needs_fix") (d.issues || []).forEach(function (x) { h += "<div class='flag'>" + esc(x) + "</div>"; });
     (d.warnings || []).forEach(function (x) { h += "<div class='note'>" + esc(x) + "</div>"; });
     if (d.error) h += "<div class='msg err'>" + esc(d.error) + "</div>";
@@ -432,8 +487,9 @@
   function lineHtml(d, l, i, ed) {
     var p = BYID[l.pid], bad = !l.leave_out && (!l.pid || (l.match === "suggested" && !l.confirmed) || l.case_cost === "" || l.case_cost == null || !l.vat || !(num(l.upc) > 0));
     var hasExp = l.exp !== "" && l.exp != null, short = hasExp && num(l.rcv) < num(l.exp), extra = hasExp && num(l.rcv) > num(l.exp);
-    var h = "<div class='line" + (bad ? " bad" : "") + (l.leave_out ? " out" : "") + "' data-i='" + i + "'><div class='lh'><div class='pic'>" + picHtml(l.pid) + "</div><div style='flex:1;min-width:0'>" +
-      "<div class='ln'>" + esc(p ? p.n + (p.s && p.n.indexOf(p.s) < 0 ? " " + p.s : "") : (l.inv_name || l.name || "Not on the till")) + "</div>" +
+    var ca = lineCostAlert(l, p);
+    var h = "<div class='line" + (bad ? " bad" : "") + (l.leave_out ? " out" : "") + (ca ? " pricechg" : "") + "' data-i='" + i + "'><div class='lh'><div class='pic'>" + picHtml(l.pid) + "</div><div style='flex:1;min-width:0'>" +
+      "<div class='ln'>" + esc(p ? p.n + (p.s && p.n.indexOf(p.s) < 0 ? " " + p.s : "") : (l.inv_name || l.name || "Not on the till")) + (ca ? " <span class='st pricechg'>Price change</span>" : "") + "</div>" +
       "<div class='lm'>" + (l.bc ? "Barcode " + esc(l.bc) + (l.bc_src === "till" ? " (from the till product, not on the invoice)" : "") : "No barcode") + (p ? " &middot; till " + p.id + " &middot; stock " + p.q + " &middot; sells " + money(p.p) : "") + "</div>" +
       (l.inv_name && p ? "<div class='lm'>Invoice: " + esc(l.inv_name) + (l.inv_code ? " (" + esc(l.inv_code) + ")" : "") + "</div>" : "") +
       (p && p.ld ? "<div class='lm'>Last buy " + ukDate(p.ld) + " " + esc(p.ls) + ": " + money(p.lcc) + " for " + (p.lupc || "?") + "</div>" : "") +
@@ -447,7 +503,10 @@
     if (short) h += "<div class='note'>Short by " + (num(l.exp) - num(l.rcv)) + " case(s)</div>"; if (extra) h += "<div class='note'>Extra " + (num(l.rcv) - num(l.exp)) + " case(s)</div>";
     if (num(l.damaged)) h += "<div class='note'>" + l.damaged + " damaged unit(s), not added to stock</div>";
     if (l.cost_src && l.cost_src !== "invoice") h += "<div class='note'>Cost from " + esc(l.cost_src) + "</div>";
-    if (p && l.case_cost !== "" && l.case_cost != null && num(l.upc) && p.c > 0 && Math.abs(num(l.case_cost) / num(l.upc) - p.c) / p.c > 0.1) h += "<div class='note'>Cost change: till " + money(p.c) + ", this " + money(num(l.case_cost) / num(l.upc)) + " a unit. Manager approval updates the till cost.</div>";
+    if (ca) {
+      var sug = ca.suggested != null ? " Suggested sell " + money(ca.suggested) + (ca.sell && Math.abs(ca.sell - ca.suggested) >= 0.005 ? " (till sells at " + money(ca.sell) + ")" : "") + "." : "";
+      h += "<div class='price-alert'>Supplier price change: till cost " + money(ca.old) + " → invoice " + money(ca.neu) + " (" + (ca.pct >= 0 ? "+" : "") + ca.pct.toFixed(0) + "%)." + sug + " The till cost does not change until this draft is finished on the till. Selling prices still wait for your yes.</div>";
+    }
     if (l.note) h += "<div class='note'>" + esc(l.note) + "</div>";
     if ((l.flags || []).length && !l.leave_out) h += "<div class='" + (l.checked ? "lm" : "flag") + "'>" + (l.checked ? "Checked after reading problems: " : "Hard to read on the invoice: ") + esc(l.flags.join("; ")) + "</div>";
     if (ed && l.match === "suggested" && !l.confirmed && (l.alts || []).length) h += "<div class='lm' style='margin-top:4px'>Other possible matches:</div><div class='row' style='flex-wrap:wrap'>" + l.alts.filter(function (a) { return BYID[a]; }).map(function (a) { return "<button class='btn small sec' data-alt='" + a + "' style='flex:0 0 auto'>" + esc(BYID[a].n) + "</button>"; }).join("") + "</div>";
