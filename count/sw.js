@@ -1,4 +1,4 @@
-const CACHE_NAME = "birkhill-stock-count-v4-gh";
+const CACHE_NAME = "birkhill-stock-count-v5-gh";
 const IMG_CACHE = "birkhill-stock-count-img";
 self.addEventListener("install", function (e) { e.waitUntil(caches.open(CACHE_NAME).then(function () { return self.skipWaiting(); })); });
 self.addEventListener("activate", function (e) {

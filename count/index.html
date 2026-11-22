@@ -144,7 +144,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
           <div class="till" id="cTill"></div>
         </div>
       </div>
-      <div class="steps"><span id="st1">1 Scan</span><span id="st2">2 Date</span><span id="st3">3 Count</span></div>
+      <div class="steps"><span id="st1">1 Scan</span><span id="st2">2 Count</span><span id="st3">3 Date</span></div>
     </div>
     <div class="card" id="pScan">
       <h3>Scan the item shown</h3>
@@ -159,12 +159,24 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       </div>
       <div class="row"><button class="btn sec" id="manualBtn">Enter barcode manually</button><button class="btn red" id="notFoundBtn">Item not found</button></div>
     </div>
+    <div class="card hidden" id="pCount">
+      <h3>How many? Count the shelf and the back room</h3>
+      <div class="muted" id="oosHint">If you count 0, the date is skipped and this is saved as Out of Stock.</div>
+      <div class="qty"><button id="minus" aria-label="Minus one">&minus;</button><input type="text" id="countIn" inputmode="numeric" autocomplete="off" aria-label="Counted quantity"><button id="plus" aria-label="Plus one">+</button></div>
+      <div id="diffMsg"></div>
+      <button class="btn warn hidden" id="recountBtn">Recount</button>
+      <label class="f" for="heldIn">Held or removed (damaged, out of date), part of the total. Optional</label>
+      <input type="text" id="heldIn" inputmode="numeric" placeholder="0">
+      <label class="f" for="noteIn">Note (optional)</label>
+      <input type="text" id="noteIn" placeholder="e.g. 2 in the back room">
+      <div id="countMsg"></div>
+    </div>
     <div class="card hidden" id="pDate">
       <h3>Date check</h3>
       <div class="opts" id="dtOpts">
         <button class="opt" data-t="useby">Use by</button><button class="opt" data-t="bestbefore">Best before</button>
         <button class="opt" data-t="nodate">No date applies</button><button class="opt" data-t="unreadable">Cannot read date</button>
-        <button class="opt" data-t="nounits" id="noUnitsOpt" style="grid-column:1/-1">No units to check (none here)</button>
+        <button class="opt hidden" data-t="nounits" id="noUnitsOpt" style="grid-column:1/-1">No units to check (none here)</button>
       </div>
       <div id="batchBox" class="hidden">
         <div class="muted" style="margin-top:8px">Earliest date first. Date as DD/MM/YYYY and how many have that date.</div>
@@ -174,17 +186,6 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       <div id="dpBox"><div id="dpHint"></div><button class="btn sec" id="datePhotoBtn">&#128247; Take photo of date</button><div id="datePhotos" class="dphotos"></div></div>
       <input type="date" id="nativeDate" class="hidden" aria-hidden="true">
       <div id="dateMsg"></div>
-    </div>
-    <div class="card hidden" id="pCount">
-      <h3>How many? Count the shelf and the back room</h3>
-      <div class="qty"><button id="minus" aria-label="Minus one">&minus;</button><input type="text" id="countIn" inputmode="numeric" autocomplete="off" aria-label="Counted quantity"><button id="plus" aria-label="Plus one">+</button></div>
-      <div id="diffMsg"></div>
-      <button class="btn warn hidden" id="recountBtn">Recount</button>
-      <label class="f" for="heldIn">Held or removed (damaged, out of date), part of the total. Optional</label>
-      <input type="text" id="heldIn" inputmode="numeric" placeholder="0">
-      <label class="f" for="noteIn">Note (optional)</label>
-      <input type="text" id="noteIn" placeholder="e.g. 2 in the back room">
-      <div id="countMsg"></div>
     </div>
     <div class="card" id="scannedBox">
       <div class="bk-scanned" style="margin-top:0;padding-top:0;border-top:0">
@@ -374,7 +375,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   function newId() { var t = new Date(); return "SC" + londonISO(t).replace(/-/g, "") + ("0" + t.getHours()).slice(-2) + ("0" + t.getMinutes()).slice(-2) + Math.random().toString(36).slice(2, 5).toUpperCase(); }
   function begin(d) {
     S = { id: newId(), key: d.key, name: d.name, staff: staff(), staffAll: [staff()], started: new Date().toISOString(), startedText: londonTime(),
-          snap: DATA.taken_display, snapIso: DATA.taken_at_iso, items: JSON.parse(JSON.stringify(d.items)), idx: 0, res: {}, hist: [], finished: false };
+          snap: DATA.taken_display, snapIso: DATA.taken_at_iso, items: JSON.parse(JSON.stringify(d.items)), idx: 0, res: {}, hist: [], finished: false,
+          datecheck: !!d.datecheck, deptId: d.id };
     save(); row("COUNTSTART", [S.id, S.key, S.name, "total " + S.items.length, S.staff, "snap " + S.snapIso, "v2"], S.items.length);
     go("count");
   }
@@ -389,7 +391,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       var items = JSON.parse(JSON.stringify(d.items)), res = {};
       Object.keys(o.res || {}).forEach(function (id) { res[id] = o.res[id]; items.forEach(function (it) { if (String(it.id) === String(id) && o.res[id].till != null) it.q = o.res[id].till; }); });
       S = { id: o.id, key: o.key, name: o.dept, staff: staff(), staffAll: (o.staff_all || [o.staff]).concat([staff()]), started: o.started_iso || new Date().toISOString(), startedText: o.started_display || "",
-            snap: o.snap_display || DATA.taken_display, snapIso: o.snap_iso || DATA.taken_at_iso, items: items, idx: 0, res: res, hist: [], finished: false };
+            snap: o.snap_display || DATA.taken_display, snapIso: o.snap_iso || DATA.taken_at_iso, items: items, idx: 0, res: res, hist: [], finished: false,
+            datecheck: !!(d && d.datecheck), deptId: d && d.id };
       var i = firstPending(0); S.idx = i < 0 ? 0 : i;
       save(); row("COUNTTAKEOVER", [S.id, S.key, S.name, "from " + o.staff, S.staff, "v2"], counted(S));
       go("count");
@@ -398,6 +401,20 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   function item() { return S.items[S.idx]; }
   function firstPending(from) { for (var i = from; i < S.items.length; i++) if (!S.res[S.items[i].id]) return i; return -1; }
   function nextIndex() { var i = firstPending(S.idx + 1); if (i < 0) i = firstPending(0); return i; }
+  // Daily date-check departments (chiller list + bread, cakes, bakery, fruit & veg). Used if a snapshot has no dc flag.
+  var DATECHECK_DEPTS = { 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 15: 1, 16: 1, 19: 1, 41: 1, 62: 1, 74: 1, 77: 1, 88: 1, 89: 1 };
+  function needsDateCheck(it) {
+    it = it || (S ? item() : null);
+    if (it && (it.dc === true || it.dc === 1)) return true;
+    if (it && it.dc === false) return false;
+    if (S && S.datecheck) return true;
+    var did = it && it.did != null ? it.did : (S && S.deptId);
+    if (did == null && S && S.key) { var m = /^D(\d+)$/.exec(S.key); if (m) did = +m[1]; }
+    return !!(did && DATECHECK_DEPTS[did]);
+  }
+  function countedQty() { var v = $("countIn") ? $("countIn").value.trim() : ""; return /^\d+$/.test(v) ? +v : null; }
+  function isOutOfStock(r) { return r && r.status === "counted" && (r.count === 0 || r.stock === "Out of Stock"); }
+  window.__stockCountNeedsDateCheck = needsDateCheck;
   // count screen
   function noPic() { return "<div class='nopic'><span class='e'>&#128247;</span>Photo missing</div>"; }
   function setPic(el, it) {
@@ -408,7 +425,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   function dateStatusText(r) {
     if (!r) return "";
     if (r.status === "skip") return "Skipped" + (r.note ? " (" + r.note + ")" : "");
-    var labels = { useby: "Use by", bestbefore: "Best before", nodate: "No date applies", unreadable: "Cannot read date", nounits: "No units to check" };
+    var labels = { useby: "Use by", bestbefore: "Best before", nodate: "No date applies", unreadable: "Cannot read date", nounits: "No units to check", oos: "Out of Stock" };
     var t = labels[r.dtype] || "";
     var first = r.batches && r.batches[0];
     if (first && first.d) {
@@ -435,7 +452,6 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     S.idx = entry.i;
     save();
     renderCount();
-    setStep(3);
     window.scrollTo(0, 0);
   }
   function removeCounted(entry) {
@@ -464,7 +480,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       qty: function (e) { return Number(e.r.count) || 0; },
       extra: function (e) {
         var d = dateStatusText(e.r);
-        return "Till stock " + e.r.till + (d ? "  ·  " + d : "");
+        var oos = isOutOfStock(e.r) ? "Out of Stock" : "";
+        return "Till stock " + e.r.till + (oos ? "  ·  " + oos : "") + (d && !oos ? "  ·  " + d : "");
       },
       onPlus: function (e) { openCounted(e); },
       onMinus: function (e) { openCounted(e); },
@@ -493,29 +510,44 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     $("manualBox").classList.add("hidden"); $("manualCode").value = ""; $("manualWhy").value = "";
     $("countIn").value = r && r.status === "counted" ? r.count : ""; $("heldIn").value = r && r.held ? r.held : ""; $("noteIn").value = r && r.status === "counted" ? (r.note || "") : "";
     $("diffMsg").innerHTML = ""; $("countMsg").innerHTML = ""; $("dateMsg").innerHTML = ""; $("recountBtn").classList.add("hidden");
-    setStep(r && r.status === "counted" ? 3 : 1);
-    if (r && r.status === "counted") diff();
+    if (r && r.status === "counted" && isOutOfStock(r)) $("countMsg").innerHTML = "<div class='msg warn'>Saved as Out of Stock. Date was not needed.</div>";
+    if (r && r.status === "counted") {
+      if (isOutOfStock(r) || !needsDateCheck(it)) setStep(2);
+      else setStep(3);
+      diff();
+    } else setStep(1);
     var n = firstPending(S.idx + 1); if (n >= 0 && S.items[n].i) { var pre = new Image(); pre.src = "img/" + S.items[n].i; }
     renderScannedSession();
   }
+  function countMainLabel() {
+    var c = countedQty();
+    if (c === 0) return "Save as Out of Stock";
+    if (c > 0 && needsDateCheck()) return "Next: date";
+    return "Save and next";
+  }
   function setStep(n) {
     step = n; stopCam();
-    $("pScan").classList.toggle("hidden", n !== 1); $("pDate").classList.toggle("hidden", n !== 2); $("pCount").classList.toggle("hidden", n !== 3);
+    $("pScan").classList.toggle("hidden", n !== 1);
+    $("pCount").classList.toggle("hidden", n !== 2);
+    $("pDate").classList.toggle("hidden", n !== 3);
+    var showDate = needsDateCheck();
+    $("st3").classList.toggle("hidden", !showDate && n !== 3);
     [1, 2, 3].forEach(function (k) { $("st" + k).className = k === n ? "on" : (k < n ? "done" : ""); });
-    if (n === 2) renderDate();
+    if (n === 3) renderDate();
+    if (n === 2) setTimeout(function () { if ($("countIn")) $("countIn").focus(); }, 60);
     bar();
   }
   function bar() {
-    var main = step === 1 ? "<button class='btn o' id='aMain'>&#128247; Scan barcode</button>" : step === 2 ? "<button class='btn o' id='aMain'>Next: count</button>" : "<button class='btn o' id='aMain'>Save and next</button>";
+    var main = step === 1 ? "<button class='btn o' id='aMain'>&#128247; Scan barcode</button>" : step === 2 ? "<button class='btn o' id='aMain'>" + countMainLabel() + "</button>" : "<button class='btn o' id='aMain'>Save and next</button>";
     $("actionIn").innerHTML = main + "<div class='small'><button class='btn sec' id='aPrev'>&#8592; Previous</button><button class='btn sec' id='aPause'>Pause</button><button class='btn sec' id='aSkip'>Skip</button></div>";
     $("actionBar").classList.remove("hidden");
-    $("aMain").onclick = step === 1 ? toggleCam : step === 2 ? dateNext : saveCount;
+    $("aMain").onclick = step === 1 ? toggleCam : step === 2 ? countNext : dateSave;
     $("aPrev").onclick = prev; $("aPause").onclick = pausePop; $("aSkip").onclick = skipPop;
     $("aPrev").disabled = S.idx === 0;
   }
   $("st1").onclick = function () { setStep(1); };
   $("st2").onclick = function () { if (cur.scan) setStep(2); };
-  $("st3").onclick = function () { if (cur.scan && cur.dtype) setStep(3); };
+  $("st3").onclick = function () { if (cur.scan && countedQty() > 0 && needsDateCheck()) setStep(3); };
   $("cPic").onclick = function () {
     var it = item();
     pop("<div class='zoom'>" + (it.i ? "<img src='img/" + esc(it.i) + "' alt=''>" : "<div class='msg err'>Photo missing. It is flagged for a manager. Never use a picture of a similar product.</div>") + "</div><div class='pname' style='margin-top:8px'>" + esc(it.n) + "</div><div class='muted'>" + esc(it.s || "") + " " + esc(it.b.join(", ")) + (it.isrc ? "<br>Picture from " + esc(it.isrc) : "") + "</div>" + (it.i ? "" : "<button class='btn sec' id='takePic'>Take a photo of this product</button>") + "<button class='btn' id='pOk'>Close</button>");
@@ -540,8 +572,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   };
   $("notFoundBtn").onclick = function () {
     confirmPop("Item not found?", "This records <b>" + esc(item().n) + "</b> as not found, 0 counted, and flags it for a manager. Only do this after checking the shelf and the back room.", "Record not found (0)", "Keep looking", function (y) {
-      if (!y) return; cur.scan = "notfound"; cur.code = ""; cur.dtype = "nounits"; cur.batches = [];
-      commit({ status: "counted", count: 0, held: 0, note: "Item not found" });
+      if (!y) return; cur.scan = "notfound"; cur.code = ""; cur.dtype = "oos"; cur.batches = [];
+      commit({ status: "counted", count: 0, held: 0, note: "Item not found", stock: "Out of Stock" });
     });
   };
   var cam = { on: false, stream: null, det: null, timer: null, zx: null }, actx = null;
@@ -620,12 +652,13 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       each($("batches").querySelectorAll(".bq"), function (el) { el.oninput = function () { el.value = el.value.replace(/[^\d]/g, ""); cur.batches[+el.getAttribute("data-i")].q = el.value; }; });
       each($("batches").querySelectorAll(".rm"), function (el) { el.onclick = function () { cur.batches.splice(+el.getAttribute("data-i"), 1); renderDate(); }; });
       each($("batches").querySelectorAll(".cal"), function (el) { el.onclick = function () { var nd = $("nativeDate"); nd.dataset.i = el.getAttribute("data-i"); nd.classList.remove("hidden"); try { nd.showPicker(); } catch (e) { nd.focus(); } }; });
-    }
+      $("addBatch").classList.toggle("hidden", cur.batches.length >= 3);
+    } else $("addBatch").classList.remove("hidden");
     dateAlerts(); renderPhotos();
   }
   $("nativeDate").onchange = function () { var i = +this.dataset.i, v = this.value; if (v && cur.batches[i]) { cur.batches[i].d = v; cur.batches[i].t = dmy(v); } this.classList.add("hidden"); renderDate(); };
   each($("dtOpts").querySelectorAll(".opt"), function (b) { b.onclick = function () { cur.dtype = b.getAttribute("data-t"); if (cur.dtype !== "useby" && cur.dtype !== "bestbefore") cur.batches = []; renderDate(); }; });
-  $("addBatch").onclick = function () { cur.batches.push({ d: "", q: "", u: uid() }); renderDate(); };
+  $("addBatch").onclick = function () { if (cur.batches.length >= 3) { $("dateMsg").innerHTML = "<div class='msg err'>You can add up to three date batches.</div>"; return; } cur.batches.push({ d: "", q: "", u: uid() }); renderDate(); };
   function alertFor(dtype, iso) {
     if (!iso) return null; var t = londonISO(), soon = addDays(t, soonDays());
     if (iso < t) return dtype === "useby" ? { k: "err", t: "Past use-by" } : { k: "warn", t: "Past best-before" };
@@ -638,24 +671,40 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     if (cur.dtype === "useby" || cur.dtype === "bestbefore") cur.batches.forEach(function (b) { if (b.t && b.t.length === 10 && !b.d) h += "<div class='msg err'>" + esc(b.t) + " is not a real date.</div>"; var a = alertFor(cur.dtype, b.d); if (a) h += "<div class='msg " + a.k + "'>" + a.t + ": " + dmy(b.d) + (a.t === "Past use-by" ? ". Take it off sale and tell a manager." : "") + "</div>"; });
     $("dateMsg").innerHTML = h;
   }
-  function dateNext() {
-    if (!cur.dtype) { $("dateMsg").innerHTML = "<div class='msg err'>Choose one: Use by, Best before, No date applies, Cannot read date or No units to check.</div>"; return; }
+  function dateOk() {
+    if (!cur.dtype) { $("dateMsg").innerHTML = "<div class='msg err'>Choose one: Use by, Best before, No date applies or Cannot read date.</div>"; return false; }
     if (cur.dtype === "useby" || cur.dtype === "bestbefore") {
-      if (!cur.batches.length || cur.batches.some(function (b) { return !b.d; })) { $("dateMsg").innerHTML = "<div class='msg err'>Enter a real date as DD/MM/YYYY for every batch, or remove the empty batch.</div>"; return; }
-      if (cur.batches.some(function (b) { return !/^\d+$/.test(String(b.q)); })) { $("dateMsg").innerHTML = "<div class='msg err'>Enter how many have each date.</div>"; return; }
+      if (!cur.batches.length || cur.batches.some(function (b) { return !b.d; })) { $("dateMsg").innerHTML = "<div class='msg err'>Enter a real date as DD/MM/YYYY for every batch, or remove the empty batch.</div>"; return false; }
+      if (cur.batches.some(function (b) { return !/^\d+$/.test(String(b.q)); })) { $("dateMsg").innerHTML = "<div class='msg err'>Enter how many have each date.</div>"; return false; }
+      if (cur.batches.length > 3) { $("dateMsg").innerHTML = "<div class='msg err'>You can add up to three date batches.</div>"; return false; }
       cur.batches.sort(function (a, b) { return a.d < b.d ? -1 : 1; });
     }
     if (cur.dtype === "unreadable" && !cur.photos.length && !cur.noPhotoOk) {
-      confirmPop("No photo of the date", "The date can't be read. A photo lets a manager check it later. Take one now?", "Take photo", "Continue without", function (y) { if (y) pickPhotoFiles(""); else { cur.noPhotoOk = true; dateNext(); } });
-      return;
+      confirmPop("No photo of the date", "The date can't be read. A photo lets a manager check it later. Take one now?", "Take photo", "Continue without", function (y) { if (y) pickPhotoFiles(""); else { cur.noPhotoOk = true; dateSave(); } });
+      return false;
     }
-    setStep(3);
-    if (cur.dtype === "nounits") $("countMsg").innerHTML = "<div class='msg info'>No units to check: enter 0 if there are none.</div>";
-    setTimeout(function () { $("countIn").focus(); }, 60);
+    return true;
+  }
+  function dateSave() {
+    if (!dateOk()) return;
+    var c = countedQty();
+    if (c == null || c <= 0) { setStep(2); $("countMsg").innerHTML = "<div class='msg err'>Enter how many you counted first. If it is 0, save as Out of Stock on the count step.</div>"; return; }
+    var bsum = cur.batches.reduce(function (a, b) { return a + (+b.q || 0); }, 0);
+    if (bsum > c) { $("dateMsg").innerHTML = "<div class='msg err'>Date batch quantities (" + bsum + ") can't be more than the count (" + c + ").</div>"; return; }
+    var h = $("heldIn").value.trim(), held = h === "" ? 0 : +h;
+    if (held > c) { setStep(2); $("countMsg").innerHTML = "<div class='msg err'>Held or removed can't be more than the count.</div>"; return; }
+    commit({ status: "counted", count: c, held: held, note: $("noteIn").value.trim(), stock: "" });
   }
   // count
   function diff() {
-    var v = $("countIn").value.trim(); if (!/^\d+$/.test(v)) { $("diffMsg").innerHTML = ""; $("recountBtn").classList.add("hidden"); return; }
+    var v = $("countIn").value.trim();
+    if ($("aMain") && step === 2) $("aMain").textContent = countMainLabel();
+    if (!/^\d+$/.test(v)) { $("diffMsg").innerHTML = ""; $("recountBtn").classList.add("hidden"); return; }
+    if (+v === 0) {
+      $("diffMsg").innerHTML = "<div class='msg warn'>Out of Stock. The date is not needed. Save to go to the next product.</div>";
+      $("recountBtn").classList.remove("hidden");
+      return;
+    }
     var d = +v - (Number(item().q) || 0);
     $("diffMsg").innerHTML = "<div class='msg diff " + (d === 0 ? "ok" : d < 0 ? "err" : "warn") + "'>" + (d === 0 ? "Match" : d < 0 ? "Short by " + (-d) : "Over by " + d) + "</div>";
     $("recountBtn").classList.toggle("hidden", d === 0);
@@ -666,33 +715,40 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   $("plus").onclick = function () { $("countIn").value = (+$("countIn").value || 0) + 1; diff(); };
   $("recountBtn").onclick = function () { $("countIn").value = ""; diff(); $("countMsg").innerHTML = "<div class='msg info'>Count again carefully, shelf and back room.</div>"; $("countIn").focus(); };
   $("countIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); saveCount(); } });
-  function saveCount() {
+  function countNext() {
     if (busy) return;
     var v = $("countIn").value.trim(), h = $("heldIn").value.trim();
     if (!/^\d+$/.test(v)) { $("countMsg").innerHTML = "<div class='msg err'>Enter a whole number (0 if none).</div>"; return; }
     var c = +v, held = h === "" ? 0 : +h;
     if (held > c) { $("countMsg").innerHTML = "<div class='msg err'>Held or removed can't be more than the count.</div>"; return; }
     if (!cur.scan) { setStep(1); $("scanMsg").innerHTML = "<div class='msg err'>Scan the product first.</div>"; return; }
-    if (!cur.dtype) { setStep(2); $("dateMsg").innerHTML = "<div class='msg err'>Do the date check first.</div>"; return; }
-    if (cur.dtype === "nounits" && c > 0) { setStep(2); $("dateMsg").innerHTML = "<div class='msg err'>You counted " + c + ", so there are units to check. Choose the date type.</div>"; return; }
-    var bsum = cur.batches.reduce(function (a, b) { return a + (+b.q || 0); }, 0);
-    if (bsum > c) { setStep(2); $("dateMsg").innerHTML = "<div class='msg err'>Date batch quantities (" + bsum + ") can't be more than the count (" + c + ").</div>"; return; }
-    var doSave = function () { commit({ status: "counted", count: c, held: held, note: $("noteIn").value.trim() }); };
-    if (c === 0) confirmPop("Confirm zero", "You counted <b>0</b> of " + esc(item().n) + ". Have you checked the shelf and the back room?", "Yes, 0", "Recount", function (y) { if (y) doSave(); else $("recountBtn").click(); });
-    else doSave();
+    if (c === 0) {
+      cur.dtype = "oos";
+      cur.batches = [];
+      commit({ status: "counted", count: 0, held: held, note: $("noteIn").value.trim(), stock: "Out of Stock" });
+      return;
+    }
+    // Till stock 0 with a count above 0 uses the normal process (no shortcut).
+    if (needsDateCheck()) { setStep(3); return; }
+    cur.dtype = "nodate";
+    cur.batches = [];
+    commit({ status: "counted", count: c, held: held, note: $("noteIn").value.trim(), stock: "" });
   }
+  function saveCount() { countNext(); }
   function commit(r) {
     if (busy) return; busy = true;
     var it = item(), prevR = S.res[it.id];
     r.scan = cur.scan || "skip"; r.code = cur.code || ""; r.dtype = r.status === "skip" ? "" : cur.dtype;
     r.batches = r.status === "skip" ? [] : cur.batches.filter(function (b) { return b.d; }).map(function (b) { return { d: b.d, q: b.q, u: b.u }; });
     r.till = Number(it.q) || 0; r.at = new Date().toISOString(); r.atText = londonTime(); r.staff = S.staff;
+    if (r.status === "counted" && r.count === 0) { r.stock = "Out of Stock"; r.dtype = "oos"; r.batches = []; }
+    else r.stock = r.stock || "";
     if (prevR) S.hist.push({ id: it.id, was: prevR, at: r.at });
     S.res[it.id] = r; save();
     var first = r.batches[0];
     row("COUNT", [S.id, S.key, S.name, it.id, it.b[0] || "", it.n, it.s, "till " + r.till, "count " + (r.status === "skip" ? "SKIP" : r.count), "bb " + (first ? first.d : "none"),
       "scan " + r.scan + (r.code && r.scan !== "ok" ? "@" + r.code : ""), S.staff, "dtype " + (r.dtype || "-"), "batches " + r.batches.map(function (b) { return b.d + ":" + b.q; }).join(";"),
-      "held " + (r.held || 0), "note " + (r.note || ""), "edit " + (prevR ? "yes" : "no"), "v2"], r.status === "skip" ? 0 : r.count, first ? first.d : londonISO());
+      "held " + (r.held || 0), "note " + (r.note || ""), "edit " + (prevR ? "yes" : "no"), "stock " + (r.stock || "-"), "v2"], r.status === "skip" ? 0 : r.count, first ? first.d : londonISO());
     var bn = function (u) { for (var i = 0; i < r.batches.length; i++) if (r.batches[i].u === u) return i + 1; return 0; };
     r.photos = (r.status === "skip" ? cur.photos.filter(function (ph) { return !ph.nw; }) : cur.photos).map(function (ph) {
       if (ph.nw) { var n = bn(ph.u), b = n ? r.batches[n - 1] : null;
@@ -755,25 +811,28 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   }
   function waText(L, st) {
     var c = L.filter(function (l) { return l.kind === "counted"; }), sh = c.filter(function (l) { return l.d < 0; }), ov = c.filter(function (l) { return l.d > 0; }), dt = c.filter(function (l) { return l.alert; });
+    var oos = c.filter(function (l) { return l.r && l.r.count === 0; });
     var t = "Birkhill Stores stock count\n" + S.name + ": " + st.k + "\nBy " + S.staffAll.join(", ") + ", " + (S.startedText || "") + " to " + (S.finishedText || londonTime()) + "\nCounted " + c.length + " of " + S.items.length + ". Till stock as of " + S.snap + ".\n";
-    t += "Short: " + sh.length + " lines (" + sh.reduce(function (a, l) { return a - l.d; }, 0) + " units)\nOver: " + ov.length + " lines (" + ov.reduce(function (a, l) { return a + l.d; }, 0) + " units)\nDate issues: " + dt.length + "\n";
-    sh.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 5).forEach(function (l) { t += "- " + l.it.n + ": till " + l.r.till + ", counted " + l.r.count + " (short " + (-l.d) + ")\n"; });
+    t += "Short: " + sh.length + " lines (" + sh.reduce(function (a, l) { return a - l.d; }, 0) + " units)\nOver: " + ov.length + " lines (" + ov.reduce(function (a, l) { return a + l.d; }, 0) + " units)\nOut of Stock: " + oos.length + "\nDate issues: " + dt.length + "\n";
+    sh.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 5).forEach(function (l) { t += "- " + l.it.n + " (" + ((l.it.b && l.it.b[0]) || "no barcode") + "): till " + l.r.till + ", counted " + l.r.count + " (short " + (-l.d) + ")\n"; });
     return t + "Till not changed. Full report (PDF) follows.";
   }
   function renderReview() {
     if (!S) { go("home"); return; }
     var L = lines(), st = status(L), c = L.filter(function (l) { return l.kind === "counted"; });
     var sh = c.filter(function (l) { return l.d < 0; }), ov = c.filter(function (l) { return l.d > 0; }), dt = c.filter(function (l) { return l.alert; }), sk = L.filter(function (l) { return l.kind === "skip"; }), pe = L.filter(function (l) { return l.kind === "pending"; }), ex = c.filter(function (l) { return l.exc; });
+    var oos = c.filter(function (l) { return l.r && l.r.count === 0; });
     $("rvTitle").textContent = S.name + (S.finished ? ": submitted" : ": review");
     $("rvStatus").className = "msg " + st.c; $("rvStatus").textContent = st.t;
-    $("rvStats").innerHTML = "<div class='stat s-ok'><b>" + c.length + "</b>counted</div><div class='stat'><b>" + (pe.length + sk.length) + "</b>pending or skipped</div><div class='stat s-short'><b>" + sh.length + "</b>short</div><div class='stat s-over'><b>" + ov.length + "</b>over</div><div class='stat s-over'><b>" + dt.length + "</b>date issues</div><div class='stat'><b>" + ex.length + "</b>exceptions</div>";
-    var tabs = [["all", "All"], ["short", "Short"], ["over", "Over"], ["dates", "Dates"], ["skip", "Skipped"], ["pending", "Pending"], ["exc", "Exceptions"]];
+    $("rvStats").innerHTML = "<div class='stat s-ok'><b>" + c.length + "</b>counted</div><div class='stat'><b>" + (pe.length + sk.length) + "</b>pending or skipped</div><div class='stat s-short'><b>" + sh.length + "</b>short</div><div class='stat s-over'><b>" + ov.length + "</b>over</div><div class='stat s-short'><b>" + oos.length + "</b>out of stock</div><div class='stat s-over'><b>" + dt.length + "</b>date issues</div><div class='stat'><b>" + ex.length + "</b>exceptions</div>";
+    var tabs = [["all", "All"], ["short", "Short"], ["over", "Over"], ["oos", "Out of Stock"], ["dates", "Dates"], ["skip", "Skipped"], ["pending", "Pending"], ["exc", "Exceptions"]];
     $("rvTabs").innerHTML = tabs.map(function (t) { return "<button data-t='" + t[0] + "' class='" + (rvTab === t[0] ? "on" : "") + "'>" + t[1] + "</button>"; }).join("");
     each($("rvTabs").querySelectorAll("button"), function (b) { b.onclick = function () { rvTab = b.getAttribute("data-t"); renderReview(); }; });
-    var pick = { all: L, short: sh, over: ov, dates: dt, skip: sk, pending: pe, exc: ex }[rvTab];
+    var pick = { all: L, short: sh, over: ov, oos: oos, dates: dt, skip: sk, pending: pe, exc: ex }[rvTab];
     $("rvList").innerHTML = pick.slice(0, 300).map(function (l) {
-      var right = l.kind === "pending" ? "<span class='muted'>Pending</span>" : l.kind === "skip" ? "<span class='muted'>Skipped</span>" : "<b style='color:" + (l.d < 0 ? "var(--red)" : l.d > 0 ? "var(--amber)" : "var(--g)") + "'>" + (l.d === 0 ? "Match" : l.d < 0 ? "Short " + (-l.d) : "Over " + l.d) + "</b>";
-      var sub = l.kind === "counted" ? "Till " + l.r.till + ", counted " + l.r.count + (l.alert ? " \u00b7 " + l.alert : "") + (l.exc ? " \u00b7 " + esc(l.exc) : "") + (l.r.photos && l.r.photos.length ? " \u00b7 &#128247; " + l.r.photos.length + " date photo" + (l.r.photos.length > 1 ? "s" : "") + "<div class='rvph'>" + l.r.photos.slice(0, 4).map(function (ph) { return "<img src='" + ph.th + "' alt=''>"; }).join("") + "</div>" : "") : (l.r && l.r.note ? esc(l.r.note) : "Till " + esc(l.it.q));
+      var right = l.kind === "pending" ? "<span class='muted'>Pending</span>" : l.kind === "skip" ? "<span class='muted'>Skipped</span>" : (l.r && l.r.count === 0 ? "<b style='color:var(--red)'>Out of Stock</b>" : "<b style='color:" + (l.d < 0 ? "var(--red)" : l.d > 0 ? "var(--amber)" : "var(--g)") + "'>" + (l.d === 0 ? "Match" : l.d < 0 ? "Short " + (-l.d) : "Over " + l.d) + "</b>");
+      var bc = (l.it.b && l.it.b[0]) ? " \u00b7 " + l.it.b[0] : "";
+      var sub = l.kind === "counted" ? "Till " + l.r.till + ", counted " + l.r.count + bc + (l.r.count === 0 ? " \u00b7 Out of Stock" : "") + (l.alert ? " \u00b7 " + l.alert : "") + (l.exc ? " \u00b7 " + esc(l.exc) : "") + (l.r.photos && l.r.photos.length ? " \u00b7 &#128247; " + l.r.photos.length + " date photo" + (l.r.photos.length > 1 ? "s" : "") + "<div class='rvph'>" + l.r.photos.slice(0, 4).map(function (ph) { return "<img src='" + ph.th + "' alt=''>"; }).join("") + "</div>" : "") : (l.r && l.r.note ? esc(l.r.note) : "Till " + esc(l.it.q) + bc);
       return "<button class='line' data-i='" + l.i + "'><div class='thumb'>" + (l.it.i ? "<img loading='lazy' src='img/" + esc(l.it.i) + "' alt=''>" : "Photo missing") + "</div><div><b>" + esc(l.it.n) + "</b><div class='muted'>" + sub + "</div></div>" + right + "</button>";
     }).join("") + (pick.length > 300 ? "<div class='muted'>Showing 300 of " + pick.length + ".</div>" : "") + (pick.length ? "" : "<div class='muted' style='padding:10px'>None</div>");
     each($("rvList").querySelectorAll(".line"), function (b) { b.onclick = function () { if (S.finished) return; S.idx = +b.getAttribute("data-i"); save(); go("count"); }; });
@@ -805,7 +864,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   $("csvBtn").onclick = function () {
     var q = function (x) { x = String(x == null ? "" : x); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
     var out = [["Product", "Size", "Barcode", "Unit", "Till qty", "Counted", "Difference", "Date type", "Earliest date", "Batch qty", "Held", "Status", "Notes", "Time", "Staff"].join(",")];
-    lines().forEach(function (l) { var r = l.r || {}, b = r.batches && r.batches[0]; out.push([l.it.n, l.it.s, l.it.b[0] || "", "each", r.till != null ? r.till : l.it.q, l.kind === "counted" ? r.count : "", l.kind === "counted" ? l.d : "", r.dtype || "", b ? dmy(b.d) : "", b ? b.q : "", r.held || "", l.kind, [r.note, l.exc, l.alert, r.photos && r.photos.length ? r.photos.length + " date photo(s)" : ""].filter(Boolean).join("; "), r.atText || "", r.staff || ""].map(q).join(",")); });
+    lines().forEach(function (l) { var r = l.r || {}, b = r.batches && r.batches[0], stt = l.kind === "counted" && l.r && l.r.count === 0 ? "Out of Stock" : l.kind; out.push([l.it.n, l.it.s, l.it.b[0] || "", "each", r.till != null ? r.till : l.it.q, l.kind === "counted" ? r.count : "", l.kind === "counted" ? l.d : "", r.dtype || "", b ? dmy(b.d) : "", b ? b.q : "", r.held || "", stt, [r.note, l.exc, l.alert, r.photos && r.photos.length ? r.photos.length + " date photo(s)" : ""].filter(Boolean).join("; "), r.atText || "", r.staff || ""].map(q).join(",")); });
     var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([out.join("\n")], { type: "text/csv" })); a.download = "Stock_Count_" + S.name.replace(/\W+/g, "_") + "_" + londonISO() + ".csv"; document.body.appendChild(a); a.click(); a.remove();
   };
   // previous
