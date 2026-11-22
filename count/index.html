@@ -141,6 +141,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
           <div class="pname" id="cName"></div>
           <div id="cTags"></div>
           <div class="unit" id="cUnit"></div>
+          <div class="muted" id="cInfo" style="font-weight:700;margin-top:4px"></div>
           <div class="till" id="cTill"></div>
         </div>
       </div>
@@ -211,6 +212,22 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       <div class="row"><button class="btn sec" id="shareBtn">Share</button><button class="btn sec" id="copyBtn">Copy message</button><button class="btn sec" id="csvBtn">Download</button></div>
     </div>
   </section>
+  <section id="scrBaskets" class="hidden">
+    <div class="card">
+      <h2>Order baskets</h2>
+      <div class="msg warn">Draft, not ordered. Nothing is sent to Parfetts or Eden Farm from this app. Vijay approves every order. Tobacco and vapes are never added.</div>
+      <div id="bkLive" style="margin-top:6px"></div>
+      <div class="tabs" id="bkTabs"></div>
+      <div id="bkList"></div>
+    </div>
+  </section>
+  <section id="scrReport" class="hidden">
+    <div class="card">
+      <h2 id="repTitle"></h2>
+      <div class="msg ok" id="repSaved">Report saved on this phone. The checked list is cleared, ready for the next check.</div>
+      <div id="repBody"></div>
+    </div>
+  </section>
   <section id="scrPrev" class="hidden"><div class="card"><h2>Previous reports</h2><div id="prevList"></div></div></section>
 </main>
 <div class="actionbar hidden" id="actionBar"><div class="in" id="actionIn"></div></div>
@@ -219,6 +236,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   <button id="navHome"><span class="ic">&#128203;</span>Count home</button>
   <button id="navDepts"><span class="ic">&#128193;</span>Departments</button>
   <button id="navReview"><span class="ic">&#9989;</span>Review</button>
+  <button id="navBaskets"><span class="ic">&#128722;</span>Baskets</button>
 </nav>
 <div class="overlay hidden" id="overlay"><div class="pop" id="pop"></div></div>
 <script src="../secure-data.js"></script>
@@ -227,7 +245,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
 (function () {
   "use strict";
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
-  var K = { staff: "birkhill-staff-name", staffList: "birkhill-staff-list", sess: "birkhill-count-session-v2", queue: "birkhill-count-queue", hist: "birkhill-count-history", soon: "birkhill-count-soon-days", done: "birkhill-count-finished" };
+  var K = { staff: "birkhill-staff-name", staffList: "birkhill-staff-list", sess: "birkhill-count-session-v2", queue: "birkhill-count-queue", hist: "birkhill-count-history", soon: "birkhill-count-soon-days", done: "birkhill-count-finished", bloc: "birkhill-count-basket-local", reps: "birkhill-count-reports" };
   var $ = function (id) { return document.getElementById(id); };
   var DATA = null, SYNC = { open: [], finished: [] }, S = null, view = "home", step = 1, busy = false, cur = null, BC = {};
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
@@ -301,25 +319,228 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     if (S && !S.finished) { var dd = dept(S.key); if (dd) { var mp = {}; dd.items.forEach(function (x) { mp[x.id] = x; }); S.items.forEach(function (x) { var n = mp[x.id]; if (n && n.i) { x.i = n.i; x.isrc = n.isrc; } if (n && n.br) x.br = n.br; }); } }
     if (S && S.finished) { var sy = (SYNC.finished || []).filter(function (f) { return f.id === S.id; })[0]; if (sy) { ls(K.sess, null); S = null; } }
     go("home");
+    loadLive(); setInterval(loadLive, 15 * 60000);
   }).catch(function () { $("lockMsg").classList.remove("hidden"); });
 
   function go(v) {
     stopCam(); view = v;
-    ["Home", "Depts", "Count", "Review", "Prev"].forEach(function (n) { $("scr" + n).classList.toggle("hidden", n.toLowerCase() !== v); });
-    $("navHome").classList.toggle("on", v === "home"); $("navDepts").classList.toggle("on", v === "depts"); $("navReview").classList.toggle("on", v === "review");
+    ["Home", "Depts", "Count", "Review", "Prev", "Baskets", "Report"].forEach(function (n) { $("scr" + n).classList.toggle("hidden", n.toLowerCase() !== v); });
+    $("navHome").classList.toggle("on", v === "home"); $("navDepts").classList.toggle("on", v === "depts"); $("navReview").classList.toggle("on", v === "review"); $("navBaskets").classList.toggle("on", v === "baskets");
+    if (v !== "report") { $("bottomNav").classList.remove("hidden"); $("actionBar").style.bottom = ""; }
     $("actionBar").classList.add("hidden");
-    if (v === "home") renderHome(); if (v === "depts") renderDepts(); if (v === "count") renderCount(); if (v === "review") renderReview(); if (v === "prev") renderPrev();
+    if (v === "home") renderHome(); if (v === "depts") renderDepts(); if (v === "count") renderCount(); if (v === "review") renderReview(); if (v === "prev") renderPrev(); if (v === "baskets") renderBaskets(); if (v === "report") renderReport();
     window.scrollTo(0, 0); pill();
   }
   $("navHome").onclick = function () { go("home"); };
   $("navDepts").onclick = function () { if (needStaff()) go("depts"); };
   $("navReview").onclick = function () { if (S) go("review"); else popMsg("No count open", "Start a count first."); };
+  $("navBaskets").onclick = function () { go("baskets"); loadLive(); };
   function pop(html) { $("pop").innerHTML = html; $("overlay").classList.remove("hidden"); }
   function closePop() { $("overlay").classList.add("hidden"); }
   $("overlay").addEventListener("click", function (e) { if (e.target === $("overlay")) closePop(); });
   function popMsg(t, m) { pop("<h2>" + esc(t) + "</h2><div>" + m + "</div><button class='btn' id='pOk'>OK</button>"); $("pOk").onclick = closePop; }
   function confirmPop(t, m, yes, no, cb) { pop("<h2>" + esc(t) + "</h2><div>" + m + "</div><button class='btn o' id='pYes'>" + esc(yes) + "</button><button class='btn sec' id='pNo'>" + esc(no) + "</button>"); $("pYes").onclick = function () { closePop(); cb(true); }; $("pNo").onclick = function () { closePop(); cb(false); }; }
 
+  // ---- live data from the box (hourly): draft order baskets, source status, price check, supplier map
+  var BK = null, LIVE = null, PC = null, SM = null;
+  var TOBACCO_DEPTS = { 47: 1, 63: 1, 71: 1, 81: 1 };
+  var TOBACCO_RE = /\b(TOBACCO|CIGARS?|CIGARETTES?|CIGARILLOS?|VAPES?|VAPING|E-?LIQUIDS?|NICOTINE|NIC ?POUCH(ES)?|NIC ?SALTS?|ELF ?BAR|LOST ?MARY|SKE ?CRYSTAL|HAYATI|SNUS|SHISHA|HEETS|IQOS|VELO|ZYN)\b/i;
+  function bk(b) { return String(b || "").replace(/\D/g, "").replace(/^0+/, ""); }
+  function gbp(x) { return x == null || x === "" || isNaN(+x) ? "-" : "\u00a3" + (+x).toFixed(2); }
+  function loadLive() {
+    var get = function (n) { return fetch(n + "?t=" + Date.now()).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }); };
+    return Promise.all([get("baskets.json"), get("live_status.json"), get("pricecheck.json"), get("supmap.json")]).then(function (r) {
+      if (r[0]) BK = r[0]; if (r[1]) LIVE = r[1]; if (r[2]) PC = r[2]; if (r[3]) SM = r[3];
+      if (view === "baskets") renderBaskets();
+    });
+  }
+  function liveLine() {
+    if (!LIVE) return "<div class='msg warn'>Live data not loaded yet. Showing what this phone saved.</div>";
+    var s = LIVE.sources || {}, t = s.till || {};
+    var h = t.live ? "<div class='msg ok'>Till stock and sales updated " + esc(t.last_ok_display || LIVE.at_display || "") + " (live, read only).</div>"
+                   : "<div class='msg err'>NOT LIVE: the till could not be read at the last check. Last good update " + esc(t.last_ok_display || "unknown") + ". Numbers below may be old.</div>";
+    var bits = [["camera_entries", "Saved counts"], ["invoices", "Invoices"], ["parfetts", "Parfetts prices"], ["eden", "Eden Farm prices"]].map(function (x) {
+      var o = s[x[0]] || {}; return "<div class='muted'><b>" + x[1] + ":</b> " + (o.live ? "live, " : "not live, ") + "last update " + esc(o.last_ok_display || "none") + (o.note ? ". " + esc(o.note) : "") + "</div>";
+    }).join("");
+    return h + "<details style='margin-top:4px'><summary class='muted' style='font-weight:700'>Where the numbers come from</summary>" + bits + "</details>";
+  }
+  function tobaccoItem(it) { var m = SM && SM.m ? SM.m[String(it.id)] : null; if (m && m[0] === "X") return true; return !!(TOBACCO_DEPTS[it.did] || TOBACCO_RE.test(it.n || "") || /TOBACCO|VAP/i.test(it.t || "")); }
+  function basketLocalUpdate(it, r) {
+    var loc = jget(K.bloc, {}), key = String(it.id);
+    if (!(r.status === "counted" && r.count === 0)) { if (loc[key] && loc[key].session === S.id) { delete loc[key]; jset(K.bloc, loc); } return null; }
+    var m = SM && SM.m ? SM.m[key] : null, code = m ? m[0] : "U";
+    var sup = tobaccoItem(it) ? "excluded" : code === "P" ? "parfetts" : code === "E" ? "eden" : code === "O" ? "other" : "unknown";
+    var pack = m && m[2] > 0 ? +m[2] : 1, s7 = m ? +m[3] || 0 : 0, s28 = m ? +m[4] || 0 : 0;
+    var need = Math.max(s7, Math.ceil(s28 / 4)), why = s7 + " sold in 7 days (" + s28 + " in 28 days), 7 days cover";
+    if (need <= 0) { need = pack; why = "No sales in 28 days, 1 pack to refill the shelf"; }
+    var packs = Math.ceil(need / pack);
+    var L = { pid: key, barcode: it.b[0] || "", product: it.n, size: it.s || "", dept: it.t || S.name, img: it.i || "", basket: sup, supplier: code === "O" ? (m[5] || "Other supplier") : (sup === "parfetts" ? "Parfetts" : sup === "eden" ? "Eden Farm" : ""),
+              cost: m ? m[1] : null, sell: it.p, pack: m && m[2] > 0 ? pack : null, qty_packs: packs, qty_units: packs * pack,
+              reason: "Counted 0 at " + londonTime() + ". " + why + ". Rounded up to whole packs of " + pack + "." + (m && m[2] > 0 ? "" : " Pack size not known.") +
+                      (sup === "excluded" ? " Tobacco or vape: never put in a basket." : sup === "other" ? " Not added: supplier is " + (m[5] || "another supplier") + "." : sup === "unknown" ? " Supplier unknown, not added. Vijay to check." : ""),
+              at: new Date().toISOString(), session: S.id, staff: S.staff, local: true };
+    loc[key] = L; jset(K.bloc, loc);   // one line per product: a new zero count updates it, never a duplicate
+    return L;
+  }
+  function basketLines(name) {
+    var sv = (BK && BK.baskets && BK.baskets[name]) || {}, out = [], have = {};
+    Object.keys(sv).forEach(function (k) { var l = sv[k]; l.basket = name; out.push(l); have[String(l.pid || "") + "|" + (l.session || "")] = 1; have["p" + String(l.pid || "")] = l; });
+    var loc = jget(K.bloc, {}), cut = Date.now() - 3 * 86400000;
+    Object.keys(loc).forEach(function (k) {
+      var l = loc[k]; if (l.basket !== name || Date.parse(l.at) < cut) return;
+      if (have[String(l.pid) + "|" + l.session]) return;            // the box has it now
+      var sl = have["p" + l.pid]; if (sl && sl.status === "open") return;   // already on the draft basket: no duplicate
+      out.push(l);
+    });
+    return out;
+  }
+  var bkTab = "parfetts";
+  function lineHtml(l) {
+    var open = !l.status || l.status === "open";
+    var right = open ? "<b style='color:var(--o)'>" + (l.qty_packs != null ? l.qty_packs + " pack" + (l.qty_packs === 1 ? "" : "s") : "-") + "</b><div class='muted'>" + (l.qty_units != null ? l.qty_units + " units" : "") + "</div>" : "<span class='muted'>Removed</span>";
+    return "<div class='line' style='grid-template-columns:56px 1fr auto;" + (open ? "" : "opacity:.6") + "'><div class='thumb'>" + (l.img ? "<img loading='lazy' src='img/" + esc(l.img) + "' alt=''>" : "No photo") + "</div><div><b>" + esc(l.product) + "</b>" +
+      "<div class='muted'>Barcode " + esc(l.barcode || "none") + (l.size ? " \u00b7 " + esc(l.size) : "") + (l.dept ? " \u00b7 " + esc(l.dept) : "") + "</div>" +
+      "<div class='muted'>Supplier cost " + gbp(l.cost) + " \u00b7 Sell " + gbp(l.sell) + " \u00b7 Pack " + (l.pack || "not known") + (l.supplier && l.basket !== "parfetts" && l.basket !== "eden" ? " \u00b7 " + esc(l.supplier) : "") + "</div>" +
+      "<div class='muted' style='font-size:.82rem'>" + esc(open ? (l.reason || "") : (l.reason || "Removed")) + (l.local ? " Saved on this phone, the box adds it at the next hourly check." : "") + "</div></div><div style='text-align:right'>" + right + "</div></div>";
+  }
+  function renderBaskets() {
+    var tabs = [["parfetts", "Parfetts"], ["eden", "Eden Farm"], ["none", "Not in a basket"]];
+    var cnt = function (n) { return basketLines(n).filter(function (l) { return !l.status || l.status === "open"; }).length; };
+    var nNone = cnt("other") + cnt("unknown") + cnt("excluded");
+    $("bkTabs").innerHTML = tabs.map(function (t) { var n = t[0] === "none" ? nNone : cnt(t[0]); return "<button data-t='" + t[0] + "' class='" + (bkTab === t[0] ? "on" : "") + "'>" + t[1] + " (" + n + ")</button>"; }).join("");
+    each($("bkTabs").querySelectorAll("button"), function (b) { b.onclick = function () { bkTab = b.getAttribute("data-t"); renderBaskets(); }; });
+    $("bkLive").innerHTML = liveLine();
+    var html = "";
+    if (bkTab === "none") {
+      [["unknown", "Supplier unknown (Vijay to check)"], ["other", "Other supplier (not Parfetts or Eden Farm)"], ["excluded", "Tobacco and vapes (never in a basket)"]].forEach(function (g) {
+        var ls_ = basketLines(g[0]); html += "<h3 style='margin-top:12px'>" + g[1] + " (" + ls_.length + ")</h3>" + (ls_.length ? ls_.map(lineHtml).join("") : "<div class='muted'>None</div>");
+      });
+    } else {
+      var ls_ = basketLines(bkTab), op = ls_.filter(function (l) { return !l.status || l.status === "open"; }), rm = ls_.filter(function (l) { return l.status && l.status !== "open"; });
+      var tot = op.reduce(function (a, l) { return a + (l.cost != null && l.qty_units != null ? l.cost * l.qty_units : 0); }, 0);
+      html += "<div class='muted' style='margin-top:8px'><b>" + op.length + (op.length === 1 ? " line" : " lines") + "</b>, about " + gbp(tot) + " ex VAT at the last known supplier cost.</div>";
+      html += op.length ? op.map(lineHtml).join("") : "<div class='muted' style='padding:10px'>No products on this draft basket.</div>";
+      if (rm.length) html += "<h3 style='margin-top:12px'>Removed in the last 2 days</h3>" + rm.map(lineHtml).join("");
+    }
+    $("bkList").innerHTML = html;
+    $("actionIn").innerHTML = "<button class='btn sec' id='bkRefresh'>Refresh</button>"; $("actionBar").classList.remove("hidden");
+    $("bkRefresh").onclick = function () { $("bkLive").innerHTML = "<div class='msg info'>Loading...</div>"; loadLive().then(renderBaskets); };
+  }
+  // ---- Finish Check report (saved on this phone, then the checked list is cleared)
+  function priceIssues(it) {
+    if (!PC || !PC.issues) return [];
+    var out = [];
+    (it.b || []).forEach(function (b) { (PC.issues[bk(b)] || []).forEach(function (i) { if (out.indexOf(i.t) < 0) out.push(i.t); }); });
+    return out;
+  }
+  function buildReport(L, st) {
+    var c = L.filter(function (l) { return l.kind === "counted"; });
+    var ln = function (l) { var b = l.r.batches && l.r.batches[0]; return { n: l.it.n, b: (l.it.b && l.it.b[0]) || "", s: l.it.s || "", till: l.r.till, cnt: l.r.count, d: l.d, alert: l.alert || "", date: b ? dmy(b.d) : "", oos: l.r.count === 0 }; };
+    var loc = jget(K.bloc, {}), bsk = { parfetts: [], eden: [], other: [], unknown: [], excluded: [] };
+    Object.keys(loc).forEach(function (k) { var l = loc[k]; if (l.session === S.id && bsk[l.basket]) bsk[l.basket].push({ n: l.product, b: l.barcode, packs: l.qty_packs, units: l.qty_units, cost: l.cost, sell: l.sell, pack: l.pack, sup: l.supplier, why: l.reason }); });
+    var price = [];
+    c.forEach(function (l) { var p = priceIssues(l.it); if (p.length) price.push({ n: l.it.n, b: (l.it.b && l.it.b[0]) || "", sell: l.it.p, cost: l.it.c, t: p }); });
+    return { id: S.id, dept: S.name, staff: S.staffAll.join(", "), started: S.startedText || "", finished: S.finishedText || londonTime(), snap: S.snap, status: st.k, statusText: st.t,
+             total: S.items.length, checked: c.map(ln), zero: c.filter(function (l) { return l.r.count === 0; }).map(ln),
+             diffs: c.filter(function (l) { return l.d !== 0; }).sort(function (a, b) { return a.d - b.d; }).map(ln), expiry: c.filter(function (l) { return l.alert; }).map(ln),
+             skipped: L.filter(function (l) { return l.kind === "skip"; }).length, pending: L.filter(function (l) { return l.kind === "pending"; }).length,
+             price: price, baskets: bsk, priceAt: PC ? (PC.at || "") : "", saved: new Date().toISOString() };
+  }
+  function reportText(R) {
+    var nb = R.baskets.parfetts.length + R.baskets.eden.length;
+    var t = "Birkhill Stores stock check\n" + R.dept + ": " + R.status + "\nBy " + R.staff + ", " + R.started + " to " + R.finished + "\nChecked " + R.checked.length + " of " + R.total + ". Till stock as of " + R.snap + ".\n";
+    t += "Out of Stock: " + R.zero.length + "\nDifferences: " + R.diffs.length + "\nDate issues: " + R.expiry.length + "\nPrice issues: " + R.price.length + "\nAdded to draft baskets: Parfetts " + R.baskets.parfetts.length + ", Eden Farm " + R.baskets.eden.length + "\n";
+    R.diffs.slice(0, 5).forEach(function (l) { t += "- " + l.n + " (" + (l.b || "no barcode") + "): till " + l.till + ", counted " + l.cnt + "\n"; });
+    return t + "Till not changed. Baskets are drafts, not ordered.";
+  }
+  function reportHtml(R) {
+    var sec = function (title, rows, fn) { return "<h3 style='margin-top:14px'>" + title + " (" + rows.length + ")</h3>" + (rows.length ? rows.map(function (r) { return "<div class='line' style='grid-template-columns:1fr auto;cursor:default'>" + fn(r) + "</div>"; }).join("") : "<div class='muted'>None</div>"); };
+    var diffTxt = function (l) { return l.oos ? "<b style='color:var(--red)'>Out of Stock</b>" : "<b style='color:" + (l.d < 0 ? "var(--red)" : "var(--amber)") + "'>" + (l.d < 0 ? "Short " + (-l.d) : "Over " + l.d) + "</b>"; };
+    var h = "<div class='msg " + (R.status === "Complete" ? "ok" : R.status === "Incomplete" ? "err" : "warn") + "'>" + esc(R.statusText) + "</div>";
+    h += "<div class='muted' style='margin-top:6px'>By " + esc(R.staff) + ", " + esc(R.started) + " to " + esc(R.finished) + ". Till stock as of " + esc(R.snap) + ". Till not changed.</div>";
+    h += "<div class='stats' style='margin-top:8px'><div class='stat s-ok'><b>" + R.checked.length + "</b>checked</div><div class='stat s-short'><b>" + R.zero.length + "</b>out of stock</div><div class='stat s-over'><b>" + R.diffs.length + "</b>differences</div><div class='stat s-over'><b>" + R.expiry.length + "</b>date issues</div><div class='stat'><b>" + R.price.length + "</b>price issues</div><div class='stat'><b>" + (R.baskets.parfetts.length + R.baskets.eden.length) + "</b>in baskets</div></div>";
+    h += sec("Out of Stock", R.zero, function (l) { return "<div><b>" + esc(l.n) + "</b><div class='muted'>Barcode " + esc(l.b || "none") + ", till " + l.till + "</div></div><b style='color:var(--red)'>0</b>"; });
+    h += sec("Stock differences", R.diffs, function (l) { return "<div><b>" + esc(l.n) + "</b><div class='muted'>Barcode " + esc(l.b || "none") + ", till " + l.till + ", counted " + l.cnt + "</div></div>" + diffTxt(l); });
+    h += sec("Expiry issues", R.expiry, function (l) { return "<div><b>" + esc(l.n) + "</b><div class='muted'>Barcode " + esc(l.b || "none") + ", date " + esc(l.date) + "</div></div><b style='color:var(--red)'>" + esc(l.alert) + "</b>"; });
+    h += sec("Price issues", R.price, function (p) { return "<div><b>" + esc(p.n) + "</b><div class='muted'>Barcode " + esc(p.b || "none") + ", sell " + gbp(p.sell) + ", till cost " + gbp(p.cost) + "</div><div class='muted'>" + p.t.map(esc).join("<br>") + "</div></div><span></span>"; });
+    [["parfetts", "Added to Parfetts basket (draft)"], ["eden", "Added to Eden Farm basket (draft)"], ["unknown", "Zero stock, supplier unknown"], ["other", "Zero stock, other supplier"], ["excluded", "Zero stock, tobacco or vape (never in a basket)"]].forEach(function (g) {
+      h += sec(g[1], R.baskets[g[0]], function (l) { return "<div><b>" + esc(l.n) + "</b><div class='muted'>Barcode " + esc(l.b || "none") + ", cost " + gbp(l.cost) + ", sell " + gbp(l.sell) + ", pack " + (l.pack || "not known") + (l.sup && g[0] === "other" ? ", " + esc(l.sup) : "") + "</div></div><b>" + (g[0] === "parfetts" || g[0] === "eden" ? l.packs + " pack" + (l.packs === 1 ? "" : "s") : "") + "</b>"; });
+    });
+    h += sec("All products checked", R.checked, function (l) { return "<div><b>" + esc(l.n) + "</b><div class='muted'>Barcode " + esc(l.b || "none") + ", till " + l.till + ", counted " + l.cnt + (l.date ? ", date " + esc(l.date) : "") + "</div></div>" + (l.d === 0 ? "<b style='color:var(--g)'>Match</b>" : diffTxt(l)); });
+    return h;
+  }
+  // tiny PDF writer (Helvetica, font size 14, A4, text only)
+  function pdfBlob(title, blocks) {
+    var W = 595, H = 842, M = 40, FS = 14, LD = 19, maxW = W - 2 * M;
+    var cw = function (ch) { if (/[il.,'|!:;I\[\]]/.test(ch)) return .28; if (/[tfjr() ]/.test(ch)) return .33; if (/[mwMW@]/.test(ch)) return .86; if (/[A-Z]/.test(ch)) return .68; if (/[0-9]/.test(ch)) return .556; return .53; };
+    var width = function (s, bold) { var w = 0; for (var i = 0; i < s.length; i++) w += cw(s[i]); return w * FS * (bold ? 1.06 : 1); };
+    var wrap = function (s, bold) { var out = [], line = ""; String(s).split(/\s+/).forEach(function (w) { var t = line ? line + " " + w : w; if (width(t, bold) > maxW && line) { out.push(line); line = w; } else line = t; }); out.push(line); return out; };
+    var enc = function (s) { var o = ""; s = String(s).replace(/[\u2013\u2014]/g, "-").replace(/\u00b7/g, "-").replace(/[\u2018\u2019]/g, "'").replace(/[\u201c\u201d]/g, '"');
+      for (var i = 0; i < s.length; i++) { var c = s.charCodeAt(i), ch = s[i]; if (ch === "(" || ch === ")" || ch === "\\") o += "\\" + ch; else if (c >= 32 && c < 127) o += ch; else if (c < 256) o += "\\" + ("00" + c.toString(8)).slice(-3); else o += "?"; } return o; };
+    var pages = [], cur = [], y = H - M;
+    var newPage = function () { if (cur.length) pages.push(cur); cur = []; y = H - M; };
+    var put = function (txt, bold, color) { if (y < M + 40) newPage(); cur.push((color ? color + " rg " : "0.094 0.204 0.165 rg ") + "BT /" + (bold ? "F2" : "F1") + " " + FS + " Tf " + M + " " + y.toFixed(1) + " Td (" + enc(txt) + ") Tj ET"); y -= LD; };
+    wrap(title, true).forEach(function (l) { put(l, true, "0.09 0.39 0.247"); }); y -= 4;
+    blocks.forEach(function (b) {
+      if (b.h) { y -= 6; if (y < M + 80) newPage(); wrap(b.h, true).forEach(function (l) { put(l, true, "0.09 0.39 0.247"); }); }
+      else if (b.t != null) wrap(b.t, !!b.b).forEach(function (l) { put(l, !!b.b); });
+      else if (b.gap) y -= 6;
+    });
+    newPage();
+    var objs = [], add = function (s) { objs.push(s); return objs.length; };
+    add("<< /Type /Catalog /Pages 2 0 R >>"); add(""); add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"); add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+    var kids = [];
+    pages.forEach(function (pg, i) {
+      var foot = "0.094 0.204 0.165 rg BT /F1 " + FS + " Tf " + M + " 20 Td (" + enc("Birkhill Stores, 4-8 Fir Road, Eckington, Sheffield S21 4BY") + ") Tj ET BT /F1 " + FS + " Tf " + (W - M - 60) + " 20 Td (" + enc("Page " + (i + 1)) + ") Tj ET";
+      var body = pg.join("\n") + "\n" + foot;
+      var c = add("<< /Length " + body.length + " >>\nstream\n" + body + "\nendstream");
+      kids.push(add("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + W + " " + H + "] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents " + c + " 0 R >>"));
+    });
+    objs[1] = "<< /Type /Pages /Kids [" + kids.map(function (k) { return k + " 0 R"; }).join(" ") + "] /Count " + kids.length + " >>";
+    var out = "%PDF-1.4\n", offs = [];
+    objs.forEach(function (o, i) { offs.push(out.length); out += (i + 1) + " 0 obj\n" + o + "\nendobj\n"; });
+    var x = out.length;
+    out += "xref\n0 " + (objs.length + 1) + "\n0000000000 65535 f \n" + offs.map(function (o) { return ("0000000000" + o).slice(-10) + " 00000 n \n"; }).join("");
+    out += "trailer\n<< /Size " + (objs.length + 1) + " /Root 1 0 R >>\nstartxref\n" + x + "\n%%EOF\n";
+    return new Blob([out], { type: "application/pdf" });
+  }
+  function reportPdf(R) {
+    var B = [], row = function (t, b) { B.push({ t: t, b: b }); };
+    row("Status: " + R.status + ". " + R.statusText); row("Staff: " + R.staff); row("Time: " + R.started + " to " + R.finished); row("Till stock as of " + R.snap + ". Till not changed.");
+    row("Checked " + R.checked.length + " of " + R.total + ". Skipped " + R.skipped + ". Not counted " + R.pending + ".");
+    var sec = function (h, rows, fn) { B.push({ h: h + " (" + rows.length + ")" }); if (!rows.length) row("None"); rows.forEach(function (r) { fn(r); }); };
+    sec("Out of Stock", R.zero, function (l) { row(l.n + ". Barcode " + (l.b || "none") + ". Till " + l.till + ", counted 0."); });
+    sec("Stock differences", R.diffs, function (l) { row(l.n + ". Barcode " + (l.b || "none") + ". Till " + l.till + ", counted " + l.cnt + " (" + (l.oos ? "Out of Stock" : l.d < 0 ? "short " + (-l.d) : "over " + l.d) + ")."); });
+    sec("Expiry issues", R.expiry, function (l) { row(l.n + ". Barcode " + (l.b || "none") + ". " + l.alert + ", date " + l.date + "."); });
+    sec("Price issues", R.price, function (p) { row(p.n + ". Barcode " + (p.b || "none") + ". Sell " + gbp(p.sell) + ", till cost " + gbp(p.cost) + ".", true); p.t.forEach(function (t) { row("  " + t); }); });
+    [["parfetts", "Added to Parfetts basket (draft, not ordered)"], ["eden", "Added to Eden Farm basket (draft, not ordered)"], ["unknown", "Zero stock, supplier unknown"], ["other", "Zero stock, other supplier"], ["excluded", "Zero stock, tobacco or vape (never in a basket)"]].forEach(function (g) {
+      sec(g[1], R.baskets[g[0]], function (l) { row(l.n + ". Barcode " + (l.b || "none") + ". Cost " + gbp(l.cost) + ", sell " + gbp(l.sell) + ", pack " + (l.pack || "not known") + (g[0] === "parfetts" || g[0] === "eden" ? ". Suggest " + l.packs + " pack(s), " + l.units + " units." : (l.sup ? ". " + l.sup + "." : "."))); });
+    });
+    sec("All products checked", R.checked, function (l) { row(l.n + ". Barcode " + (l.b || "none") + ". Till " + l.till + ", counted " + l.cnt + (l.date ? ", date " + l.date : "") + "."); });
+    return pdfBlob("Stock check report: " + R.dept, B);
+  }
+  var REP = null;
+  function reportName(R) { return "Stock_Check_" + R.dept.replace(/\W+/g, "_") + "_" + londonISO() + "_" + R.id + ".pdf"; }
+  var SHARE_LINK = "https://amvijay2602-art.github.io/count/?open=prevBtn";
+  function renderReport() {
+    var R = REP; if (!R) { go("home"); return; }
+    $("repTitle").textContent = "Stock check report: " + R.dept;
+    $("repBody").innerHTML = reportHtml(R);
+    $("bottomNav").classList.add("hidden"); $("actionBar").style.bottom = "env(safe-area-inset-bottom)";
+    $("actionIn").innerHTML = "<div class='small'><button class='btn' id='repPdf'>Download PDF</button><button class='btn o' id='repShare'>Share to Vijay office WhatsApp</button></div><button class='btn sec' id='repNext'>Start next check</button>";
+    $("actionBar").classList.remove("hidden");
+    $("repPdf").onclick = function () { var a = document.createElement("a"); a.href = URL.createObjectURL(reportPdf(R)); a.download = reportName(R); document.body.appendChild(a); a.click(); a.remove(); };
+    $("repShare").onclick = function () {
+      var txt = reportText(R), file = null;
+      try { file = new File([reportPdf(R)], reportName(R), { type: "application/pdf" }); } catch (e) { file = null; }
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: "Stock check " + R.dept, text: txt }).then(function () { popMsg("Shared", "Pick the Vijay office group in WhatsApp and press send if you have not yet."); }).catch(function () {});
+      } else {
+        window.open("https://wa.me/?text=" + encodeURIComponent(txt + "\nReport: " + SHARE_LINK), "_blank");
+      }
+    };
+    $("repNext").onclick = function () { REP = null; $("bottomNav").classList.remove("hidden"); go("home"); };
+  }
   // home
   function staffList() { var l = jget(K.staffList, null); return Array.isArray(l) && l.length ? l : ["Kani", "Vijay"]; }
   function needStaff() { if (staff()) return true; go("home"); popMsg("Name needed", "Tap your name first. A name is needed to count."); return false; }
@@ -505,6 +726,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       "<span class='tag'>" + esc(it.b[0] || "No barcode on till") + "</span>" + (it.b.length > 1 ? "<span class='tag'>+" + (it.b.length - 1) + " other barcode" + (it.b.length > 2 ? "s" : "") + "</span>" : "") +
       (it.i ? "" : "<span class='tag o'>Photo missing, flagged for manager</span>");
     $("cUnit").textContent = "Count each single item" + (it.s ? " (" + it.s + ")" : "") + " as 1";
+    $("cInfo").textContent = "Barcode " + (it.b[0] || "none") + "  \u00b7  Department " + (it.t || S.name);
     $("cTill").innerHTML = "Till stock <b>" + esc(it.q) + "</b>, as of " + esc(S.snap);
     $("scanMsg").innerHTML = r ? "<div class='msg info'>Already saved: " + (r.status === "skip" ? "skipped (" + esc(r.note || "") + ")" : "counted " + r.count) + ". You can change it.</div>" : "";
     $("manualBox").classList.add("hidden"); $("manualCode").value = ""; $("manualWhy").value = "";
@@ -757,10 +979,15 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     });
     if (r.status === "skip") cur.photos.forEach(function (ph) { if (ph.nw) idbDel(ph.p); });
     save();
+    var bl = null; try { bl = basketLocalUpdate(it, r); } catch (e) { bl = null; }
     setTimeout(function () { busy = false; }, 350);
     var n = nextIndex();
     if (n < 0) { go("review"); return; }
     S.idx = n; save(); renderCount(); window.scrollTo(0, 0);
+    if (bl) {
+      var bt = bl.basket === "parfetts" ? "Added to the Parfetts basket (draft, not ordered)." : bl.basket === "eden" ? "Added to the Eden Farm basket (draft, not ordered)." : bl.basket === "excluded" ? "Tobacco or vape: not added to a basket." : bl.basket === "other" ? "Not added to a basket: supplier is " + (bl.supplier || "another supplier") + "." : "Supplier unknown: not added to a basket. Vijay will check.";
+      $("scanMsg").innerHTML = "<div class='msg warn'>" + esc(bl.product) + " saved as Out of Stock. " + esc(bt) + "</div>" + $("scanMsg").innerHTML;
+    }
   }
   function prev() { if (S.idx > 0) { S.idx--; save(); renderCount(); window.scrollTo(0, 0); } }
   function skipPop() {
@@ -837,8 +1064,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     }).join("") + (pick.length > 300 ? "<div class='muted'>Showing 300 of " + pick.length + ".</div>" : "") + (pick.length ? "" : "<div class='muted' style='padding:10px'>None</div>");
     each($("rvList").querySelectorAll(".line"), function (b) { b.onclick = function () { if (S.finished) return; S.idx = +b.getAttribute("data-i"); save(); go("count"); }; });
     $("waText").textContent = waText(L, st);
-    $("sendNote").textContent = S.finished ? "Submitted. The report is sent to Vijay office automatically, usually within 30 minutes. Share, Copy and Download are only backups and do not count as sent." : "When you submit, the report goes to Vijay office automatically.";
-    $("actionIn").innerHTML = S.finished ? "<button class='btn' id='aNew'>Start another count</button>" : "<button class='btn o' id='aSubmit'>Finish and submit</button><div class='small'><button class='btn sec' id='aBack'>Back to counting</button><button class='btn sec' id='aHand'>Hand over</button></div>";
+    $("sendNote").textContent = S.finished ? "Submitted. The report is sent to Vijay office automatically, usually within 30 minutes. Share, Copy and Download are only backups and do not count as sent." : "Finish check saves the results, shows the report and clears the checked list for the next check.";
+    $("actionIn").innerHTML = S.finished ? "<button class='btn' id='aNew'>Start another count</button>" : "<button class='btn o' id='aSubmit'>Finish check</button><div class='small'><button class='btn sec' id='aBack'>Back to counting</button><button class='btn sec' id='aHand'>Hand over</button></div>";
     $("actionBar").classList.remove("hidden");
     if ($("aNew")) $("aNew").onclick = function () { ls(K.sess, null); S = null; go("depts"); };
     if ($("aSubmit")) $("aSubmit").onclick = function () { submit(L, st); };
@@ -854,9 +1081,18 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       save();
       var h = jget(K.hist, {}); h[S.key] = londonISO(); jset(K.hist, h);
       var f = jget(K.done, []); f.unshift({ id: S.id, dept: S.name, when: S.finishedText, status: st.k, counted: c, total: S.items.length, text: waText(L, st) }); jset(K.done, f.slice(0, 30));
-      busy = false; renderReview(); window.scrollTo(0, 0);
+      var R = buildReport(L, st), reps = jget(K.reps, []);
+      reps = reps.filter(function (x) { return x.id !== R.id; }); reps.unshift(R);
+      var ok = false;
+      for (var keep = 10; keep >= 1 && !ok; keep--) { jset(K.reps, reps.slice(0, keep)); var chk = jget(K.reps, []); ok = chk.length && chk[0].id === R.id; }
+      busy = false;
+      if (!ok) { popMsg("Report not saved", "This phone could not save the report, so the checked list was kept. The count is still sent to Vijay office."); renderReview(); return; }
+      // report saved: clear the temporary checked-items list and reset for the next check (sync queue and baskets are kept)
+      ls(K.sess, null); S = null; REP = R;
+      $("repSaved").textContent = "Report saved on this phone. The checked list is cleared, ready for the next check.";
+      go("report");
     };
-    if (st.k !== "Complete") confirmPop("Submit as " + st.k + "?", esc(st.t) + " You can go back and finish the lines first.", "Submit as " + st.k, "Go back", function (y) { if (y) doIt(); });
+    if (st.k !== "Complete") confirmPop("Finish as " + st.k + "?", esc(st.t) + " You can go back and finish the lines first.", "Finish check", "Go back", function (y) { if (y) doIt(); });
     else doIt();
   }
   $("shareBtn").onclick = function () { var t = $("waText").textContent; if (navigator.share) navigator.share({ text: t }).catch(function () {}); else popMsg("Share not available", "Use Copy message instead."); };
@@ -872,7 +1108,10 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     var loc = jget(K.done, []), syn = SYNC.finished || [], seen = {}, all = [];
     syn.forEach(function (x) { seen[x.id] = 1; all.push({ dept: x.dept, when: x.finished_display, status: x.status, counted: x.counted, total: x.total, text: x.message, sent: x.reported }); });
     loc.forEach(function (x) { if (!seen[x.id]) all.push({ dept: x.dept, when: x.when, status: x.status, counted: x.counted, total: x.total, text: x.text, sent: null }); });
-    $("prevList").innerHTML = all.length ? all.map(function (x) { return "<div class='dcard' style='display:block'><b>" + esc(x.dept) + "</b><div class='muted'>" + esc(x.when) + " \u00b7 " + esc(x.status) + " \u00b7 counted " + x.counted + " of " + x.total + (x.sent === true ? " \u00b7 sent to Vijay office" : x.sent === false ? " \u00b7 report not sent yet" : " \u00b7 waiting for sync") + "</div>" + (x.text ? "<div class='muted' style='white-space:pre-wrap;margin-top:6px'>" + esc(x.text) + "</div>" : "") + "</div>"; }).join("") : "<div class='muted'>No finished counts yet.</div>";
+    var reps = jget(K.reps, []);
+    var rh = reps.length ? "<h3>Reports saved on this phone</h3>" + reps.map(function (R, i) { return "<button class='dcard' data-ri='" + i + "'><div><b>" + esc(R.dept) + "</b><span class='st done'>" + esc(R.finished) + " \u00b7 " + esc(R.status) + " \u00b7 checked " + R.checked.length + " of " + R.total + "</span></div><span class='muted'>Open</span></button>"; }).join("") + "<h3 style='margin-top:12px'>All finished counts</h3>" : "";
+    $("prevList").innerHTML = rh + (all.length ? all.map(function (x) { return "<div class='dcard' style='display:block'><b>" + esc(x.dept) + "</b><div class='muted'>" + esc(x.when) + " \u00b7 " + esc(x.status) + " \u00b7 counted " + x.counted + " of " + x.total + (x.sent === true ? " \u00b7 sent to Vijay office" : x.sent === false ? " \u00b7 report not sent yet" : " \u00b7 waiting for sync") + "</div>" + (x.text ? "<div class='muted' style='white-space:pre-wrap;margin-top:6px'>" + esc(x.text) + "</div>" : "") + "</div>"; }).join("") : "<div class='muted'>No finished counts yet.</div>");
+    each($("prevList").querySelectorAll("[data-ri]"), function (b) { b.onclick = function () { REP = jget(K.reps, [])[+b.getAttribute("data-ri")]; $("repSaved").textContent = "Saved report. Download or share it again."; go("report"); }; });
   }
   flush();
 })();
