@@ -343,7 +343,7 @@
     { k: "parfetts", sid: "SUP-001", name: "Parfetts", st: "ok", tag: "Invoice check + till sync", how: "Load the Parfetts invoice file (EDN / Invoice Data CSV). The app compares every line with the till Stock In draft. Grok Bot fixes the till draft (draft only) at the next update." },
     { k: "eden", sid: "SUP-005", name: "Eden Farm", st: "ok", tag: "Delivery check + scanner", how: "Eden EDN delivery check: expected against received, problems, expiry dates with batches, Confirm Item and Confirm Full Delivery, then a delivery report. The Invoice Scanner still makes the till draft. Nothing is posted to the till." },
     { k: "dhamecha", sid: "SUP-002", name: "Dhamecha", st: "part", tag: "Invoice Scanner works", how: "Photo or PDF of the Dhamecha invoice. The box reads it, compares with the till and saves a till draft automatically. Line-by-line check against an existing till draft: coming soon." },
-    { k: "booker", sid: "", name: "Booker", st: "soon", tag: "Send the invoice in chat", how: "Not set up in this app yet. Send the Booker invoice to Grok Bot in chat and it makes the till draft." },
+    { k: "booker", sid: "SUP-006", name: "Booker", st: "manual", tag: "Type lines by hand", how: "Type or scan the lines by hand. Reading the invoice automatically: coming soon." },
     { k: "cc", sid: "SUP-004", name: "Country Choice", st: "manual", tag: "Type lines by hand", how: "Type or scan the lines by hand. Reading the invoice automatically: coming soon." },
     { k: "galaxy", sid: "", name: "Galaxy", st: "soon", tag: "Send the invoice in chat", how: "Not set up in this app yet. Send the Galaxy invoice to Grok Bot in chat." },
     { k: "ud", sid: "SUP-003", name: "Unique Dairies", st: "ok", tag: "Milk and bread screen", how: "Use the quick Milk and bread screen for the daily delivery and returns." },
@@ -372,7 +372,7 @@
       if (f.k === "eden" || f.k === "dhamecha") h += "<button class='btn' id='supScan'>&#129534; Invoice Scanner: photo or PDF</button>";
       if (f.k === "eden") h += "<button class='btn sec' id='supHand' style='margin-top:8px'>Eden EDN file or type lines</button>";
       if (f.k === "ud") h += "<button class='btn' id='supUd'>&#129371; Milk and bread screen</button>";
-      if (f.k === "cc" || f.k === "other") h += "<button class='btn' id='supHand'>Type or scan the lines</button>";
+      if (f.k === "cc" || f.k === "booker" || f.k === "other") h += "<button class='btn' id='supHand'>Type or scan the lines</button>";
       if (f.k === "inpost") h += "<a class='btn' href='../paper/' style='display:block;text-align:center;text-decoration:none'>Open the Paper app</a>";
       if (f.st === "soon" || (f.st === "part" && f.k !== "eden")) h += "<div class='note' style='margin-top:8px'>" + (f.st === "soon" ? "Coming soon: invoice reading and the check against the till draft for " + esc(f.name) + "." : "Coming soon: line-by-line check of an existing till draft for " + esc(f.name) + ". The scanner and automatic till draft already work.") + "</div>";
       h += "</div>";
