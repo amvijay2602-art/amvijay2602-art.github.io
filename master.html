@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17643F">
+  <title>Birkhill Master Dashboard</title>
+  <link rel="icon" type="image/png" href="icon-192.png">
+  <script src="secure-data.js"></script>
+  <!-- Birkhill Master Dashboard (23 Nov 2026): app status + Wholesale Comparison Settings.
+       Settings are saved as 'WCSET: {json}' rows and Run Now as 'WCRUN: id | staff | time' rows in Camera Entries
+       (same Apps Script as the other apps). The box applies them (birkhill-master/wholesale_compare.py tick).
+       Nothing here orders, posts stock or changes the till. -->
+  <style>
+    :root { --g:#17643F; --gd:#0f4a2e; --o:#E86B2A; --bg:#F4F7F4; --ink:#18342A; --muted:#5b6573; --line:#d5e3da; --red:#c62828; --amber:#b45309; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:"Nunito Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--ink); font-size:16px;
+           padding-bottom:calc(90px + env(safe-area-inset-bottom)); }
+    header { background:linear-gradient(135deg,var(--g),#1d7a4e); color:#fff; padding:16px; border-radius:0 0 22px 22px; }
+    header a { color:#fff; font-weight:700; text-decoration:none; }
+    header h1 { margin:6px 0 2px; font-size:1.45rem; }
+    .logo { height:48px; background:#fff; border-radius:12px; padding:3px 8px; }
+    main { max-width:680px; margin:0 auto; padding:14px; }
+    .card { background:#fff; border-radius:18px; padding:14px; margin:0 0 14px; box-shadow:0 1px 4px rgba(24,52,42,.10); }
+    .card h2 { margin:0 0 10px; font-size:1.1rem; }
+    .tabs { display:flex; gap:8px; margin:0 0 12px; }
+    .tab { flex:1; border:2px solid var(--g); background:#fff; color:var(--g); border-radius:20px; padding:10px; font-weight:800; font-size:1rem; }
+    .tab.active { background:var(--g); color:#fff; }
+    label.ck { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid #eef0f4; font-size:1rem; }
+    label.ck input { width:24px; height:24px; accent-color:var(--g); }
+    .row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:8px 0; }
+    .row > label { font-weight:700; min-width:110px; }
+    select, input[type=time], input[type=text], input[type=number] { font-size:16px; min-height:46px; border:1px solid var(--line); border-radius:12px; padding:6px 10px; background:#fff; }
+    .days { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; }
+    .days label { display:flex; flex-direction:column; align-items:center; font-weight:700; font-size:.9rem; border:2px solid var(--line); border-radius:12px; padding:6px 0; }
+    .days input { width:22px; height:22px; accent-color:var(--g); }
+    .btns { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .btn { min-height:52px; border:0; border-radius:14px; font-size:1rem; font-weight:800; color:#fff; background:var(--g); }
+    .btn.o { background:var(--o); } .btn.grey { background:#5b6573; } .btn.line { background:#fff; color:var(--g); border:2px solid var(--g); }
+    .btn:disabled { opacity:.5; }
+    .msg { margin:10px 0 0; padding:10px; border-radius:12px; background:#e8f6ec; color:var(--g); font-weight:700; display:none; }
+    .msg.warn { background:#fef3c7; color:var(--amber); } .msg.err { background:#fdecec; color:var(--red); }
+    .muted { color:var(--muted); font-size:.9rem; }
+    .pill { display:inline-block; border-radius:10px; padding:2px 8px; font-size:.8rem; font-weight:800; }
+    .p-live { background:#e8f6ec; color:var(--g); } .p-bad { background:#fdecec; color:var(--red); } .p-dev { background:#fef3c7; color:var(--amber); }
+    table { width:100%; border-collapse:collapse; font-size:.92rem; }
+    td, th { text-align:left; padding:7px 4px; border-bottom:1px solid #eef0f4; vertical-align:top; }
+    .rep { border:1px solid var(--line); border-radius:14px; padding:10px; margin:8px 0; }
+    .rep .t { font-weight:800; }
+    .rep .b { display:flex; gap:8px; margin-top:8px; }
+    .rep .b button { flex:1; min-height:44px; border-radius:12px; border:2px solid var(--g); background:#fff; color:var(--g); font-weight:800; font-size:.95rem; }
+    .hidden { display:none !important; }
+    .deps { max-height:260px; overflow:auto; border:1px solid var(--line); border-radius:12px; padding:0 8px; }
+    .status-line { font-weight:700; }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="./">&larr; Home</a>
+    <div style="margin-top:8px"><img class="logo" src="logo.png" alt="Birkhill Stores"></div>
+    <h1>Master Dashboard</h1>
+    <div class="muted" style="color:#e6f2ea">Apps, checks and wholesale price compare</div>
+  </header>
+  <main>
+    <div class="tabs">
+      <button class="tab active" id="tabWholesale" type="button">Wholesale compare</button>
+      <button class="tab" id="tabApps" type="button">App status</button>
+    </div>
+
+    <section id="secWholesale">
+      <div class="card">
+        <h2>Wholesale Comparison Settings</h2>
+        <div class="status-line" id="wcState">Loading...</div>
+        <div class="muted" id="wcApplied"></div>
+      </div>
+
+      <div class="card">
+        <h2>A. Suppliers</h2>
+        <div id="supList"></div>
+        <div class="muted">Tick one, some or all. Eden Farm, Country Choice and Unique Dairies only have prices from their invoices in the till.</div>
+      </div>
+
+      <div class="card">
+        <h2>B. Schedule</h2>
+        <label class="ck"><input type="checkbox" id="auto"> Automatic comparison ON</label>
+        <div class="row"><label for="freq">How often</label>
+          <select id="freq"><option value="daily">Daily</option><option value="weekly">Weekly (ticked days)</option><option value="custom">Custom (ticked days, extra times)</option><option value="manual">Manual only</option></select></div>
+        <div class="days" id="days"></div>
+        <div class="row"><label for="time">Time</label><input type="time" id="time" step="300"></div>
+        <div class="row" id="extraRow"><label for="extra">Extra times</label><input type="text" id="extra" placeholder="e.g. 16:00, 20:00" style="flex:1"></div>
+        <div class="row"><label>Time zone</label><b>Europe/London (UK time)</b></div>
+        <div class="muted" id="nextRun"></div>
+      </div>
+
+      <div class="card">
+        <h2>C. Report options</h2>
+        <label class="ck"><input type="radio" name="depMode" id="depAll" value="all"> All products</label>
+        <label class="ck"><input type="radio" name="depMode" id="depSel" value="sel"> Selected departments</label>
+        <div class="deps hidden" id="depList"></div>
+        <div id="repOpts"></div>
+        <div class="row"><label for="maxAge">Oldest price used</label><input type="number" id="maxAge" min="7" max="180" style="width:90px"> days</div>
+        <div class="muted">Only the same barcode and the same pack size are compared. Unmatched products and old prices are listed, never guessed.</div>
+      </div>
+
+      <div class="card">
+        <h2>D. Report delivery</h2>
+        <div id="delOpts"></div>
+        <div class="row"><label for="emMode">Email</label><select id="emMode"><option value="auto">Send automatically</option><option value="manual">Only when I ask</option></select></div>
+        <div id="emList"></div>
+        <div class="row"><label for="waMode">WhatsApp</label><select id="waMode"><option value="auto">Send automatically</option><option value="manual">Only when I ask</option></select></div>
+        <div class="muted">WhatsApp gets a short text summary only, to your own Vijay chat. No documents are sent to WhatsApp.</div>
+      </div>
+
+      <div class="card">
+        <h2>E. Save</h2>
+        <div class="btns">
+          <button class="btn" id="btnSave" type="button">Save Settings</button>
+          <button class="btn o" id="btnRun" type="button">Run Comparison Now</button>
+          <button class="btn grey" id="btnPause" type="button">Pause Schedule</button>
+          <button class="btn line" id="btnReset" type="button">Reset to Defaults</button>
+        </div>
+        <div class="msg" id="msg"></div>
+      </div>
+
+      <div class="card">
+        <h2>Previous reports</h2>
+        <div id="repList" class="muted">Loading...</div>
+      </div>
+    </section>
+
+    <section id="secApps" class="hidden">
+      <div class="card"><h2>App status</h2><div class="muted" id="hcAt">Loading...</div><div id="hcList"></div></div>
+    </section>
+  </main>
+  <script>
+  (function () {
+    var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
+    var QKEY = "birkhill-wholesale-queue-v1", LKEY = "birkhill-wholesale-settings-v1", RKEY = "birkhill-wholesale-runreq-v1";
+    var SUP = [["parfetts", "Parfetts"], ["dhamecha", "Dhamecha"], ["booker", "Booker Wholesale"], ["eden", "Eden Farm"], ["country_choice", "Country Choice"], ["unique", "Unique Dairies North Ltd"]];
+    var DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    var REP = [["ex_vat", "Wholesale prices excluding VAT"], ["case_price", "Case price comparison"], ["unit_price", "Unit price comparison"], ["promotions", "Current promotions"],
+               ["cheapest", "Cheapest supplier"], ["savings", "Potential savings"], ["out_of_stock", "Out of stock items"], ["reorder", "Reorder recommendations (not ordered)"], ["changes", "Price differences since the previous report"]];
+    var DEL = [["dashboard", "Save report in this dashboard"], ["excel", "Excel download"], ["pdf", "PDF download"]];
+    var AUTH = ["birkhillstores@gmail.com", "amvijay2602@gmail.com"];
+    var DEFAULTS = { version: 1,
+      suppliers: { parfetts: true, dhamecha: true, booker: true, eden: false, country_choice: false, unique: false },
+      schedule: { auto: true, paused: false, frequency: "weekly", days: ["Sun", "Wed"], time: "10:00", extra_times: [], timezone: "Europe/London" },
+      report: { departments: "all", ex_vat: true, case_price: true, unit_price: true, promotions: true, cheapest: true, savings: true, out_of_stock: true, reorder: true, changes: true, max_price_age_days: 45 },
+      delivery: { dashboard: true, excel: true, pdf: true, email: { on: true, auto: true, recipients: ["birkhillstores@gmail.com"], cc: ["amvijay2602@gmail.com"] }, whatsapp: { on: false, auto: false, chat: "Vijay" } } };
+    var $ = function (id) { return document.getElementById(id); };
+    function jget(k, d) { try { var v = JSON.parse(localStorage.getItem(k) || "null"); return v == null ? d : v; } catch (e) { return d; } }
+    function jset(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+    function clone(o) { return JSON.parse(JSON.stringify(o)); }
+    function staff() { try { return (localStorage.getItem("birkhill-staff-name") || "").trim() || "Staff"; } catch (e) { return "Staff"; } }
+    function clean(s) { return String(s == null ? "" : s).replace(/[|\n\r]/g, "/").trim(); }
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]; }); }
+    function uk(iso) { if (!iso) return ""; var d = new Date(iso); if (isNaN(d)) return String(iso);
+      return new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(d) + " UK"; }
+    function londonDay() { return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()); }
+
+    /* ---- send queue (same Apps Script as the other apps, retried until sent) ---- */
+    var sending = false;
+    function queue(name) { var q = jget(QKEY, []); q.push({ name: name, photo: "", lines: [{ date: londonDay(), qty: "0" }] }); jset(QKEY, q); flush(); }
+    function flush() {
+      if (sending) return; var q = jget(QKEY, []); if (!q.length) { showQueue(); return; } sending = true;
+      fetch(ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify(q[0]) })
+        .then(function () { var q2 = jget(QKEY, []); q2.shift(); jset(QKEY, q2); sending = false; flush(); })
+        .catch(function () { sending = false; showQueue(); setTimeout(flush, 15000); });
+    }
+    function showQueue() { var n = jget(QKEY, []).length; if (n) say("Saved on this phone. " + n + " change(s) waiting for signal to send.", "warn"); }
+    window.addEventListener("online", flush); setInterval(flush, 30000);
+
+    /* ---- decrypt box files (same key as the other apps) ---- */
+    function b64u(s) { s = s.replace(/-/g, "+").replace(/_/g, "/"); while (s.length % 4) s += "="; var bin = atob(s), o = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) o[i] = bin.charCodeAt(i); return o; }
+    var keyP = null;
+    function key() { if (!keyP) { var k = ""; try { k = localStorage.getItem("birkhill-data-key") || ""; } catch (e) {} if (!k) return Promise.reject(new Error("no key"));
+      keyP = crypto.subtle.importKey("raw", b64u(k), "AES-GCM", false, ["decrypt"]); } return keyP; }
+    function getEnc(url) {
+      return Promise.all([key(), fetch(url + ".enc", { cache: "no-cache" })]).then(function (r) {
+        if (!r[1].ok) throw new Error("missing " + r[1].status);
+        return r[1].arrayBuffer().then(function (buf) { var a = new Uint8Array(buf); return crypto.subtle.decrypt({ name: "AES-GCM", iv: a.slice(0, 12) }, r[0], a.slice(12)); });
+      }).then(function (plain) { return new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"))).arrayBuffer(); });
+    }
+    function getJSON(url) { return getEnc(url).then(function (b) { return JSON.parse(new TextDecoder().decode(b)); }); }
+
+    /* ---- form ---- */
+    var BOX = null, CUR = clone(DEFAULTS), DEPTS = [];
+    function build() {
+      $("supList").innerHTML = SUP.map(function (s) { return '<label class="ck"><input type="checkbox" data-sup="' + s[0] + '"> ' + esc(s[1]) + '</label>'; }).join("");
+      $("days").innerHTML = DAYS.map(function (d) { return '<label>' + d + '<input type="checkbox" data-day="' + d + '"></label>'; }).join("");
+      $("repOpts").innerHTML = REP.map(function (r) { return '<label class="ck"><input type="checkbox" data-rep="' + r[0] + '"> ' + esc(r[1]) + '</label>'; }).join("");
+      $("delOpts").innerHTML = DEL.map(function (r) { return '<label class="ck"><input type="checkbox" data-del="' + r[0] + '"> ' + esc(r[1]) + '</label>'; }).join("") +
+        '<label class="ck"><input type="checkbox" id="emOn"> Email the report</label><label class="ck"><input type="checkbox" id="waOn"> Share a summary on WhatsApp</label>';
+      $("emList").innerHTML = AUTH.map(function (a) { return '<label class="ck"><input type="checkbox" data-em="' + a + '"> To ' + esc(a) + '</label><label class="ck"><input type="checkbox" data-cc="' + a + '"> Copy (CC) ' + esc(a) + '</label>'; }).join("") +
+        '<div class="muted">Only these authorised addresses can get reports.</div>';
+      ["depAll", "depSel"].forEach(function (id) { $(id).addEventListener("change", function () { $("depList").classList.toggle("hidden", !$("depSel").checked); }); });
+      $("freq").addEventListener("change", freqUi);
+    }
+    function freqUi() { var f = $("freq").value; $("extraRow").classList.toggle("hidden", f !== "custom");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-day]"), function (c) { c.disabled = (f === "daily" || f === "manual"); if (f === "daily") c.checked = true; }); }
+    function depList() {
+      $("depList").innerHTML = DEPTS.length ? DEPTS.map(function (d) { return '<label class="ck"><input type="checkbox" data-dep="' + esc(d.name) + '"> ' + esc(d.name) + '</label>'; }).join("") : '<div class="muted">Department list loads from the box.</div>';
+    }
+    function fill(s) {
+      SUP.forEach(function (x) { document.querySelector('[data-sup="' + x[0] + '"]').checked = !!s.suppliers[x[0]]; });
+      $("auto").checked = !!s.schedule.auto; $("freq").value = s.schedule.frequency || "weekly"; $("time").value = s.schedule.time || "10:00";
+      $("extra").value = (s.schedule.extra_times || []).join(", ");
+      DAYS.forEach(function (d) { document.querySelector('[data-day="' + d + '"]').checked = (s.schedule.days || []).indexOf(d) >= 0; });
+      var all = s.report.departments === "all"; $("depAll").checked = all; $("depSel").checked = !all; $("depList").classList.toggle("hidden", all);
+      Array.prototype.forEach.call(document.querySelectorAll("[data-dep]"), function (c) { c.checked = !all && s.report.departments.indexOf(c.getAttribute("data-dep")) >= 0; });
+      REP.forEach(function (r) { document.querySelector('[data-rep="' + r[0] + '"]').checked = !!s.report[r[0]]; });
+      $("maxAge").value = s.report.max_price_age_days || 45;
+      DEL.forEach(function (r) { document.querySelector('[data-del="' + r[0] + '"]').checked = !!s.delivery[r[0]]; });
+      $("emOn").checked = !!s.delivery.email.on; $("emMode").value = s.delivery.email.auto ? "auto" : "manual";
+      AUTH.forEach(function (a) { document.querySelector('[data-em="' + a + '"]').checked = s.delivery.email.recipients.indexOf(a) >= 0; document.querySelector('[data-cc="' + a + '"]').checked = (s.delivery.email.cc || []).indexOf(a) >= 0; });
+      $("waOn").checked = !!s.delivery.whatsapp.on; $("waMode").value = s.delivery.whatsapp.auto ? "auto" : "manual";
+      $("btnPause").textContent = s.schedule.paused ? "Resume Schedule" : "Pause Schedule";
+      freqUi();
+    }
+    function read() {
+      var s = clone(CUR);
+      SUP.forEach(function (x) { s.suppliers[x[0]] = document.querySelector('[data-sup="' + x[0] + '"]').checked; });
+      s.schedule.auto = $("auto").checked; s.schedule.frequency = $("freq").value; s.schedule.time = $("time").value || "10:00";
+      s.schedule.extra_times = $("extra").value.split(/[ ,;]+/).map(function (t) { return t.trim(); }).filter(function (t) { return /^([01]?\d|2[0-3]):[0-5]\d$/.test(t); });
+      s.schedule.days = DAYS.filter(function (d) { return document.querySelector('[data-day="' + d + '"]').checked; });
+      if (s.schedule.frequency === "daily") s.schedule.days = DAYS.slice();
+      s.schedule.timezone = "Europe/London";
+      if ($("depAll").checked) s.report.departments = "all";
+      else { var l = []; Array.prototype.forEach.call(document.querySelectorAll("[data-dep]:checked"), function (c) { l.push(clean(c.getAttribute("data-dep"))); }); s.report.departments = l.length ? l : "all"; }
+      REP.forEach(function (r) { s.report[r[0]] = document.querySelector('[data-rep="' + r[0] + '"]').checked; });
+      s.report.max_price_age_days = Math.max(7, Math.min(180, parseInt($("maxAge").value, 10) || 45));
+      DEL.forEach(function (r) { s.delivery[r[0]] = document.querySelector('[data-del="' + r[0] + '"]').checked; });
+      s.delivery.email.on = $("emOn").checked; s.delivery.email.auto = $("emMode").value === "auto";
+      s.delivery.email.recipients = AUTH.filter(function (a) { return document.querySelector('[data-em="' + a + '"]').checked; });
+      s.delivery.email.cc = AUTH.filter(function (a) { return document.querySelector('[data-cc="' + a + '"]').checked; });
+      s.delivery.whatsapp.on = $("waOn").checked; s.delivery.whatsapp.auto = $("waMode").value === "auto"; s.delivery.whatsapp.chat = "Vijay";
+      return s;
+    }
+    function problems(s) {
+      var p = [];
+      if (!SUP.some(function (x) { return s.suppliers[x[0]]; })) p.push("Tick at least one supplier.");
+      if ((s.schedule.frequency === "weekly" || s.schedule.frequency === "custom") && !s.schedule.days.length) p.push("Tick at least one day.");
+      if (s.delivery.email.on && !s.delivery.email.recipients.length) p.push("Pick who gets the email.");
+      return p;
+    }
+    function say(t, cls) { var m = $("msg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); m.style.display = "block"; }
+    function save(s, action) {
+      var p = problems(s); if (p.length) { say(p.join(" "), "err"); return false; }
+      var rec = { saved_at: new Date().toISOString(), by: clean(staff()), action: action, settings: s };
+      var txt = JSON.stringify(rec).replace(/\|/g, "/");
+      queue("WCSET: " + txt); jset(LKEY, rec); CUR = clone(s); fill(CUR); state();
+      return true;
+    }
+    function nextText(s) {
+      var sc = s.schedule;
+      if (!sc.auto || sc.frequency === "manual") return "Automatic comparison is OFF. Use Run Comparison Now.";
+      if (sc.paused) return "Schedule is PAUSED. Nothing runs until you tap Resume Schedule.";
+      var days = sc.frequency === "daily" ? "every day" : sc.days.join(", ");
+      return "Runs " + days + " at " + [sc.time].concat(sc.extra_times || []).join(", ") + " UK time.";
+    }
+    function state() {
+      var loc = jget(LKEY, null), s = CUR;
+      var pend = loc && (!BOX || !BOX.saved_at || loc.saved_at > BOX.saved_at);
+      $("wcState").textContent = nextText(s);
+      $("nextRun").textContent = BOX && BOX.next_run && !pend ? "Next run: " + uk(BOX.next_run) : "";
+      $("wcApplied").textContent = pend ? "Saved on this phone at " + uk(loc.saved_at) + ". The box picks it up at its next update (about every 30 minutes)."
+        : (BOX ? "Settings on the box: saved " + (BOX.saved_at ? uk(BOX.saved_at) + " by " + (BOX.saved_by || "") : "as defaults") + ", applied " + uk(BOX.applied_at) + "." : "Box settings not loaded yet.");
+      if (BOX && BOX.warnings && BOX.warnings.length && !pend) $("wcApplied").textContent += " Box note: " + BOX.warnings.join("; ");
+    }
+    function download(path, name, type) {
+      getEnc(path).then(function (buf) {
+        var a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([buf], { type: type })); a.download = name; document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+      }).catch(function () { say("That file is not on this phone link yet. Try again after the next update.", "err"); });
+    }
+    function reports() {
+      var runs = (BOX && BOX.runs) || [], reqs = jget(RKEY, []);
+      var html = "";
+      var waiting = reqs.filter(function (r) { return !runs.some(function (x) { return x.started && x.started > r.at; }); });
+      if (waiting.length) html += '<div class="rep"><div class="t">Run Now requested ' + uk(waiting[waiting.length - 1].at) + '</div><div class="muted">Waiting for the box. It runs at the next update and the report shows here.</div></div>';
+      if (!runs.length) html += '<div class="muted">No reports yet.</div>';
+      runs.slice(0, 30).forEach(function (r) {
+        var st = r.stats || {};
+        html += '<div class="rep"><div class="t">' + esc(uk(r.started)) + ' <span class="pill ' + (r.status === "done" ? "p-live" : r.status === "error" ? "p-bad" : "p-dev") + '">' + esc(r.status) + '</span></div>' +
+          '<div class="muted">' + esc(r.reason || "") + '. ' + esc((r.suppliers || []).join(", ")) + '</div>' + (r.note ? '<div class="muted"><b>' + esc(r.note) + '</b></div>' : '') +
+          (r.status === "done" ? '<div>' + (st.compared || 0) + ' compared, cheapest found for ' + (st.decided || 0) + ', ' + (st.review || 0) + ' to review, ' + (st.unmatched || 0) + ' unmatched. Reorder ' + (st.order_lines || 0) + ' lines (not ordered).</div>' : '<div class="muted">' + esc(r.error || "") + '</div>') +
+          '<div class="b">' + (r.files && r.files.pdf ? '<button type="button" data-dl="' + esc(r.files.pdf) + '" data-name="' + esc(r.id) + '.pdf" data-type="application/pdf">PDF</button>' : '') +
+          (r.files && r.files.xlsx ? '<button type="button" data-dl="' + esc(r.files.xlsx) + '" data-name="' + esc(r.id) + '.xlsx" data-type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">Excel</button>' : '') + '</div></div>';
+      });
+      $("repList").innerHTML = html; $("repList").classList.remove("muted");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-dl]"), function (b) { b.addEventListener("click", function () { download(b.getAttribute("data-dl"), b.getAttribute("data-name"), b.getAttribute("data-type")); }); });
+    }
+    function health() {
+      getJSON("health.json").then(function (h) {
+        $("hcAt").textContent = "Last check: " + uk(h.at) + ". " + (h.summary || "");
+        $("hcList").innerHTML = '<table><tr><th>App</th><th>Status</th><th>Notes</th></tr>' + (h.apps || []).map(function (a) {
+          var cls = a.status === "Live" ? "p-live" : (a.status === "Broken" || a.status === "Inaccessible") ? "p-bad" : "p-dev";
+          return '<tr><td><a href="' + esc(a.link || "#") + '">' + esc(a.name) + '</a></td><td><span class="pill ' + cls + '">' + esc(a.status) + '</span></td><td>' + esc(a.note || "") + '</td></tr>'; }).join("") + '</table>';
+      }).catch(function () { $("hcAt").textContent = "App status not published yet."; });
+    }
+    /* ---- buttons ---- */
+    $("btnSave").addEventListener("click", function () { if (save(read(), "save")) say("Settings saved. The box applies them at its next update (about every 30 minutes)."); });
+    $("btnPause").addEventListener("click", function () {
+      var s = read(); s.schedule.paused = !CUR.schedule.paused;
+      if (save(s, s.schedule.paused ? "pause" : "resume")) say(s.schedule.paused ? "Schedule paused. No automatic reports until you resume." : "Schedule resumed.");
+    });
+    $("btnReset").addEventListener("click", function () {
+      if (!confirm("Reset all wholesale compare settings to the defaults (Sun and Wed 10:00, Parfetts, Dhamecha and Booker)?")) return;
+      if (save(clone(DEFAULTS), "reset")) say("Defaults saved: Sun and Wed at 10:00 UK, Parfetts, Dhamecha and Booker, automatic ON.");
+    });
+    $("btnRun").addEventListener("click", function () {
+      var reqs = jget(RKEY, []), last = reqs[reqs.length - 1];
+      if (last && Date.now() - new Date(last.at).getTime() < 10 * 60 * 1000) { say("A run was already asked for at " + uk(last.at) + ". It will run once at the next update.", "warn"); return; }
+      var id = "R" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), at = new Date().toISOString();
+      queue("WCRUN: " + id + " | " + clean(staff()) + " | " + at); reqs.push({ id: id, at: at }); jset(RKEY, reqs);
+      say("Run Now asked for. The box makes the report at its next update (about every 30 minutes). It uses the saved settings."); reports();
+    });
+    $("tabWholesale").addEventListener("click", function () { $("secWholesale").classList.remove("hidden"); $("secApps").classList.add("hidden"); this.classList.add("active"); $("tabApps").classList.remove("active"); });
+    $("tabApps").addEventListener("click", function () { $("secApps").classList.remove("hidden"); $("secWholesale").classList.add("hidden"); this.classList.add("active"); $("tabWholesale").classList.remove("active"); health(); });
+    if (location.hash === "#apps") $("tabApps").click();
+
+    build(); depList();
+    var loc = jget(LKEY, null); if (loc && loc.settings) CUR = loc.settings; fill(CUR); state();
+    getJSON("wholesale.json").then(function (d) {
+      BOX = d; DEPTS = d.departments || []; depList();
+      var loc2 = jget(LKEY, null);
+      if (!loc2 || !d.saved_at || loc2.saved_at <= d.saved_at) CUR = d.settings || CUR; else CUR = loc2.settings;
+      fill(CUR); state(); reports();
+    }).catch(function (e) { $("repList").textContent = String(e.message) === "no key" ? "Locked on this phone. Open the app once from the full link Vijay sent (it ends in #k=...)." : "Reports not published yet."; state(); });
+    flush();
+  })();
+  </script>
+</body>
+</html>
