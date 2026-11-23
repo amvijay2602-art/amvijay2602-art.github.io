@@ -1,6 +1,6 @@
 {
- "updated": "23 November 2026, 8:24pm",
- "updated_iso": "2026-11-23T20:24:46+00:00",
+ "updated": "23 November 2026, 8:32pm",
+ "updated_iso": "2026-11-23T20:32:23+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
   {
@@ -17,10 +17,21 @@
    "picture": "img/5410438047952.jpg",
    "note": "Mix and match, 3 products",
    "pack": "400ML",
+   "barcode": "5410438047952",
+   "barcodes": [
+    "5410438047952",
+    "5410438047938",
+    "5410438047914"
+   ],
    "items": [
     "Yazoo Banana \u00a31.39",
     "Yazoo Chocolate PM139",
     "Yazoo Strawberry PM139"
+   ],
+   "item_barcodes": [
+    "5410438047952",
+    "5410438047938",
+    "5410438047914"
    ]
   },
   {
@@ -37,7 +48,12 @@
    "picture": "img/5000168012773.jpg",
    "note": "",
    "pack": "90G",
-   "items": []
+   "barcode": "5000168012773",
+   "barcodes": [
+    "5000168012773"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14458",
@@ -53,7 +69,12 @@
    "picture": "img/8445291693869.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "8445291693869",
+   "barcodes": [
+    "8445291693869"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15156",
@@ -69,7 +90,12 @@
    "picture": "img/4009900549851.jpg",
    "note": "",
    "pack": "45G",
-   "items": []
+   "barcode": "4009900549851",
+   "barcodes": [
+    "4009900549851"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15117",
@@ -85,9 +111,18 @@
    "picture": "img/5000309007668.jpg",
    "note": "Mix and match, 2 products",
    "pack": "16'S",
+   "barcode": "5000309007668",
+   "barcodes": [
+    "5000309007668",
+    "5000309007682"
+   ],
    "items": [
     "Anadin Gsl Extra",
     "Anadin Gsl Extra"
+   ],
+   "item_barcodes": [
+    "5000309007668",
+    "5000309007682"
    ]
   },
   {
@@ -104,6 +139,19 @@
    "picture": "img/5010034014299.jpg",
    "note": "Mix and match, 10 products",
    "pack": "1",
+   "barcode": "5010034014299",
+   "barcodes": [
+    "5010034014299",
+    "5010034013995",
+    "5010034013803",
+    "5010034013797",
+    "5010034013827",
+    "5010034013698",
+    "5010034014114",
+    "5010034013957",
+    "5010034014282",
+    "5010034013681"
+   ],
    "items": [
     "Bens Peri Peri Rice",
     "Bens Orig Golden Veg Rice",
@@ -115,6 +163,18 @@
     "Bens Savoury Chicken Rice",
     "Carribean Rice",
     "Bens Orig Basm Rice Rth"
+   ],
+   "item_barcodes": [
+    "5010034014299",
+    "5010034013995",
+    "5010034013803",
+    "5010034013797",
+    "5010034013827",
+    "5010034013698",
+    "5010034014114",
+    "5010034013957",
+    "5010034014282",
+    "5010034013681"
    ]
   },
   {
@@ -131,10 +191,21 @@
    "picture": "img/5055028349193.jpg",
    "note": "Mix and match, 3 products",
    "pack": "3'S",
+   "barcode": "5055028388253",
+   "barcodes": [
+    "5055028388253",
+    "5055028349193",
+    "5055028348882"
+   ],
    "items": [
     "Colg Ex Clean PM1.49",
     "Col Plax Mint Bl",
     "Col Plax Soft Mi"
+   ],
+   "item_barcodes": [
+    "5055028388253",
+    "5055028349193",
+    "5055028348882"
    ]
   },
   {
@@ -151,7 +222,12 @@
    "picture": "img/5035766066286.jpg",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5035766066286",
+   "barcodes": [
+    "5035766066286"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15129",
@@ -167,12 +243,27 @@
    "picture": "img/5011417575888.jpg",
    "note": "Mix and match, 5 products",
    "pack": "750ML",
+   "barcode": "8720181529542",
+   "barcodes": [
+    "8720181529542",
+    "8720181529573",
+    "8720181529528",
+    "5011417575888",
+    "8720181714498"
+   ],
    "items": [
     "Dom Blch Citrus PM \u00a31.50",
     "Dom Blch Pink PM \u00a31.50",
     "Domest O/b Reg PM \u00a31.50",
     "Dettol Surface W",
     "Dom Blch Citrus PM \u00a31.35"
+   ],
+   "item_barcodes": [
+    "8720181529542",
+    "8720181529573",
+    "8720181529528",
+    "5011417575888",
+    "8720181714498"
    ]
   },
   {
@@ -189,9 +280,18 @@
    "picture": "img/8410793002433.jpg",
    "note": "Mix and match, 2 products",
    "pack": "440ML",
+   "barcode": "8410793002433",
+   "barcodes": [
+    "8410793002433",
+    "5035766044086"
+   ],
    "items": [
     "Estrella 10 Pack Can",
     "Strongbow Dark Fruit 10 Can Pck"
+   ],
+   "item_barcodes": [
+    "8410793002433",
+    "5035766044086"
    ]
   },
   {
@@ -208,9 +308,18 @@
    "picture": "img/088004023508.jpg",
    "note": "Mix and match, 2 products",
    "pack": "70CL",
+   "barcode": "1210000109965",
+   "barcodes": [
+    "1210000109965",
+    "088004023508"
+   ],
    "items": [
     "Fireball \u00a317.99",
     "Fireball 50CL"
+   ],
+   "item_barcodes": [
+    "1210000109965",
+    "088004023508"
    ]
   },
   {
@@ -227,7 +336,12 @@
    "picture": "img/5010153873708.jpg",
    "note": "",
    "pack": "1",
-   "items": []
+   "barcode": "5010153873708",
+   "barcodes": [
+    "5010153873708"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15151",
@@ -243,7 +357,12 @@
    "picture": "img/5059319036984.jpg",
    "note": "",
    "pack": "196G",
-   "items": []
+   "barcode": "5059319036984",
+   "barcodes": [
+    "5059319036984"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15076",
@@ -259,10 +378,21 @@
    "picture": "img/1230000131049.jpg",
    "note": "Mix and match, 3 products",
    "pack": "1",
+   "barcode": "1230000131049",
+   "barcodes": [
+    "1230000131049",
+    "1230000131681",
+    "1230000131735"
+   ],
    "items": [
     "Nerds Gummy Berries",
     "Ner Gum Clst Chr Lem/ade",
     "Nerds Gummy Cluster Fruit PM"
+   ],
+   "item_barcodes": [
+    "1230000131049",
+    "1230000131681",
+    "1230000131735"
    ]
   },
   {
@@ -279,6 +409,20 @@
    "picture": "img/3800020418697.jpg",
    "note": "Mix and match, 11 products",
    "pack": "64G",
+   "barcode": "3800020418697",
+   "barcodes": [
+    "3800020418697",
+    "5000159558181",
+    "5000159605144",
+    "5000159605441",
+    "5000159606165",
+    "7613033126390",
+    "7613034043870",
+    "8445291892439",
+    "3800020401231",
+    "7613036512992",
+    "5000159610582"
+   ],
    "items": [
     "Nestle Kit Kat Chunky Duo 64G",
     "Twix Xtra Twin Mlk Chocolate",
@@ -291,6 +435,19 @@
     "Kit Kat Chunkyduo Sltd Carml",
     "Lion Milk Duo St",
     "Bounty Trio Bar"
+   ],
+   "item_barcodes": [
+    "3800020418697",
+    "5000159558181",
+    "5000159605144",
+    "5000159605441",
+    "5000159606165",
+    "7613033126390",
+    "7613034043870",
+    "8445291892439",
+    "3800020401231",
+    "7613036512992",
+    "5000159610582"
    ]
   },
   {
@@ -307,9 +464,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "71G",
+   "barcode": "5010511482955",
+   "barcodes": [
+    "5010511482955",
+    "5010511482979"
+   ],
    "items": [
     "Poppets Mint \u00a31",
     "Poppets Mix Ups \u00a31.00"
+   ],
+   "item_barcodes": [
+    "5010511482955",
+    "5010511482979"
    ]
   },
   {
@@ -326,6 +492,26 @@
    "picture": "img/90497186.jpg",
    "note": "Mix and match, 17 products",
    "pack": "",
+   "barcode": "90497186",
+   "barcodes": [
+    "90497186",
+    "90493324",
+    "90493720",
+    "90493355",
+    "90493348",
+    "90493423",
+    "90493713",
+    "90493300",
+    "90493737",
+    "90493560",
+    "90493362",
+    "90493539",
+    "90496011",
+    "90486456",
+    "90493379",
+    "90493294",
+    "90457975"
+   ],
    "items": [
     "Red Bull Winter 2026 PM175",
     "Red Bull Iced Vnlberry PM175",
@@ -339,6 +525,20 @@
     "Red Bull Ruby Edit \u00a31.75",
     "Redbull Sum Curuba \u00a31.75",
     "Red Bull Citrus Zest PM175"
+   ],
+   "item_barcodes": [
+    "90497186",
+    "90493324",
+    "90493720",
+    "90493355",
+    "90493348",
+    "90493423",
+    "90493713",
+    "90493300",
+    "90493737",
+    "90493560",
+    "90493362",
+    "90493539"
    ]
   },
   {
@@ -355,7 +555,12 @@
    "picture": "img/5016451062141.jpg",
    "note": "",
    "pack": "6x25G",
-   "items": []
+   "barcode": "5016451062141",
+   "barcodes": [
+    "5016451062141"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14547",
@@ -371,6 +576,18 @@
    "picture": "img/5016451062110.jpg",
    "note": "Mix and match, 9 products",
    "pack": "6x25G",
+   "barcode": "5016451062110",
+   "barcodes": [
+    "5016451062110",
+    "5016451062127",
+    "5016451062134",
+    "5016451062141",
+    "5016451062158",
+    "5016451062172",
+    "5016451062189",
+    "5016451062196",
+    "5016451362203"
+   ],
    "items": [
     "Seabrook Sea Sal",
     "Seabrook Cheese&onion 6PK",
@@ -381,6 +598,17 @@
     "Seabrook Canadia",
     "Seabrook Variety 6K",
     "Sbrook Crin S/bacon 6PK"
+   ],
+   "item_barcodes": [
+    "5016451062110",
+    "5016451062127",
+    "5016451062134",
+    "5016451062141",
+    "5016451062158",
+    "5016451062172",
+    "5016451062189",
+    "5016451062196",
+    "5016451362203"
    ]
   },
   {
@@ -397,9 +625,18 @@
    "picture": "img/5010102244962.jpg",
    "note": "Mix and match, 2 products",
    "pack": "330ML",
+   "barcode": "5010102244962",
+   "barcodes": [
+    "5010102244962",
+    "5010102343443"
+   ],
    "items": [
     "Tango Orange 75P",
     "Tango Apple S/f 75P"
+   ],
+   "item_barcodes": [
+    "5010102244962",
+    "5010102343443"
    ]
   },
   {
@@ -416,9 +653,18 @@
    "picture": "img/5000208002481.jpg",
    "note": "Mix and match, 2 products",
    "pack": "80'S",
+   "barcode": "5000208002481",
+   "barcodes": [
+    "5000208002481",
+    "5000208002535"
+   ],
    "items": [
     "Tetley Decf Teabags 3.35",
     "Tetley Original 80 PM335"
+   ],
+   "item_barcodes": [
+    "5000208002481",
+    "5000208002535"
    ]
   },
   {
@@ -435,9 +681,18 @@
    "picture": "img/5010438018930.jpg",
    "note": "Mix and match, 2 products",
    "pack": "725ML",
+   "barcode": "5010438018930",
+   "barcodes": [
+    "5010438018930",
+    "5010438019227"
+   ],
    "items": [
     "Vimto Nas Cordial PM1.65",
     "Vimto Original Cordial PM165"
+   ],
+   "item_barcodes": [
+    "5010438018930",
+    "5010438019227"
    ]
   },
   {
@@ -454,9 +709,18 @@
    "picture": "img/5010438023859.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "5010438023859",
+   "barcodes": [
+    "5010438023859",
+    "5010438023866"
+   ],
    "items": [
     "Vimto Original PM80 330ML",
     "Vimto Nas 80P"
+   ],
+   "item_barcodes": [
+    "5010438023859",
+    "5010438023866"
    ]
   },
   {
@@ -473,9 +737,18 @@
    "picture": "img/5900951305672.jpg",
    "note": "Mix and match, 2 products",
    "pack": "300G",
+   "barcode": "5900951305672",
+   "barcodes": [
+    "5900951305672",
+    "5900951305597"
+   ],
    "items": [
     "Whiskas Dry Complete Tuna",
     "Whiskas Com/d Chick"
+   ],
+   "item_barcodes": [
+    "5900951305672",
+    "5900951305597"
    ]
   },
   {
@@ -492,9 +765,18 @@
    "picture": "img/9312088411892.jpg",
    "note": "Mix and match, 2 products",
    "pack": "75CL",
+   "barcode": "9312088411892",
+   "barcodes": [
+    "9312088411892",
+    "9312088201905"
+   ],
    "items": [
     "Wolf Blass Y.l Cabernet Sauv",
     "Wolf Blass Yello"
+   ],
+   "item_barcodes": [
+    "9312088411892",
+    "9312088201905"
    ]
   },
   {
@@ -511,6 +793,24 @@
    "picture": "img/9322214006328.jpg",
    "note": "Mix and match, 15 products",
    "pack": "75CL",
+   "barcode": "9322214006328",
+   "barcodes": [
+    "9322214006328",
+    "9322214011360",
+    "9322214011797",
+    "9322214011520",
+    "9322214009961",
+    "9322214008926",
+    "9322214007806",
+    "9322214012107",
+    "9322214015689",
+    "9322214016051",
+    "9322214006205",
+    "9322214016617",
+    "085000009840",
+    "9322214006229",
+    "9322214018017"
+   ],
    "items": [
     "Yellow Tail Merl",
     "Yellow Tail Malbec",
@@ -524,6 +824,20 @@
     "Yellow Tail Jam White Ro",
     "Yellow Tail Chardonnay",
     "Yellow Tail Rose"
+   ],
+   "item_barcodes": [
+    "9322214006328",
+    "9322214011360",
+    "9322214011797",
+    "9322214011520",
+    "9322214009961",
+    "9322214008926",
+    "9322214007806",
+    "9322214012107",
+    "9322214015689",
+    "9322214016051",
+    "9322214006205",
+    "9322214016617"
    ]
   },
   {
@@ -540,6 +854,18 @@
    "picture": "img/5010153872855.jpg",
    "note": "Mix and match, 9 products",
    "pack": "660ML",
+   "barcode": "5010153872855",
+   "barcodes": [
+    "5010153872855",
+    "5014379004533",
+    "5014379010954",
+    "5014379012958",
+    "5014379014457",
+    "5014379029833",
+    "5901359074481",
+    "8008440212481",
+    "8008440246066"
+   ],
    "items": [
     "1664 Biere 8 Pack Nrb",
     "Budweiser 4.5% A",
@@ -550,6 +876,17 @@
     "Tyskie Gronie Nrb",
     "Peroni Nastro Azzurro",
     "Asahi Super Dry Large"
+   ],
+   "item_barcodes": [
+    "5010153872855",
+    "5014379004533",
+    "5014379010954",
+    "5014379012958",
+    "5014379014457",
+    "5014379029833",
+    "5901359074481",
+    "8008440212481",
+    "8008440246066"
    ]
   },
   {
@@ -566,11 +903,24 @@
    "picture": "img/5010153874613.jpg",
    "note": "Mix and match, 4 products",
    "pack": "",
+   "barcode": "5010153874613",
+   "barcodes": [
+    "5010153874613",
+    "5014379034837",
+    "5016325855237",
+    "5410228337379"
+   ],
    "items": [
     "1664 Biere PM795",
     "Budweiser Can 4x568ml PM779",
     "1664 Biere 4PK PM \u00a37.95",
     "Stella 4x568ml PM799"
+   ],
+   "item_barcodes": [
+    "5010153874613",
+    "5014379034837",
+    "5016325855237",
+    "5410228337379"
    ]
   },
   {
@@ -587,11 +937,24 @@
    "picture": "img/4062139024452.jpg",
    "note": "Mix and match, 4 products",
    "pack": "",
+   "barcode": "4062139024452",
+   "barcodes": [
+    "4062139024452",
+    "5000112684506",
+    "5000112684810",
+    "5000112684827"
+   ],
    "items": [
     "7UP Regular \u00a31.35",
     "Sprite Regular Pm?1.40",
     "Oasis Summer Fruits PM140",
     "Oasis Citr Punch \u00a31.40"
+   ],
+   "item_barcodes": [
+    "4062139024452",
+    "5000112684506",
+    "5000112684810",
+    "5000112684827"
    ]
   },
   {
@@ -608,6 +971,26 @@
    "picture": "img/5000112687439.jpg",
    "note": "Mix and match, 17 products",
    "pack": "250ML",
+   "barcode": "5000112676815",
+   "barcodes": [
+    "5000112676815",
+    "5449000336262",
+    "5449000336248",
+    "5000112687439",
+    "5000112687309",
+    "5000112687422",
+    "5011007027797",
+    "5060065307075",
+    "5060065307051",
+    "5060065307068",
+    "5060065307044",
+    "5024993733535",
+    "5024993733542",
+    "5024993733559",
+    "5410263931525",
+    "5410263931495",
+    "5410263931471"
+   ],
    "items": [
     "Absl Vod & Sprt PM \u00a32.29",
     "Absolut Wmel & Sprite",
@@ -621,6 +1004,20 @@
     "Ka Remix Rum & Pineapp",
     "Ka Remix Rum & Black Gra",
     "Wkd Cheeky V"
+   ],
+   "item_barcodes": [
+    "5000112676815",
+    "5449000336262",
+    "5449000336248",
+    "5000112687439",
+    "5000112687309",
+    "5000112687422",
+    "5011007027797",
+    "5060065307075",
+    "5060065307051",
+    "5060065307068",
+    "5060065307044",
+    "5024993733535"
    ]
   },
   {
@@ -637,6 +1034,20 @@
    "picture": "img/7312040350056.jpg",
    "note": "Mix and match, 11 products",
    "pack": "70CL",
+   "barcode": "7312040553402",
+   "barcodes": [
+    "7312040553402",
+    "7312040350056",
+    "7312040350100",
+    "7312040553273",
+    "7312040553129",
+    "7312040350209",
+    "7312040350339",
+    "7312040552726",
+    "7312040350308",
+    "7312040090709",
+    "7312040551668"
+   ],
    "items": [
     "Absolut Vodka \u00a320.99",
     "Absolut Vodka Raspberry",
@@ -649,6 +1060,19 @@
     "Absolut Vodka Wild Berri",
     "Absolut Citron",
     "Absolut Lime"
+   ],
+   "item_barcodes": [
+    "7312040553402",
+    "7312040350056",
+    "7312040350100",
+    "7312040553273",
+    "7312040553129",
+    "7312040350209",
+    "7312040350339",
+    "7312040552726",
+    "7312040350308",
+    "7312040090709",
+    "7312040551668"
    ]
   },
   {
@@ -665,9 +1089,18 @@
    "picture": "img/5000354929779.jpg",
    "note": "Mix and match, 2 products",
    "pack": "400G",
+   "barcode": "5000354929779",
+   "barcodes": [
+    "5000354929779",
+    "5000354929786"
+   ],
    "items": [
     "Ambrosia Custard PM1.50",
     "Ambrosia Rice PM1.50"
+   ],
+   "item_barcodes": [
+    "5000354929779",
+    "5000354929786"
    ]
   },
   {
@@ -684,7 +1117,12 @@
    "picture": "img/5035766066422.jpg",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5035766066422",
+   "barcodes": [
+    "5035766066422"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15115",
@@ -700,7 +1138,12 @@
    "picture": "img/5029053581262.jpg",
    "note": "",
    "pack": "6'S",
-   "items": []
+   "barcode": "5029053581262",
+   "barcodes": [
+    "5029053581262"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15116",
@@ -716,9 +1159,18 @@
    "picture": "img/5029053581279.jpg",
    "note": "Mix and match, 2 products",
    "pack": "9'S",
+   "barcode": "5029053581279",
+   "barcodes": [
+    "5029053581279",
+    "5029053586236"
+   ],
    "items": [
     "Andrex Class Clean 5.49",
     "Ultimate Quil T/rol 5.49"
+   ],
+   "item_barcodes": [
+    "5029053581279",
+    "5029053586236"
    ]
   },
   {
@@ -735,10 +1187,21 @@
    "picture": "img/8008440112026.jpg",
    "note": "Mix and match, 3 products",
    "pack": "330ML",
+   "barcode": "8008440146137",
+   "barcodes": [
+    "8008440146137",
+    "8008440112026",
+    "5035766064299"
+   ],
    "items": [
     "Asahi Dry 10 Pack Bottle",
     "Peroni Lager 10PK Nrb",
     "Desperados 10 Pack Can"
+   ],
+   "item_barcodes": [
+    "8008440146137",
+    "8008440112026",
+    "5035766064299"
    ]
   },
   {
@@ -755,7 +1218,12 @@
    "picture": "",
    "note": "",
    "pack": "315G",
-   "items": []
+   "barcode": "5010338000295",
+   "barcodes": [
+    "5010338000295"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15094",
@@ -771,11 +1239,24 @@
    "picture": "img/5010338016074.jpg",
    "note": "Mix and match, 4 products",
    "pack": "65G",
+   "barcode": "5010338016074",
+   "barcodes": [
+    "5010338016074",
+    "5010338016081",
+    "5010338016630",
+    "5000354924491"
+   ],
    "items": [
     "B/dragon Noodle",
     "B/d Noodle Wok S",
     "B/dragon Noodle",
     "Paxo Sage&oni Stuff 2.49"
+   ],
+   "item_barcodes": [
+    "5010338016074",
+    "5010338016081",
+    "5010338016630",
+    "5000354924491"
    ]
   },
   {
@@ -792,6 +1273,20 @@
    "picture": "img/7610113007792.jpg",
    "note": "Mix and match, 11 products",
    "pack": "250ML",
+   "barcode": "5000112693294",
+   "barcodes": [
+    "5000112693294",
+    "7610113007792",
+    "7610113018217",
+    "5449000336606",
+    "7640175742461",
+    "5000281080802",
+    "5000281084787",
+    "5010103947435",
+    "5010103947411",
+    "5010103948166",
+    "5010103948630"
+   ],
    "items": [
     "Bacardi Spiced & Coke",
     "Bacardi Mojito Can",
@@ -804,6 +1299,19 @@
     "Ciroc Summer Citrus 5% 2",
     "Ciroc Red Berry And Lemo",
     "Ciroc Colada"
+   ],
+   "item_barcodes": [
+    "5000112693294",
+    "7610113007792",
+    "7610113018217",
+    "5449000336606",
+    "7640175742461",
+    "5000281080802",
+    "5000281084787",
+    "5010103947435",
+    "5010103947411",
+    "5010103948166",
+    "5010103948630"
    ]
   },
   {
@@ -820,11 +1328,24 @@
    "picture": "img/5000382132509.jpg",
    "note": "Mix and match, 4 products",
    "pack": "2LTR",
+   "barcode": "5000382132509",
+   "barcodes": [
+    "5000382132509",
+    "5000382132523",
+    "5000382132561",
+    "5000382132585"
+   ],
    "items": [
     "Barr Cola \u00a31.49/2f \u00a32.70",
     "B Diet Cola 1.49 2/\u00a32.70",
     "Barr Lemonad 1.49/2F2.70",
     "B Diet Lemon 1.49/2F2.70"
+   ],
+   "item_barcodes": [
+    "5000382132509",
+    "5000382132523",
+    "5000382132561",
+    "5000382132585"
    ]
   },
   {
@@ -841,6 +1362,16 @@
    "picture": "img/5000382129424.jpg",
    "note": "Mix and match, 7 products",
    "pack": "500ML",
+   "barcode": "5000382129424",
+   "barcodes": [
+    "5000382129424",
+    "5000382129448",
+    "5000382124443",
+    "5000382124467",
+    "5000382124481",
+    "5000382124528",
+    "5000382124542"
+   ],
    "items": [
     "Barr Peach Punch \u00a31",
     "Barr Berry Blast \u00a31",
@@ -849,6 +1380,15 @@
     "Barr Lemonade PM \u00a31",
     "Barr Bubblegum PM \u00a31",
     "Barr Cherryade PM \u00a31"
+   ],
+   "item_barcodes": [
+    "5000382129424",
+    "5000382129448",
+    "5000382124443",
+    "5000382124467",
+    "5000382124481",
+    "5000382124528",
+    "5000382124542"
    ]
   },
   {
@@ -865,6 +1405,18 @@
    "picture": "img/5010511482290.jpg",
    "note": "Mix and match, 9 products",
    "pack": "1",
+   "barcode": "5010511481606",
+   "barcodes": [
+    "5010511481606",
+    "5010511482290",
+    "5010511482306",
+    "5010511482313",
+    "5010511482603",
+    "8413178424974",
+    "8413178424981",
+    "8413178425094",
+    "8413178425100"
+   ],
    "items": [
     "Barratt Mini Flumps \u00a31.15",
     "B Fruit Salad Sun 1.15",
@@ -875,6 +1427,17 @@
     "Vidal Turtles \u00a31.15",
     "Vidal Jolly Slices \u00a31.15",
     "Vidal Sour Medley \u00a31.15"
+   ],
+   "item_barcodes": [
+    "5010511481606",
+    "5010511482290",
+    "5010511482306",
+    "5010511482313",
+    "5010511482603",
+    "8413178424974",
+    "8413178424981",
+    "8413178425094",
+    "8413178425100"
    ]
   },
   {
@@ -891,6 +1454,17 @@
    "picture": "img/8690146154853.jpg",
    "note": "Mix and match, 8 products",
    "pack": "150G",
+   "barcode": "8690146154853",
+   "barcodes": [
+    "8690146154853",
+    "8690146154860",
+    "8690146154846",
+    "8690146154877",
+    "8690146166702",
+    "8690146174547",
+    "8690146174523",
+    "5901888026661"
+   ],
    "items": [
     "Bebeto Big Mix Pm\u00a31.00",
     "Bebeto Big Fizzy Mix Pm\u00a31.00",
@@ -900,6 +1474,16 @@
     "Bebeto Fizzy Ring Mix 150G",
     "Bebeto Peach Hearts",
     "Bebeto Weenie Worms PM \u00a31 150G"
+   ],
+   "item_barcodes": [
+    "8690146154853",
+    "8690146154860",
+    "8690146154846",
+    "8690146154877",
+    "8690146166702",
+    "8690146174547",
+    "8690146174523",
+    "5901888026661"
    ]
   },
   {
@@ -916,7 +1500,12 @@
    "picture": "img/5000347061837.jpg",
    "note": "",
    "pack": "160ML",
-   "items": []
+   "barcode": "5000347061837",
+   "barcodes": [
+    "5000347061837"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14576",
@@ -932,6 +1521,23 @@
    "picture": "img/5010034013698.jpg",
    "note": "Mix and match, 14 products",
    "pack": "220g",
+   "barcode": "5010034013674",
+   "barcodes": [
+    "5010034013674",
+    "5010034013698",
+    "5010034013704",
+    "5010034013735",
+    "5010034013797",
+    "5010034013803",
+    "5010034013810",
+    "5010034013827",
+    "5010034013957",
+    "5010034013995",
+    "5010034014046",
+    "5010034014114",
+    "5010034014282",
+    "5010034014299"
+   ],
    "items": [
     "Bens Orig Long Grain Rice",
     "Bens Orig Chinese Rice",
@@ -945,6 +1551,20 @@
     "Bens Orig Golden Veg Rice",
     "Bens Orig Tomato/basil Rice",
     "Bens Special Fried Rice"
+   ],
+   "item_barcodes": [
+    "5010034013674",
+    "5010034013698",
+    "5010034013704",
+    "5010034013735",
+    "5010034013797",
+    "5010034013803",
+    "5010034013810",
+    "5010034013827",
+    "5010034013957",
+    "5010034013995",
+    "5010034014046",
+    "5010034014114"
    ]
   },
   {
@@ -961,7 +1581,12 @@
    "picture": "img/5035766062530.jpg",
    "note": "",
    "pack": "330ML",
-   "items": []
+   "barcode": "5035766062530",
+   "barcodes": [
+    "5035766062530"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15095",
@@ -977,11 +1602,24 @@
    "picture": "img/5000354924392.jpg",
    "note": "Mix and match, 4 products",
    "pack": "190G",
+   "barcode": "5000354924392",
+   "barcodes": [
+    "5000354924392",
+    "5000354924385",
+    "5000354924538",
+    "5000354924545"
+   ],
    "items": [
     "Bisto Gg Beef PM2.99",
     "Bisto Gg Chicken PM2.99",
     "Oxo Beef 71G",
     "Oxo Chicken PM2.59"
+   ],
+   "item_barcodes": [
+    "5000354924392",
+    "5000354924385",
+    "5000354924538",
+    "5000354924545"
    ]
   },
   {
@@ -998,10 +1636,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "250ML",
+   "barcode": "5000382132745",
+   "barcodes": [
+    "5000382132745",
+    "5000382132769",
+    "5000382132783"
+   ],
    "items": [
     "Boost Coff Cara Lat 1.29",
     "Boost Coffee Espres 1.29",
     "Boost Coffee Latte \u00a31.29"
+   ],
+   "item_barcodes": [
+    "5000382132745",
+    "5000382132769",
+    "5000382132783"
    ]
   },
   {
@@ -1018,10 +1667,21 @@
    "picture": "img/5056079901385.jpg",
    "note": "Mix and match, 3 products",
    "pack": "250ML",
+   "barcode": "5056079901385",
+   "barcodes": [
+    "5056079901385",
+    "5056079901392",
+    "5056079901408"
+   ],
    "items": [
     "Boost Coffee Espres 1.19",
     "Boost Iced Latte PM1.19",
     "Boost Coff Cara Lat 1.19"
+   ],
+   "item_barcodes": [
+    "5056079901385",
+    "5056079901392",
+    "5056079901408"
    ]
   },
   {
@@ -1038,6 +1698,18 @@
    "picture": "img/5000382128670.jpg",
    "note": "Mix and match, 9 products",
    "pack": "250ML",
+   "barcode": "5000382128656",
+   "barcodes": [
+    "5000382128656",
+    "5000382128670",
+    "5000382128694",
+    "5056079901132",
+    "5056079901149",
+    "5056079901163",
+    "5056079901170",
+    "5056079901187",
+    "5056079901194"
+   ],
    "items": [
     "Boost En D/fruit Z 75P",
     "Boost Zero Citrus 75P",
@@ -1048,6 +1720,17 @@
     "Boost Cherry Burst 75P",
     "Boost Red Berry Cans 75P",
     "Boost Ener Mango 75P"
+   ],
+   "item_barcodes": [
+    "5000382128656",
+    "5000382128670",
+    "5000382128694",
+    "5056079901132",
+    "5056079901149",
+    "5056079901163",
+    "5056079901170",
+    "5056079901187",
+    "5056079901194"
    ]
   },
   {
@@ -1064,12 +1747,27 @@
    "picture": "img/5000382127727.jpg",
    "note": "Mix and match, 5 products",
    "pack": "",
+   "barcode": "5000382127727",
+   "barcodes": [
+    "5000382127727",
+    "5000382127741",
+    "5000382127765",
+    "5000382127789",
+    "5000382127802"
+   ],
    "items": [
     "Boost Sport Orange",
     "Boost Sport Mixed Berry",
     "Boost Sport Tropical PM100",
     "Boost Sport Ras&man",
     "Boost Sport Cloudy Lemon"
+   ],
+   "item_barcodes": [
+    "5000382127727",
+    "5000382127741",
+    "5000382127765",
+    "5000382127789",
+    "5000382127802"
    ]
   },
   {
@@ -1086,6 +1784,18 @@
    "picture": "",
    "note": "Mix and match, 9 products",
    "pack": "250ML",
+   "barcode": "5000382132868",
+   "barcodes": [
+    "5000382132868",
+    "5000382132844",
+    "5000382132967",
+    "5000382132806",
+    "5000382132882",
+    "5000382132820",
+    "5000382132905",
+    "5000382132929",
+    "5000382132943"
+   ],
    "items": [
     "Boost White Peach 89P",
     "Boost S/free Can 89P",
@@ -1096,6 +1806,17 @@
     "Boost Sour Cherry 89P",
     "Boost Ener Lem&lime 89P",
     "Boost Cans 89P"
+   ],
+   "item_barcodes": [
+    "5000382132868",
+    "5000382132844",
+    "5000382132967",
+    "5000382132806",
+    "5000382132882",
+    "5000382132820",
+    "5000382132905",
+    "5000382132929",
+    "5000382132943"
    ]
   },
   {
@@ -1112,7 +1833,12 @@
    "picture": "",
    "note": "",
    "pack": "330ML",
-   "items": []
+   "barcode": "5056025412804",
+   "barcodes": [
+    "5056025412804"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14505",
@@ -1128,7 +1854,12 @@
    "picture": "",
    "note": "",
    "pack": "330ML",
-   "items": []
+   "barcode": "5056025442085",
+   "barcodes": [
+    "5056025442085"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14982",
@@ -1144,9 +1875,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "440ML",
+   "barcode": "5056025453838",
+   "barcodes": [
+    "5056025453838",
+    "5056025453876"
+   ],
    "items": [
     "Brewdog Punk Ipa Can",
     "Brewdog Hazy Jane Can"
+   ],
+   "item_barcodes": [
+    "5056025453838",
+    "5056025453876"
    ]
   },
   {
@@ -1163,9 +1903,18 @@
    "picture": "img/5027342005963.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "5027342005963",
+   "barcodes": [
+    "5027342005963",
+    "5027342006915"
+   ],
    "items": [
     "Brothers App Pear-fect",
     "Brothers Cloudy Apple"
+   ],
+   "item_barcodes": [
+    "5027342005963",
+    "5027342006915"
    ]
   },
   {
@@ -1182,7 +1931,12 @@
    "picture": "",
    "note": "",
    "pack": "568ML",
-   "items": []
+   "barcode": "5056025486119",
+   "barcodes": [
+    "5056025486119"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14953",
@@ -1198,7 +1952,12 @@
    "picture": "",
    "note": "",
    "pack": "568ML",
-   "items": []
+   "barcode": "5056025486089",
+   "barcodes": [
+    "5056025486089"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14979",
@@ -1214,9 +1973,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "330ML",
+   "barcode": "5056025486058",
+   "barcodes": [
+    "5056025486058",
+    "5056025486065"
+   ],
    "items": [
     "Brwdg Punk Ipa 4PK \u00a36.99",
     "Brewdog Hazy J 4PK \u00a36.99"
+   ],
+   "item_barcodes": [
+    "5056025486058",
+    "5056025486065"
    ]
   },
   {
@@ -1233,11 +2001,24 @@
    "picture": "img/5011792009336.jpg",
    "note": "Mix and match, 4 products",
    "pack": "1",
+   "barcode": "5011792009336",
+   "barcodes": [
+    "5011792009336",
+    "5011792008353",
+    "5011792008377",
+    "5011792008360"
+   ],
    "items": [
     "Butchers Chicken In Gravy",
     "Butch Tripe PM \u00a31.30",
     "Butch Beef&liv \u00a31.30",
     "Butch Chic&tri 1.30"
+   ],
+   "item_barcodes": [
+    "5011792009336",
+    "5011792008353",
+    "5011792008377",
+    "5011792008360"
    ]
   },
   {
@@ -1254,6 +2035,17 @@
    "picture": "img/5021932025102.jpg",
    "note": "Mix and match, 8 products",
    "pack": "50CL",
+   "barcode": "5021932025102",
+   "barcodes": [
+    "5021932025102",
+    "5021932025164",
+    "5021932025126",
+    "5021932025188",
+    "5021932025140",
+    "5021932025201",
+    "5021932025225",
+    "5021932025942"
+   ],
    "items": [
     "Cactus Jacks Apple \u00a37.49",
     "Cactus Jack Raspby \u00a37.49",
@@ -1263,6 +2055,16 @@
     "Cactus Jack's Peach 7.49",
     "Cactus Jack Str Lime7.49",
     "C/jack Cinn Fire \u00a37.49"
+   ],
+   "item_barcodes": [
+    "5021932025102",
+    "5021932025164",
+    "5021932025126",
+    "5021932025188",
+    "5021932025140",
+    "5021932025201",
+    "5021932025225",
+    "5021932025942"
    ]
   },
   {
@@ -1279,7 +2081,12 @@
    "picture": "",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5010038594063",
+   "barcodes": [
+    "5010038594063"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14948",
@@ -1295,7 +2102,12 @@
    "picture": "img/5010153874101.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "5010153874101",
+   "barcodes": [
+    "5010153874101"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14957",
@@ -1311,7 +2123,12 @@
    "picture": "",
    "note": "",
    "pack": "440ml",
-   "items": []
+   "barcode": "5010153874644",
+   "barcodes": [
+    "5010153874644"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15122",
@@ -1327,7 +2144,12 @@
    "picture": "",
    "note": "",
    "pack": "75ML",
-   "items": []
+   "barcode": "5056267013265",
+   "barcodes": [
+    "5056267013265"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15126",
@@ -1343,11 +2165,24 @@
    "picture": "img/8720181638527.jpg",
    "note": "Mix and match, 4 products",
    "pack": "",
+   "barcode": "8720181638527",
+   "barcodes": [
+    "8720181638527",
+    "8720181638480",
+    "8720181638602",
+    "8720181638503"
+   ],
    "items": [
     "Comfort Con Spring B2.39",
     "Comfrt Fbcn Blue Skies PM239",
     "Comfort Con Pure \u00a32.39",
     "Comfort Fab Con Snhiny PM239"
+   ],
+   "item_barcodes": [
+    "8720181638527",
+    "8720181638480",
+    "8720181638602",
+    "8720181638503"
    ]
   },
   {
@@ -1364,7 +2199,12 @@
    "picture": "img/5010038497630.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "5010038497630",
+   "barcodes": [
+    "5010038497630"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14945",
@@ -1380,7 +2220,12 @@
    "picture": "img/7501064193040.jpg",
    "note": "",
    "pack": "330ML",
-   "items": []
+   "barcode": "7501064193040",
+   "barcodes": [
+    "7501064193040"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14963",
@@ -1396,9 +2241,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "440ML",
+   "barcode": "5014379034691",
+   "barcodes": [
+    "5014379034691",
+    "5035766061533"
+   ],
    "items": [
     "Corona 4PK Can \u00a36.99",
     "Red Stripe 4PK 4"
+   ],
+   "item_barcodes": [
+    "5014379034691",
+    "5035766061533"
    ]
   },
   {
@@ -1415,7 +2269,12 @@
    "picture": "img/5012136000286.jpg",
    "note": "",
    "pack": "1",
-   "items": []
+   "barcode": "5012136000286",
+   "barcodes": [
+    "5012136000286"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14944",
@@ -1431,9 +2290,18 @@
    "picture": "img/5035766065449.jpg",
    "note": "Mix and match, 2 products",
    "pack": "330ML",
+   "barcode": "5035766065449",
+   "barcodes": [
+    "5035766065449",
+    "5014379004687"
+   ],
    "items": [
     "Cruzcampo Nrb",
     "Budweiser 4.5% A"
+   ],
+   "item_barcodes": [
+    "5035766065449",
+    "5014379004687"
    ]
   },
   {
@@ -1450,7 +2318,12 @@
    "picture": "img/5035766064299.jpg",
    "note": "",
    "pack": "330ML",
-   "items": []
+   "barcode": "5035766064299",
+   "barcodes": [
+    "5035766064299"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14485",
@@ -1466,7 +2339,12 @@
    "picture": "img/5035766066286.jpg",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5035766066286",
+   "barcodes": [
+    "5035766066286"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15130",
@@ -1482,7 +2360,12 @@
    "picture": "img/5011417594131.jpg",
    "note": "",
    "pack": "1",
-   "items": []
+   "barcode": "5011417594131",
+   "barcodes": [
+    "5011417594131"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15064",
@@ -1498,6 +2381,17 @@
    "picture": "img/5000237206553.jpg",
    "note": "Mix and match, 8 products",
    "pack": "70G",
+   "barcode": "5000237206959",
+   "barcodes": [
+    "5000237206959",
+    "5000237206553",
+    "5000237206577",
+    "5000237206539",
+    "5000237208083",
+    "5000237206799",
+    "5000237206812",
+    "5000237206614"
+   ],
    "items": [
     "Discos Pickled Oni \u00a31.35",
     "Kp Discos S & V PM \u00a31.35",
@@ -1507,6 +2401,16 @@
     "Kp Wheat Crun Bac \u00a31.35",
     "Kp Wheat Spi Tom \u00a31.35",
     "Kp Frisps Che&onion 1.35"
+   ],
+   "item_barcodes": [
+    "5000237206959",
+    "5000237206553",
+    "5000237206577",
+    "5000237206539",
+    "5000237208083",
+    "5000237206799",
+    "5000237206812",
+    "5000237206614"
    ]
   },
   {
@@ -1523,10 +2427,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "250ML",
+   "barcode": "5011166086970",
+   "barcodes": [
+    "5011166086970",
+    "5011166086987",
+    "5011166086963"
+   ],
    "items": [
     "Dmf Spiced Rum & Cola",
     "Dmf Cherry Rum & Cola",
     "Dmf Gold Rum And Lig Cok"
+   ],
+   "item_barcodes": [
+    "5011166086970",
+    "5011166086987",
+    "5011166086963"
    ]
   },
   {
@@ -1543,11 +2458,24 @@
    "picture": "img/5000328014876.jpg",
    "note": "Mix and match, 4 products",
    "pack": "280G",
+   "barcode": "5000328014876",
+   "barcodes": [
+    "5000328014876",
+    "5000328601380",
+    "5000328697796",
+    "5000328014845"
+   ],
    "items": [
     "Doritos Dip Nacho Cheese Dip",
     "Doritos Hot Salsa Dip",
     "Doritos Mild Salsa Dip",
     "Doritos Sour Crm Chive Dip"
+   ],
+   "item_barcodes": [
+    "5000328014876",
+    "5000328601380",
+    "5000328697796",
+    "5000328014845"
    ]
   },
   {
@@ -1564,9 +2492,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "250ML",
+   "barcode": "5056267012992",
+   "barcodes": [
+    "5056267012992",
+    "5056267013012"
+   ],
    "items": [
     "Dove H/ash Cream \u00a31.99",
     "Dove H/ash Cream \u00a31.99"
+   ],
+   "item_barcodes": [
+    "5056267012992",
+    "5056267013012"
    ]
   },
   {
@@ -1583,9 +2520,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "150ML",
+   "barcode": "5056267012954",
+   "barcodes": [
+    "5056267012954",
+    "5056267012978"
+   ],
    "items": [
     "Dove Men Apa PM2.69",
     "Dove Women Apa PM2.69"
+   ],
+   "item_barcodes": [
+    "5056267012954",
+    "5056267012978"
    ]
   },
   {
@@ -1602,7 +2548,12 @@
    "picture": "",
    "note": "",
    "pack": "250ML",
-   "items": []
+   "barcode": "5056267012923",
+   "barcodes": [
+    "5056267012923"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15136",
@@ -1618,6 +2569,15 @@
    "picture": "img/4008429037894.jpg",
    "note": "Mix and match, 6 products",
    "pack": "60G",
+   "barcode": "4008429037894",
+   "barcodes": [
+    "4008429037894",
+    "4008429043284",
+    "4008429037986",
+    "4008429043291",
+    "5998749122228",
+    "5998749142356"
+   ],
    "items": [
     "Dreamies Chicken",
     "Dreamies Beef",
@@ -1625,6 +2585,14 @@
     "Dreamies Beef",
     "Dreamies Tuna",
     "Dreamies Treats Catnip"
+   ],
+   "item_barcodes": [
+    "4008429037894",
+    "4008429043284",
+    "4008429037986",
+    "4008429043291",
+    "5998749122228",
+    "5998749142356"
    ]
   },
   {
@@ -1641,6 +2609,16 @@
    "picture": "img/5010134919203.jpg",
    "note": "Mix and match, 7 products",
    "pack": "75CL",
+   "barcode": "5010134919203",
+   "barcodes": [
+    "5010134919203",
+    "5010134919210",
+    "5010134923552",
+    "5010134924221",
+    "5010134919180",
+    "5010134919227",
+    "5010134922265"
+   ],
    "items": [
     "Echo Falls Summer Berries",
     "Echo Falls Strawberry & Lime",
@@ -1649,6 +2627,15 @@
     "Echo Falls R/bry&cassis",
     "Echo Falls Peach",
     "Echo Falls Watermelon Kiwi"
+   ],
+   "item_barcodes": [
+    "5010134919203",
+    "5010134919210",
+    "5010134923552",
+    "5010134924221",
+    "5010134919180",
+    "5010134919227",
+    "5010134922265"
    ]
   },
   {
@@ -1665,7 +2652,12 @@
    "picture": "",
    "note": "",
    "pack": "1",
-   "items": []
+   "barcode": "5056267012237",
+   "barcodes": [
+    "5056267012237"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15123",
@@ -1681,9 +2673,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "450ML",
+   "barcode": "5056267007035",
+   "barcodes": [
+    "5056267007035",
+    "5056267007059"
+   ],
    "items": [
     "Fairy Max Pow Org \u00a32.99",
     "Fairy Max Antib"
+   ],
+   "item_barcodes": [
+    "5056267007035",
+    "5056267007059"
    ]
   },
   {
@@ -1700,10 +2701,21 @@
    "picture": "img/8006540994290.jpg",
    "note": "Mix and match, 3 products",
    "pack": "1",
+   "barcode": "8006540994290",
+   "barcodes": [
+    "8006540994290",
+    "8700216003735",
+    "8006540994450"
+   ],
    "items": [
     "Fairy Original Wul PM129",
     "Fairy Pomegranate Wul PM129",
     "Fairy Liquid Lemon \u00a31.29"
+   ],
+   "item_barcodes": [
+    "8006540994290",
+    "8700216003735",
+    "8006540994450"
    ]
   },
   {
@@ -1720,11 +2732,24 @@
    "picture": "",
    "note": "Mix and match, 4 products",
    "pack": "90G",
+   "barcode": "8000500359488",
+   "barcodes": [
+    "8000500359488",
+    "8000500359815",
+    "8000500359884",
+    "8000500359556"
+   ],
    "items": [
     "Ferrero Rocher T",
     "Ferrero Dark Tab",
     "Ferrero White Ta",
     "Ferr Raffaello Tablet"
+   ],
+   "item_barcodes": [
+    "8000500359488",
+    "8000500359815",
+    "8000500359884",
+    "8000500359556"
    ]
   },
   {
@@ -1741,9 +2766,18 @@
    "picture": "img/8410525271182.jpg",
    "note": "Mix and match, 2 products",
    "pack": "90G",
+   "barcode": "8410525271182",
+   "barcodes": [
+    "8410525271182",
+    "8410525280177"
+   ],
    "items": [
     "Fini Mini Mochis",
     "Mini Mochis Berries"
+   ],
+   "item_barcodes": [
+    "8410525271182",
+    "8410525280177"
    ]
   },
   {
@@ -1760,10 +2794,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "500ML",
+   "barcode": "5056267004065",
+   "barcodes": [
+    "5056267004065",
+    "5056267004089",
+    "5056267004102"
+   ],
    "items": [
     "Flash Spray Bathr \u00a32.49",
     "Flash Spray Bleach 2.49",
     "Flash Spray Kitchen 2.49"
+   ],
+   "item_barcodes": [
+    "5056267004065",
+    "5056267004089",
+    "5056267004102"
    ]
   },
   {
@@ -1780,7 +2825,12 @@
    "picture": "img/5035766185802.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "5035766185802",
+   "barcodes": [
+    "5035766185802"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15054",
@@ -1796,10 +2846,21 @@
    "picture": "img/5000328085630.jpg",
    "note": "Mix and match, 3 products",
    "pack": "54G",
+   "barcode": "5000328085234",
+   "barcodes": [
+    "5000328085234",
+    "5000328085630",
+    "5000328085548"
+   ],
    "items": [
     "French Fries C/o \u00a31.49",
     "Squares Salt&vinegar PM149",
     "Squares Cheese Onion PM1.49"
+   ],
+   "item_barcodes": [
+    "5000328085234",
+    "5000328085630",
+    "5000328085548"
    ]
   },
   {
@@ -1816,6 +2877,15 @@
    "picture": "img/8445290622624.jpg",
    "note": "Mix and match, 6 products",
    "pack": "",
+   "barcode": "8445290622624",
+   "barcodes": [
+    "8445290622624",
+    "8445290622662",
+    "8445290622686",
+    "8445290622815",
+    "8445291762572",
+    "8593893786394"
+   ],
    "items": [
     "Fruit Pastilles Bag PM125",
     "Rowntrees Fruit Gums PM125",
@@ -1823,6 +2893,14 @@
     "Nest Mix Pouch Vn \u00a31.25",
     "Rowntree Jlly Tot Puch PM125",
     "Rowntrees Randoms Bag PM125"
+   ],
+   "item_barcodes": [
+    "8445290622624",
+    "8445290622662",
+    "8445290622686",
+    "8445290622815",
+    "8445291762572",
+    "8593893786394"
    ]
   },
   {
@@ -1839,9 +2917,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "150G",
+   "barcode": "5010052117170",
+   "barcodes": [
+    "5010052117170",
+    "5010052117194"
+   ],
    "items": [
     "G/w Turkey & Stuff Baub",
     "G/w Pig In Blankets Baub"
+   ],
+   "item_barcodes": [
+    "5010052117170",
+    "5010052117194"
    ]
   },
   {
@@ -1858,9 +2945,18 @@
    "picture": "img/85000022443.jpg",
    "note": "Mix and match, 2 products",
    "pack": "75CL",
+   "barcode": "85000022443",
+   "barcodes": [
+    "85000022443",
+    "85000015216"
+   ],
    "items": [
     "Gallo Pink Mosca",
     "Gallo Moscato"
+   ],
+   "item_barcodes": [
+    "85000022443",
+    "85000015216"
    ]
   },
   {
@@ -1877,10 +2973,21 @@
    "picture": "img/85000005866.jpg",
    "note": "Mix and match, 3 products",
    "pack": "75CL",
+   "barcode": "85000005866",
+   "barcodes": [
+    "85000005866",
+    "85000005033",
+    "85000009840"
+   ],
    "items": [
     "Gallo Sauv Blanc",
     "Gallo Chardonnay",
     "Gallo Merlot"
+   ],
+   "item_barcodes": [
+    "85000005866",
+    "85000005033",
+    "85000009840"
    ]
   },
   {
@@ -1897,7 +3004,12 @@
    "picture": "img/85000007839.jpg",
    "note": "",
    "pack": "75CL",
-   "items": []
+   "barcode": "85000007839",
+   "barcodes": [
+    "85000007839"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14943",
@@ -1913,10 +3025,21 @@
    "picture": "img/5059630007250.jpg",
    "note": "Mix and match, 3 products",
    "pack": "",
+   "barcode": "5059630007250",
+   "barcodes": [
+    "5059630007250",
+    "5059630007267",
+    "5059630007274"
+   ],
    "items": [
     "Gl Tonic Water 89P",
     "Gl Diet Tonic Water 89P",
     "Gl Soda Water 89P"
+   ],
+   "item_barcodes": [
+    "5059630007250",
+    "5059630007267",
+    "5059630007274"
    ]
   },
   {
@@ -1933,6 +3056,19 @@
    "picture": "img/5000289939201.jpg",
    "note": "Mix and match, 10 products",
    "pack": "250ML",
+   "barcode": "5000289939201",
+   "barcodes": [
+    "5000289939201",
+    "5000289939188",
+    "5000289939225",
+    "10025621",
+    "5011007027278",
+    "7312040340132",
+    "5011007027254",
+    "7312040340118",
+    "8716000970589",
+    "8716000970572"
+   ],
    "items": [
     "Gordon & Tonic Can \u00a32.25",
     "Gordons&diet Tonic \u00a32.25",
@@ -1944,6 +3080,18 @@
     "Malibu Strawberry Daiq",
     "Passoa P/fruit Martini",
     "Passoa Pink L/ade Spritz"
+   ],
+   "item_barcodes": [
+    "5000289939201",
+    "5000289939188",
+    "5000289939225",
+    "10025621",
+    "5011007027278",
+    "7312040340132",
+    "5011007027254",
+    "7312040340118",
+    "8716000970589",
+    "8716000970572"
    ]
   },
   {
@@ -1960,7 +3108,12 @@
    "picture": "img/5000196000636.jpg",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5000196000636",
+   "barcodes": [
+    "5000196000636"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15061",
@@ -1976,6 +3129,15 @@
    "picture": "img/5010052114193.jpg",
    "note": "Mix and match, 6 products",
    "pack": "40G",
+   "barcode": "5010052114193",
+   "barcodes": [
+    "5010052114193",
+    "5010052114209",
+    "5010052115121",
+    "5010052116395",
+    "5010052116067",
+    "5010052116074"
+   ],
    "items": [
     "Gw Ringos Cheese Onion\u00a31",
     "Gw Ringos Salt Ving \u00a31",
@@ -1983,6 +3145,14 @@
     "G/w Sour C & On Saucr \u00a31",
     "G/w Chip Shop Curry \u00a31",
     "G/w Chippies Gravy \u00a31"
+   ],
+   "item_barcodes": [
+    "5010052114193",
+    "5010052114209",
+    "5010052115121",
+    "5010052116395",
+    "5010052116067",
+    "5010052116074"
    ]
   },
   {
@@ -1999,11 +3169,24 @@
    "picture": "img/5010459000907.jpg",
    "note": "Mix and match, 4 products",
    "pack": "1.25LT",
+   "barcode": "5010459000907",
+   "barcodes": [
+    "5010459000907",
+    "5010459000969",
+    "5010459001096",
+    "5010459001102"
+   ],
    "items": [
     "H/s Strawberry Still",
     "H/s Appl B/currant Still",
     "Highland Spring Summer Berries Spring Water",
     "Highland Spring Orange & Passion Fruit Still 1.25Lt"
+   ],
+   "item_barcodes": [
+    "5010459000907",
+    "5010459000969",
+    "5010459001096",
+    "5010459001102"
    ]
   },
   {
@@ -2020,6 +3203,16 @@
    "picture": "img/9311043066863.jpg",
    "note": "Mix and match, 7 products",
    "pack": "75CL",
+   "barcode": "9311043066863",
+   "barcodes": [
+    "9311043066863",
+    "9311043067549",
+    "9311043081132",
+    "5010186020070",
+    "9311043037382",
+    "9311043066887",
+    "9311043009228"
+   ],
    "items": [
     "Hardys Vr Chardonnay",
     "Hardys Vr Merlot",
@@ -2028,6 +3221,15 @@
     "Hardys Vr Shiraz",
     "Hardys Vr Cabern",
     "Hardys Vr Rose"
+   ],
+   "item_barcodes": [
+    "9311043066863",
+    "9311043067549",
+    "9311043081132",
+    "5010186020070",
+    "9311043037382",
+    "9311043066887",
+    "9311043009228"
    ]
   },
   {
@@ -2044,6 +3246,34 @@
    "picture": "img/5012035997700.jpg",
    "note": "Mix and match, 25 products",
    "pack": "",
+   "barcode": "5012035997700",
+   "barcodes": [
+    "5012035997700",
+    "5012035971892",
+    "5012035971878",
+    "5012035972165",
+    "5012035971915",
+    "5012035971939",
+    "5012035971953",
+    "5012035971984",
+    "5012035971991",
+    "5012035972011",
+    "5012035972318",
+    "5012035997687",
+    "5012035972226",
+    "5012035972202",
+    "5012035986599",
+    "5012035999605",
+    "5012035972035",
+    "5012035972066",
+    "5012035972073",
+    "5012035972103",
+    "5012035002374",
+    "5012035001391",
+    "5012035986650",
+    "5012035986636",
+    "5012035001483"
+   ],
    "items": [
     "Haribo Bubblegum Bottles Zin",
     "Haribo Balla Bites PM1.25",
@@ -2057,6 +3287,20 @@
     "Haribo Milkshake \u00a31.25",
     "R/bow Strips Z!ng ?1.25",
     "Har Soda Twist Zin \u00a31.25"
+   ],
+   "item_barcodes": [
+    "5012035997700",
+    "5012035971892",
+    "5012035971878",
+    "5012035972165",
+    "5012035971915",
+    "5012035971939",
+    "5012035971953",
+    "5012035971984",
+    "5012035971991",
+    "5012035972011",
+    "5012035972318",
+    "5012035997687"
    ]
   },
   {
@@ -2073,7 +3317,12 @@
    "picture": "img/5035766066828.jpg",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5035766066828",
+   "barcodes": [
+    "5035766066828"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14983",
@@ -2089,7 +3338,12 @@
    "picture": "img/5016840125334.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "5016840125334",
+   "barcodes": [
+    "5016840125334"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15053",
@@ -2105,9 +3359,18 @@
    "picture": "img/5010459005216.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "5010459005216",
+   "barcodes": [
+    "5010459005216",
+    "5010459005179"
+   ],
    "items": [
     "Highland Spring",
     "Highland Spring"
+   ],
+   "item_barcodes": [
+    "5010459005216",
+    "5010459005179"
    ]
   },
   {
@@ -2124,12 +3387,27 @@
    "picture": "img/4017100936753.jpg",
    "note": "Mix and match, 5 products",
    "pack": "220G",
+   "barcode": "4017100936777",
+   "barcodes": [
+    "4017100936777",
+    "4017100936753",
+    "5901414203955",
+    "5010035001892",
+    "5010035001878"
+   ],
    "items": [
     "Hit Cocoa Creme PM1.59",
     "Bahls Hit Vanilla PM1.59",
     "Bahslen Hit Nuts",
     "Foxs Rocky Caramel \u00a31.49",
     "Foxs Rocky Choc \u00a31.49"
+   ],
+   "item_barcodes": [
+    "4017100936777",
+    "4017100936753",
+    "5901414203955",
+    "5010035001892",
+    "5010035001878"
    ]
   },
   {
@@ -2146,12 +3424,27 @@
    "picture": "",
    "note": "Mix and match, 5 products",
    "pack": "500ML",
+   "barcode": "5000382133308",
+   "barcodes": [
+    "5000382133308",
+    "5000382133322",
+    "5000382133346",
+    "5000382133384",
+    "5000382133360"
+   ],
    "items": [
     "IRN BRU \u00a31.39",
     "IRN BRU Diet PM1.39",
     "IRN BRU Zero \u00a31.39",
     "IRN BRU Ice Cre Z \u00a31.39",
     "IRN BRU Z Cherry \u00a31.39"
+   ],
+   "item_barcodes": [
+    "5000382133308",
+    "5000382133322",
+    "5000382133346",
+    "5000382133384",
+    "5000382133360"
    ]
   },
   {
@@ -2168,10 +3461,21 @@
    "picture": "img/5000101518614.jpg",
    "note": "Mix and match, 3 products",
    "pack": "235ML",
+   "barcode": "5000101518614",
+   "barcodes": [
+    "5000101518614",
+    "5000101518638",
+    "5000101518652"
+   ],
    "items": [
     "Imp Lea Moi B/wash \u00a31.25",
     "Imp Le Inv B/wash \u00a31.25",
     "Imp Lea Pam B/wash ?1.25"
+   ],
+   "item_barcodes": [
+    "5000101518614",
+    "5000101518638",
+    "5000101518652"
    ]
   },
   {
@@ -2188,6 +3492,29 @@
    "picture": "img/5000112687309.jpg",
    "note": "Mix and match, 20 products",
    "pack": "",
+   "barcode": "5000112687309",
+   "barcodes": [
+    "5000112687309",
+    "5000112687439",
+    "5000289939188",
+    "5000289939201",
+    "5000289939225",
+    "5010103947411",
+    "5011007027254",
+    "5011007027452",
+    "5011007027797",
+    "5060065301752",
+    "5060065301776",
+    "5060065302278",
+    "5060065302339",
+    "5060065302476",
+    "5410263931471",
+    "5410263931495",
+    "5410316970235",
+    "5449000336606",
+    "7610113007792",
+    "7640175742461"
+   ],
    "items": [
     "Jack Daniels & Coke",
     "Jack Dan Coke Chery 2.59",
@@ -2201,6 +3528,20 @@
     "Funkin P/fruit M",
     "Funkin Espresso",
     "Funkin Pina Cola"
+   ],
+   "item_barcodes": [
+    "5000112687309",
+    "5000112687439",
+    "5000289939188",
+    "5000289939201",
+    "5000289939225",
+    "5010103947411",
+    "5011007027254",
+    "5011007027452",
+    "5011007027797",
+    "5060065301752",
+    "5060065301776",
+    "5060065302278"
    ]
   },
   {
@@ -2217,6 +3558,18 @@
    "picture": "img/5000168039718.jpg",
    "note": "Mix and match, 9 products",
    "pack": "90G",
+   "barcode": "5000168039718",
+   "barcodes": [
+    "5000168039718",
+    "5000168011349",
+    "5000168012551",
+    "5000168039756",
+    "5000168005614",
+    "5000168014609",
+    "5000168014579",
+    "5000168019611",
+    "5000168019666"
+   ],
    "items": [
     "Jacobs Mini Cheddar 1.25",
     "Big Crinklys C&o \u00a31.25",
@@ -2227,6 +3580,17 @@
     "Big Crinklys Prawn 1.25",
     "Mini Ched Che Pizz \u00a31.25",
     "Mini Ched Che Burg \u00a31.25"
+   ],
+   "item_barcodes": [
+    "5000168039718",
+    "5000168011349",
+    "5000168012551",
+    "5000168039756",
+    "5000168005614",
+    "5000168014609",
+    "5000168014579",
+    "5000168019611",
+    "5000168019666"
    ]
   },
   {
@@ -2243,7 +3607,12 @@
    "picture": "",
    "note": "",
    "pack": "35CL",
-   "items": []
+   "barcode": "5011007028848",
+   "barcodes": [
+    "5011007028848"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14986",
@@ -2259,7 +3628,12 @@
    "picture": "img/5099873032480.jpg",
    "note": "",
    "pack": "35CL",
-   "items": []
+   "barcode": "5099873032480",
+   "barcodes": [
+    "5099873032480"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14608",
@@ -2275,7 +3649,12 @@
    "picture": "img/5099873032411.jpg",
    "note": "",
    "pack": "70CL",
-   "items": []
+   "barcode": "5099873032411",
+   "barcodes": [
+    "5099873032411"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14987",
@@ -2291,7 +3670,12 @@
    "picture": "",
    "note": "",
    "pack": "70CL",
-   "items": []
+   "barcode": "5010278107375",
+   "barcodes": [
+    "5010278107375"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14984",
@@ -2307,7 +3691,12 @@
    "picture": "img/5000267024233.jpg",
    "note": "",
    "pack": "70CL",
-   "items": []
+   "barcode": "5000267024233",
+   "barcodes": [
+    "5000267024233"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14985",
@@ -2323,7 +3712,12 @@
    "picture": "",
    "note": "",
    "pack": "70CL",
-   "items": []
+   "barcode": "5013967012486",
+   "barcodes": [
+    "5013967012486"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15036",
@@ -2339,12 +3733,27 @@
    "picture": "img/5000382127543.jpg",
    "note": "Mix and match, 5 products",
    "pack": "500ML",
+   "barcode": "5000382127529",
+   "barcodes": [
+    "5000382127529",
+    "5000382127543",
+    "5000382127567",
+    "5000382127581",
+    "5000382129929"
+   ],
    "items": [
     "Ka Spa Fruit Punc \u00a31.19",
     "Ka Spark Blck Grap \u00a31.19",
     "Ka Spark Pineapple \u00a31.19",
     "Ka Spark Kara Kola \u00a31.19",
     "Ka Spark Blue Krsh \u00a31.19"
+   ],
+   "item_barcodes": [
+    "5000382127529",
+    "5000382127543",
+    "5000382127567",
+    "5000382127581",
+    "5000382129929"
    ]
   },
   {
@@ -2361,12 +3770,27 @@
    "picture": "img/5059321005985.jpg",
    "note": "Mix and match, 5 products",
    "pack": "20G",
+   "barcode": "5059321005985",
+   "barcodes": [
+    "5059321005985",
+    "5059321006074",
+    "5059320001117",
+    "5059320001810",
+    "5059320001148"
+   ],
    "items": [
     "Kelloggs Co/pop Cmb 69P",
     "Kellogg Frosties Cmb 69P",
     "Kell Nutri/g S/berry 79P",
     "Kell Nutri/g Chocola 79P",
     "Nutrigrain Bar Apple 79P"
+   ],
+   "item_barcodes": [
+    "5059321005985",
+    "5059321006074",
+    "5059320001117",
+    "5059320001810",
+    "5059320001148"
    ]
   },
   {
@@ -2383,9 +3807,18 @@
    "picture": "img/5059319036953.jpg",
    "note": "Mix and match, 2 products",
    "pack": "450g",
+   "barcode": "5059319036953",
+   "barcodes": [
+    "5059319036953",
+    "5059319036861"
+   ],
    "items": [
     "Kelloggs Cornflakes 3.49",
     "Crunchy Nut PM \u00a33.69"
+   ],
+   "item_barcodes": [
+    "5059319036953",
+    "5059319036861"
    ]
   },
   {
@@ -2402,7 +3835,12 @@
    "picture": "img/5059319036984.jpg",
    "note": "",
    "pack": "196G",
-   "items": []
+   "barcode": "5059319036984",
+   "barcodes": [
+    "5059319036984"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15092",
@@ -2418,7 +3856,12 @@
    "picture": "",
    "note": "",
    "pack": "40G",
-   "items": []
+   "barcode": "5000159528511",
+   "barcodes": [
+    "5000159528511"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15106",
@@ -2434,7 +3877,12 @@
    "picture": "img/5000221604846.jpg",
    "note": "",
    "pack": "6PK",
-   "items": []
+   "barcode": "5000221604846",
+   "barcodes": [
+    "5000221604846"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15072",
@@ -2450,10 +3898,21 @@
    "picture": "img/8445291868472.jpg",
    "note": "Mix and match, 3 products",
    "pack": "41.5G",
+   "barcode": "8445291868472",
+   "barcodes": [
+    "8445291868472",
+    "3800020401767",
+    "8445292914062"
+   ],
    "items": [
     "Kitkat 4 Finger Milk 89P",
     "Ktkt 4 Finger Cookie 89P",
     "Kitkat 4 Fing White 89P"
+   ],
+   "item_barcodes": [
+    "8445291868472",
+    "3800020401767",
+    "8445292914062"
    ]
   },
   {
@@ -2470,9 +3929,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "41.5G",
+   "barcode": "8445292847865",
+   "barcodes": [
+    "8445292847865",
+    "8445291527867"
+   ],
    "items": [
     "Kitkat 4FINGER M/pk 1.65",
     "Rolo Multipack PM185"
+   ],
+   "item_barcodes": [
+    "8445292847865",
+    "8445291527867"
    ]
   },
   {
@@ -2489,12 +3957,27 @@
    "picture": "",
    "note": "Mix and match, 5 products",
    "pack": "99G",
+   "barcode": "3800020453865",
+   "barcodes": [
+    "3800020453865",
+    "3800020453858",
+    "3800020453841",
+    "3800020403235",
+    "3800020403242"
+   ],
    "items": [
     "Kitkat C/d C/s Bl 1.50",
     "Kitkat H/n Choc S/b 1.50",
     "Kitkat S/c Choc S/b 1.50",
     "Kitkat Milk Choc \u00a31.50",
     "Kitkat Rownie \u00a31.50"
+   ],
+   "item_barcodes": [
+    "3800020453865",
+    "3800020453858",
+    "3800020453841",
+    "3800020403235",
+    "3800020403242"
    ]
   },
   {
@@ -2511,9 +3994,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "7333533000340",
+   "barcodes": [
+    "7333533000340",
+    "7333533000333"
+   ],
    "items": [
     "Kopp Vintage Mxd Fruit",
     "Kopp Vintage Strwb &lime"
+   ],
+   "item_barcodes": [
+    "7333533000340",
+    "7333533000333"
    ]
   },
   {
@@ -2530,9 +4022,18 @@
    "picture": "img/7393714517906.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "7393714517906",
+   "barcodes": [
+    "7393714517906",
+    "7393714518903"
+   ],
    "items": [
     "Kopparberg 0% Mixed Fruit",
     "Kopparberg 0% Alcohol Straberry Lime"
+   ],
+   "item_barcodes": [
+    "7393714517906",
+    "7393714518903"
    ]
   },
   {
@@ -2549,9 +4050,18 @@
    "picture": "img/7393714515902.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "7393714515902",
+   "barcodes": [
+    "7393714515902",
+    "7393714515506"
+   ],
    "items": [
     "Kopparberg Mixed Fruit",
     "Kopparberg Strawberry Lime"
+   ],
+   "item_barcodes": [
+    "7393714515902",
+    "7393714515506"
    ]
   },
   {
@@ -2568,7 +4078,12 @@
    "picture": "img/7393714526007.jpg",
    "note": "",
    "pack": "500ML",
-   "items": []
+   "barcode": "7393714526007",
+   "barcodes": [
+    "7393714526007"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15146",
@@ -2584,10 +4099,21 @@
    "picture": "img/5000237206355.jpg",
    "note": "Mix and match, 3 products",
    "pack": "65G",
+   "barcode": "5000237206355",
+   "barcodes": [
+    "5000237206355",
+    "5000237206379",
+    "5000237206416"
+   ],
    "items": [
     "Kp Orig Salted Nuts 1.35",
     "Kp Dry Roasted Pnuts PM135",
     "Kp Honey Roas Pnut \u00a31.35"
+   ],
+   "item_barcodes": [
+    "5000237206355",
+    "5000237206379",
+    "5000237206416"
    ]
   },
   {
@@ -2604,6 +4130,15 @@
    "picture": "img/5000237206355.jpg",
    "note": "Mix and match, 6 products",
    "pack": "65G",
+   "barcode": "5000237206355",
+   "barcodes": [
+    "5000237206355",
+    "5000237206379",
+    "5000237206393",
+    "5000237206416",
+    "5000237208137",
+    "5000237208151"
+   ],
    "items": [
     "Kp Orig Salted Nuts 1.35",
     "Kp Dry Roasted Pnuts PM135",
@@ -2611,6 +4146,14 @@
     "Kp Honey Roas Pnut \u00a31.35",
     "Mccoys Peanuts S&v Pm?1.35",
     "Mccoys Fgs Coated Nuts PM135"
+   ],
+   "item_barcodes": [
+    "5000237206355",
+    "5000237206379",
+    "5000237206393",
+    "5000237206416",
+    "5000237208137",
+    "5000237208151"
    ]
   },
   {
@@ -2627,7 +4170,12 @@
    "picture": "img/811538013031.jpg",
    "note": "",
    "pack": "70CL",
-   "items": []
+   "barcode": "811538013031",
+   "barcodes": [
+    "811538013031"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14940",
@@ -2643,7 +4191,12 @@
    "picture": "",
    "note": "",
    "pack": "2.5L",
-   "items": []
+   "barcode": "5059630008141",
+   "barcodes": [
+    "5059630008141"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14941",
@@ -2659,7 +4212,12 @@
    "picture": "",
    "note": "",
    "pack": "2.5L",
-   "items": []
+   "barcode": "5059630008103",
+   "barcodes": [
+    "5059630008103"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15069",
@@ -2675,10 +4233,21 @@
    "picture": "img/8003340808314.jpg",
    "note": "Mix and match, 3 products",
    "pack": "38G",
+   "barcode": "4000539398261",
+   "barcodes": [
+    "4000539398261",
+    "8003340808314",
+    "4000539398247"
+   ],
    "items": [
     "Lindor Bar Milk \u00a31.20",
     "Lindor Bar Pistachi 1.20",
     "Lindor Br Salt Cara 1.20"
+   ],
+   "item_barcodes": [
+    "4000539398261",
+    "8003340808314",
+    "4000539398247"
    ]
   },
   {
@@ -2695,6 +4264,17 @@
    "picture": "img/8003340090535.jpg",
    "note": "Mix and match, 8 products",
    "pack": "200G",
+   "barcode": "8003340090535",
+   "barcodes": [
+    "8003340090535",
+    "8003340090276",
+    "8003340090542",
+    "8003340097619",
+    "8003340098920",
+    "8003340095899",
+    "8003340801827",
+    "8003340801803"
+   ],
    "items": [
     "Lindt Lindor Mil",
     "Lindt Lindor Ass",
@@ -2704,6 +4284,16 @@
     "Lindor Milk White Cornet",
     "Lindt Pistachio Cornet",
     "Lindor Dark Mint Cornet"
+   ],
+   "item_barcodes": [
+    "8003340090535",
+    "8003340090276",
+    "8003340090542",
+    "8003340097619",
+    "8003340098920",
+    "8003340095899",
+    "8003340801827",
+    "8003340801803"
    ]
   },
   {
@@ -2720,9 +4310,18 @@
    "picture": "img/50159086.jpg",
    "note": "Mix and match, 2 products",
    "pack": "43G",
+   "barcode": "50159086",
+   "barcodes": [
+    "50159086",
+    "40111377"
+   ],
    "items": [
     "Lockets Honey &",
     "Lockets Extra St"
+   ],
+   "item_barcodes": [
+    "50159086",
+    "40111377"
    ]
   },
   {
@@ -2739,9 +4338,18 @@
    "picture": "img/5054267016477.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "5054267016477",
+   "barcodes": [
+    "5054267016477",
+    "5054267016484"
+   ],
    "items": [
     "Luc Sp Orange \u00a34.50 4PK",
     "Lucozade Sprt Raspbry PM450"
+   ],
+   "item_barcodes": [
+    "5054267016477",
+    "5054267016484"
    ]
   },
   {
@@ -2758,7 +4366,12 @@
    "picture": "img/5391516873093.jpg",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5391516873093",
+   "barcodes": [
+    "5391516873093"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14972",
@@ -2774,7 +4387,12 @@
    "picture": "",
    "note": "",
    "pack": "500ML",
-   "items": []
+   "barcode": "5391516877596",
+   "barcodes": [
+    "5391516877596"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15019",
@@ -2790,7 +4408,12 @@
    "picture": "img/5024576195507.jpg",
    "note": "",
    "pack": "200ML",
-   "items": []
+   "barcode": "5024576195507",
+   "barcodes": [
+    "5024576195507"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15001",
@@ -2806,10 +4429,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "237ML",
+   "barcode": "5011007030049",
+   "barcodes": [
+    "5011007030049",
+    "5011007030063",
+    "5011007030025"
+   ],
    "items": [
     "Malibu Pnch Wmelon",
     "Malibu Pnch P/cola",
     "Malibu Pnch Pch Tea"
+   ],
+   "item_barcodes": [
+    "5011007030049",
+    "5011007030063",
+    "5011007030025"
    ]
   },
   {
@@ -2826,9 +4460,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "1.1KG",
+   "barcode": "5000354930478",
+   "barcodes": [
+    "5000354930478",
+    "5000354930485"
+   ],
    "items": [
     "Mcdougal Plain Flour1.99",
     "Mcd Self Rais Flour 1.99"
+   ],
+   "item_barcodes": [
+    "5000354930478",
+    "5000354930485"
    ]
   },
   {
@@ -2845,6 +4488,16 @@
    "picture": "img/764253500204.jpg",
    "note": "Mix and match, 7 products",
    "pack": "75CL",
+   "barcode": "764253950641",
+   "barcodes": [
+    "764253950641",
+    "764253500204",
+    "764253505186",
+    "764253003705",
+    "9315743501181",
+    "764253505452",
+    "9310415016871"
+   ],
    "items": [
     "Mcguigan Black Label Pinot Gri",
     "Mcguigan Black Label Red",
@@ -2853,6 +4506,15 @@
     "Mcguigan Black L",
     "Mcguigan Black L",
     "Mcguigan Black Label Malbec"
+   ],
+   "item_barcodes": [
+    "764253950641",
+    "764253500204",
+    "764253505186",
+    "764253003705",
+    "9315743501181",
+    "764253505452",
+    "9310415016871"
    ]
   },
   {
@@ -2869,7 +4531,12 @@
    "picture": "",
    "note": "",
    "pack": "239",
-   "items": []
+   "barcode": "5000168041469",
+   "barcodes": [
+    "5000168041469"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15098",
@@ -2885,7 +4552,12 @@
    "picture": "img/5000168017570.jpg",
    "note": "",
    "pack": "250G",
-   "items": []
+   "barcode": "5000168017570",
+   "barcodes": [
+    "5000168017570"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15099",
@@ -2901,11 +4573,24 @@
    "picture": "img/5000168006185.jpg",
    "note": "Mix and match, 4 products",
    "pack": "",
+   "barcode": "5000168006185",
+   "barcodes": [
+    "5000168006185",
+    "5000168008561",
+    "5000168016108",
+    "5060402904578"
+   ],
    "items": [
     "Mcv Milk Choc Hobnobs",
     "Mcv Rasp Crm Ditve 2.25",
     "Mcv W/choc Hob Nob 2.25",
     "Galaxy Salted Ca"
+   ],
+   "item_barcodes": [
+    "5000168006185",
+    "5000168008561",
+    "5000168016108",
+    "5060402904578"
    ]
   },
   {
@@ -2922,7 +4607,12 @@
    "picture": "",
    "note": "",
    "pack": "5PK",
-   "items": []
+   "barcode": "5000168009322",
+   "barcodes": [
+    "5000168009322"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15104",
@@ -2938,7 +4628,12 @@
    "picture": "img/5000168040929.jpg",
    "note": "",
    "pack": "400G",
-   "items": []
+   "barcode": "5000168040929",
+   "barcodes": [
+    "5000168040929"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14588",
@@ -2954,7 +4649,12 @@
    "picture": "img/5000168006062.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "5000168006062",
+   "barcodes": [
+    "5000168006062"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15103",
@@ -2970,7 +4670,12 @@
    "picture": "img/5000168008387.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "5000168008387",
+   "barcodes": [
+    "5000168008387"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14613",
@@ -2986,10 +4691,21 @@
    "picture": "img/5056784914571.jpg",
    "note": "Mix and match, 3 products",
    "pack": "4PK",
+   "barcode": "5056784914571",
+   "barcodes": [
+    "5056784914571",
+    "5056784914618",
+    "5056784915981"
+   ],
    "items": [
     "Monst Green Orig \u00a35.99",
     "Monst Mango Loco \u00a35.99",
     "Monster Rio Punch Mpk PM599"
+   ],
+   "item_barcodes": [
+    "5056784914571",
+    "5056784914618",
+    "5056784915981"
    ]
   },
   {
@@ -3006,7 +4722,12 @@
    "picture": "img/5056784914618.jpg",
    "note": "",
    "pack": "4PK",
-   "items": []
+   "barcode": "5056784914618",
+   "barcodes": [
+    "5056784914618"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15107",
@@ -3022,7 +4743,12 @@
    "picture": "img/5000221609513.jpg",
    "note": "",
    "pack": "TWIN",
-   "items": []
+   "barcode": "5000221609513",
+   "barcodes": [
+    "5000221609513"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14961",
@@ -3038,7 +4764,12 @@
    "picture": "",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5035766066330",
+   "barcodes": [
+    "5035766066330"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15086",
@@ -3054,9 +4785,18 @@
    "picture": "img/8445291688766.jpg",
    "note": "Mix and match, 2 products",
    "pack": "75g",
+   "barcode": "8445293045345",
+   "barcodes": [
+    "8445293045345",
+    "8445291688766"
+   ],
    "items": [
     "Nescafe Azera Amrcn 3.99",
     "Nescafe Azera PM449"
+   ],
+   "item_barcodes": [
+    "8445293045345",
+    "8445291688766"
    ]
   },
   {
@@ -3073,11 +4813,24 @@
    "picture": "img/3065890123878.jpg",
    "note": "Mix and match, 4 products",
    "pack": "12X100G",
+   "barcode": "3065890123878",
+   "barcodes": [
+    "3065890123878",
+    "3065890123915",
+    "3065890123922",
+    "8410136030765"
+   ],
    "items": [
     "Pedigree Pouch R",
     "Pedigree Puppy Pouch In Jelly",
     "Pedigree Senior Dog Pij",
     "Pedigree Dog Mix/jelly"
+   ],
+   "item_barcodes": [
+    "3065890123878",
+    "3065890123915",
+    "3065890123922",
+    "8410136030765"
    ]
   },
   {
@@ -3094,6 +4847,15 @@
    "picture": "img/4062139015108.jpg",
    "note": "Mix and match, 6 products",
    "pack": "330ML",
+   "barcode": "4062139033546",
+   "barcodes": [
+    "4062139033546",
+    "4062139033577",
+    "4062139033515",
+    "4062139015108",
+    "4062139015139",
+    "4062139015078"
+   ],
    "items": [
     "Peps Cola Max 90P",
     "Pep Col Max Chr 90P",
@@ -3101,6 +4863,14 @@
     "Peps Cola Max 85P",
     "Pepsi Max Cherry PM85 Can",
     "Pepsi Cola Diet 85p"
+   ],
+   "item_barcodes": [
+    "4062139033546",
+    "4062139033577",
+    "4062139033515",
+    "4062139015108",
+    "4062139015139",
+    "4062139015078"
    ]
   },
   {
@@ -3117,10 +4887,21 @@
    "picture": "img/4062139024902.jpg",
    "note": "Mix and match, 3 products",
    "pack": "330ML",
+   "barcode": "4062139024902",
+   "barcodes": [
+    "4062139024902",
+    "4062139024933",
+    "4062139024988"
+   ],
    "items": [
     "Pepsi Cola Max 6PK \u00a33.29",
     "Pepsi Cherr Max 6PK 3.29",
     "Pepsi Regular 6PK 3.49"
+   ],
+   "item_barcodes": [
+    "4062139024902",
+    "4062139024933",
+    "4062139024988"
    ]
   },
   {
@@ -3137,10 +4918,21 @@
    "picture": "img/4062139024902.jpg",
    "note": "Mix and match, 3 products",
    "pack": "330ML",
+   "barcode": "4062139024902",
+   "barcodes": [
+    "4062139024902",
+    "4062139024933",
+    "4062139024988"
+   ],
    "items": [
     "Pepsi Cola Max 6PK \u00a33.29",
     "Pepsi Cherr Max 6PK 3.29",
     "Pepsi Regular 6PK 3.49"
+   ],
+   "item_barcodes": [
+    "4062139024902",
+    "4062139024933",
+    "4062139024988"
    ]
   },
   {
@@ -3157,9 +4949,18 @@
    "picture": "img/4062139018116.jpg",
    "note": "Mix and match, 2 products",
    "pack": "330ML",
+   "barcode": "4062139018116",
+   "barcodes": [
+    "4062139018116",
+    "4062139033607"
+   ],
    "items": [
     "Pepsi Cola PM 90P",
     "Pepsi Cola PM 95P"
+   ],
+   "item_barcodes": [
+    "4062139018116",
+    "4062139033607"
    ]
   },
   {
@@ -3176,11 +4977,24 @@
    "picture": "img/5010438023859.jpg",
    "note": "Mix and match, 4 products",
    "pack": "330ML",
+   "barcode": "4062139033485",
+   "barcodes": [
+    "4062139033485",
+    "4062139033423",
+    "4062139033454",
+    "5010438023859"
+   ],
    "items": [
     "Pepsi Regular 8PK 4.60",
     "Pepsi Cola Max 8 Pack \u00a34.35",
     "Pepsi Cherr Max 8PK 4.35",
     "Vimto Original PM80 330ML"
+   ],
+   "item_barcodes": [
+    "4062139033485",
+    "4062139033423",
+    "4062139033454",
+    "5010438023859"
    ]
   },
   {
@@ -3197,7 +5011,12 @@
    "picture": "",
    "note": "",
    "pack": "568ML",
-   "items": []
+   "barcode": "5010153873487",
+   "barcodes": [
+    "5010153873487"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15065",
@@ -3213,6 +5032,16 @@
    "picture": "img/5053990181186.jpg",
    "note": "Mix and match, 7 products",
    "pack": "165G",
+   "barcode": "5053990194896",
+   "barcodes": [
+    "5053990194896",
+    "5053990181186",
+    "5053990178490",
+    "5053990198443",
+    "5053990178520",
+    "5053990182985",
+    "5053990178469"
+   ],
    "items": [
     "Pringles Original PM2.99",
     "Pringles Sour Cr Onion",
@@ -3221,6 +5050,15 @@
     "Pringles Cheese Onion",
     "Prin Flame Gri Stea 2.99",
     "Pringles Salt & Vin"
+   ],
+   "item_barcodes": [
+    "5053990194896",
+    "5053990181186",
+    "5053990178490",
+    "5053990198443",
+    "5053990178520",
+    "5053990182985",
+    "5053990178469"
    ]
   },
   {
@@ -3237,7 +5075,12 @@
    "picture": "img/90493317.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "90493317",
+   "barcodes": [
+    "90493317"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15025",
@@ -3253,7 +5096,12 @@
    "picture": "img/90496066.jpg",
    "note": "",
    "pack": "1",
-   "items": []
+   "barcode": "90496066",
+   "barcodes": [
+    "90496066"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15024",
@@ -3269,9 +5117,18 @@
    "picture": "img/90493850.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "90493850",
+   "barcodes": [
+    "90493850",
+    "90493546"
+   ],
    "items": [
     "Red Bull Energy \u00a32.20",
     "Red Bull Energy S/fre PM2.15"
+   ],
+   "item_barcodes": [
+    "90493850",
+    "90493546"
    ]
   },
   {
@@ -3288,7 +5145,12 @@
    "picture": "img/9002490294977.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "9002490294977",
+   "barcodes": [
+    "9002490294977"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15148",
@@ -3304,9 +5166,18 @@
    "picture": "img/9002490294977.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "9002490294977",
+   "barcodes": [
+    "9002490294977",
+    "9002490295523"
+   ],
    "items": [
     "Red Bull M/pack S/free PM575",
     "Red Bull Multipack PM600"
+   ],
+   "item_barcodes": [
+    "9002490294977",
+    "9002490295523"
    ]
   },
   {
@@ -3323,9 +5194,18 @@
    "picture": "img/9002490295523.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "9002490295523",
+   "barcodes": [
+    "9002490295523",
+    "9002490293987"
+   ],
    "items": [
     "Red Bull Multipack PM600",
     "Red Bull Ice 4 Pack \u00a36"
+   ],
+   "item_barcodes": [
+    "9002490295523",
+    "9002490293987"
    ]
   },
   {
@@ -3342,9 +5222,18 @@
    "picture": "img/90493379.jpg",
    "note": "Mix and match, 2 products",
    "pack": "250ML",
+   "barcode": "90493379",
+   "barcodes": [
+    "90493379",
+    "90493294"
+   ],
    "items": [
     "Red Bull Pink Sfree PM170",
     "Red Bull Red Bull Energy Sugar Free"
+   ],
+   "item_barcodes": [
+    "90493379",
+    "90493294"
    ]
   },
   {
@@ -3361,10 +5250,21 @@
    "picture": "img/5054267015609.jpg",
    "note": "Mix and match, 3 products",
    "pack": "250ML",
+   "barcode": "5054267015609",
+   "barcodes": [
+    "5054267015609",
+    "5054267015616",
+    "5054267016170"
+   ],
    "items": [
     "Ribena Blackcurrant 75P",
     "Ribena Strawberry PM75P",
     "Ribena Summer Fruits 75P"
+   ],
+   "item_barcodes": [
+    "5054267015609",
+    "5054267015616",
+    "5054267016170"
    ]
   },
   {
@@ -3381,12 +5281,27 @@
    "picture": "img/5054267015432.jpg",
    "note": "Mix and match, 5 products",
    "pack": "500ML",
+   "barcode": "5054267015555",
+   "barcodes": [
+    "5054267015555",
+    "5054267016156",
+    "5054267015432",
+    "5054267015562",
+    "5054267015586"
+   ],
    "items": [
     "Ribena Strawberry \u00a31.35",
     "Ribena Summer Fruit 1.35",
     "Ribena Blackcurrant 1.35",
     "Ribena Pin/pass PM \u00a31.35",
     "Ribena B/cur Light \u00a31.35"
+   ],
+   "item_barcodes": [
+    "5054267015555",
+    "5054267016156",
+    "5054267015432",
+    "5054267015562",
+    "5054267015586"
    ]
   },
   {
@@ -3403,11 +5318,24 @@
    "picture": "img/5059321006227.jpg",
    "note": "Mix and match, 4 products",
    "pack": "",
+   "barcode": "5059321006227",
+   "barcodes": [
+    "5059321006227",
+    "5059321006258",
+    "5059321006289",
+    "5059321006852"
+   ],
    "items": [
     "Rks Chocolatey \u00a379",
     "Kelloggs Rks Mshmallow PM79",
     "Kel R/k Choc/car Sq 79P",
     "Kelloggs Rk Squares Cf PM79"
+   ],
+   "item_barcodes": [
+    "5059321006227",
+    "5059321006258",
+    "5059321006289",
+    "5059321006852"
    ]
   },
   {
@@ -3424,9 +5352,18 @@
    "picture": "img/5059321008801.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "5059321008801",
+   "barcodes": [
+    "5059321008801",
+    "5059321009044"
+   ],
    "items": [
     "Rks Marshmallow PM79",
     "Kelloggs Rks Chocolate PM79"
+   ],
+   "item_barcodes": [
+    "5059321008801",
+    "5059321009044"
    ]
   },
   {
@@ -3443,6 +5380,15 @@
    "picture": "",
    "note": "Mix and match, 6 products",
    "pack": "500ML",
+   "barcode": "5000382134107",
+   "barcodes": [
+    "5000382134107",
+    "5000382134121",
+    "5000382134145",
+    "5000382134183",
+    "5000382134169",
+    "5000382133902"
+   ],
    "items": [
     "Rubi Mango Sprklg \u00a31.39",
     "Rub Pass Frt Spark \u00a31.39",
@@ -3450,6 +5396,14 @@
     "Rubi Cherry Burst \u00a31.39",
     "Rubi Tropical \u00a31.39",
     "Rio Tropical Pm\u00a31.39"
+   ],
+   "item_barcodes": [
+    "5000382134107",
+    "5000382134121",
+    "5000382134145",
+    "5000382134183",
+    "5000382134169",
+    "5000382133902"
    ]
   },
   {
@@ -3466,10 +5420,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "250ML",
+   "barcode": "5060760140120",
+   "barcodes": [
+    "5060760140120",
+    "5060760140182",
+    "5060760140519"
+   ],
    "items": [
     "Served Mojito",
     "Served Margarita",
     "Served Lychee Martini"
+   ],
+   "item_barcodes": [
+    "5060760140120",
+    "5060760140182",
+    "5060760140519"
    ]
   },
   {
@@ -3486,6 +5451,20 @@
    "picture": "img/5410316970235.jpg",
    "note": "Mix and match, 11 products",
    "pack": "250ML",
+   "barcode": "5410316970235",
+   "barcodes": [
+    "5410316970235",
+    "5410316970259",
+    "5410316970211",
+    "5060065301752",
+    "5060065305958",
+    "5060065302278",
+    "5060065306146",
+    "5060065301776",
+    "5060065302476",
+    "5060065306368",
+    "5060065302339"
+   ],
    "items": [
     "Smirnoff & Cola \u00a32.25",
     "Smirnoff&cran \u00a32.25",
@@ -3498,6 +5477,19 @@
     "Funkin S/berry D",
     "Funkin Nitr App Sr Marti",
     "Funkin Peach/beach"
+   ],
+   "item_barcodes": [
+    "5410316970235",
+    "5410316970259",
+    "5410316970211",
+    "5060065301752",
+    "5060065305958",
+    "5060065302278",
+    "5060065306146",
+    "5060065301776",
+    "5060065302476",
+    "5060065306368",
+    "5060065302339"
    ]
   },
   {
@@ -3514,10 +5506,21 @@
    "picture": "img/5410316970198.jpg",
    "note": "Mix and match, 3 products",
    "pack": "",
+   "barcode": "5410316970198",
+   "barcodes": [
+    "5410316970198",
+    "5410316961875",
+    "5410316970174"
+   ],
    "items": [
     "Smirnoff Ice PM385",
     "Smirnoff Ice Rberry 3.85",
     "Smirnoff Ice Trop \u00a33.85"
+   ],
+   "item_barcodes": [
+    "5410316970198",
+    "5410316961875",
+    "5410316970174"
    ]
   },
   {
@@ -3534,7 +5537,12 @@
    "picture": "img/5410316961677.jpg",
    "note": "",
    "pack": "1LTR",
-   "items": []
+   "barcode": "5410316961677",
+   "barcodes": [
+    "5410316961677"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15063",
@@ -3550,7 +5558,12 @@
    "picture": "img/5000237206515.jpg",
    "note": "",
    "pack": "120G",
-   "items": []
+   "barcode": "5000237206515",
+   "barcodes": [
+    "5000237206515"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14988",
@@ -3566,9 +5579,18 @@
    "picture": "img/1210000104793.jpg",
    "note": "Mix and match, 2 products",
    "pack": "70CL",
+   "barcode": "1210000104793",
+   "barcodes": [
+    "1210000104793",
+    "5012461009220"
+   ],
    "items": [
     "Southern Comfort \u00a321.99",
     "Lambs Spiced Rum \u00a316.49"
+   ],
+   "item_barcodes": [
+    "1210000104793",
+    "5012461009220"
    ]
   },
   {
@@ -3585,10 +5607,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "35CL",
+   "barcode": "5059630008356",
+   "barcodes": [
+    "5059630008356",
+    "5059630008226",
+    "5059630008318"
+   ],
    "items": [
     "Spirit Republic Whisky",
     "Spirit Rep Brandy \u00a310.49",
     "Spirit Repub Vodka \u00a39.29"
+   ],
+   "item_barcodes": [
+    "5059630008356",
+    "5059630008226",
+    "5059630008318"
    ]
   },
   {
@@ -3605,9 +5638,18 @@
    "picture": "img/5010478561021.jpg",
    "note": "Mix and match, 2 products",
    "pack": "60GM",
+   "barcode": "5010478561021",
+   "barcodes": [
+    "5010478561021",
+    "5010478390058"
+   ],
    "items": [
     "Squashies Original 69P",
     "Sour Chrry&apple 69P"
+   ],
+   "item_barcodes": [
+    "5010478561021",
+    "5010478390058"
    ]
   },
   {
@@ -3624,9 +5666,18 @@
    "picture": "img/5410228272489.jpg",
    "note": "Mix and match, 2 products",
    "pack": "330ML",
+   "barcode": "5410228272489",
+   "barcodes": [
+    "5410228272489",
+    "5410228292081"
+   ],
    "items": [
     "Stella Artois 0.0",
     "Corona Cero 4 Pack Nrb"
+   ],
+   "item_barcodes": [
+    "5410228272489",
+    "5410228292081"
    ]
   },
   {
@@ -3643,11 +5694,24 @@
    "picture": "img/5010658315178.jpg",
    "note": "Mix and match, 4 products",
    "pack": "75CL",
+   "barcode": "5010658315178",
+   "barcodes": [
+    "5010658315178",
+    "5010658315192",
+    "5010658315215",
+    "5010658317615"
+   ],
    "items": [
     "Strawhat White 1",
     "Strawhat Rose11%",
     "Strawhat Red 11%",
     "The Straw Hat Strawberry Rhuba"
+   ],
+   "item_barcodes": [
+    "5010658315178",
+    "5010658315192",
+    "5010658315215",
+    "5010658317615"
    ]
   },
   {
@@ -3664,7 +5728,12 @@
    "picture": "img/5035766048800.jpg",
    "note": "",
    "pack": "568ML",
-   "items": []
+   "barcode": "5035766048800",
+   "barcodes": [
+    "5035766048800"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14969",
@@ -3680,10 +5749,21 @@
    "picture": "img/5035766049395.jpg",
    "note": "Mix and match, 3 products",
    "pack": "440ML",
+   "barcode": "5035766049395",
+   "barcodes": [
+    "5035766049395",
+    "5020628005121",
+    "5020628005213"
+   ],
    "items": [
     "Strongbow Original Cider 10 Pack",
     "Th Bld Orange 10PK 3.4%",
     "Th App & Black 10PK 3.4%"
+   ],
+   "item_barcodes": [
+    "5035766049395",
+    "5020628005121",
+    "5020628005213"
    ]
   },
   {
@@ -3700,9 +5780,18 @@
    "picture": "img/5018297013172.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "5018297013172",
+   "barcodes": [
+    "5018297013172",
+    "5018297013141"
+   ],
    "items": [
     "Takis Blue Heat",
     "Takis Fuego Corn Chips"
+   ],
+   "item_barcodes": [
+    "5018297013172",
+    "5018297013141"
    ]
   },
   {
@@ -3719,12 +5808,27 @@
    "picture": "img/5018297013134.jpg",
    "note": "Mix and match, 5 products",
    "pack": "55G",
+   "barcode": "5018297013134",
+   "barcodes": [
+    "5018297013134",
+    "5018297013196",
+    "5018297013165",
+    "5018297013462",
+    "5018297015343"
+   ],
    "items": [
     "Takis Fuego Chips \u00a31.25",
     "Takis Intense Nacho 1.25",
     "Takis Blue Heat ?1.25",
     "Takis Smokin BBQ PM125",
     "Takis Churros \u00a31.25"
+   ],
+   "item_barcodes": [
+    "5018297013134",
+    "5018297013196",
+    "5018297013165",
+    "5018297013462",
+    "5018297015343"
    ]
   },
   {
@@ -3741,9 +5845,18 @@
    "picture": "",
    "note": "Mix and match, 2 products",
    "pack": "330ML",
+   "barcode": "5010102356603",
+   "barcodes": [
+    "5010102356603",
+    "5010102356573"
+   ],
    "items": [
     "Tango Apple S/f 80P",
     "Tango Orange 80P"
+   ],
+   "item_barcodes": [
+    "5010102356603",
+    "5010102356573"
    ]
   },
   {
@@ -3760,10 +5873,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "330ML",
+   "barcode": "5060444850802",
+   "barcodes": [
+    "5060444850802",
+    "5060444850406",
+    "5060444851434"
+   ],
    "items": [
     "Tenzing Raspberry & Yuzu",
     "Tenzing P/apple&pssfruit",
     "Tenzing Peach&honey Meln"
+   ],
+   "item_barcodes": [
+    "5060444850802",
+    "5060444850406",
+    "5060444851434"
    ]
   },
   {
@@ -3780,7 +5904,12 @@
    "picture": "",
    "note": "",
    "pack": "70CL",
-   "items": []
+   "barcode": "85592140358",
+   "barcodes": [
+    "85592140358"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15085",
@@ -3796,7 +5925,12 @@
    "picture": "img/5000208002504.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "5000208002504",
+   "barcodes": [
+    "5000208002504"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14973",
@@ -3812,7 +5946,12 @@
    "picture": "",
    "note": "",
    "pack": "568ML",
-   "items": []
+   "barcode": "5020628004520",
+   "barcodes": [
+    "5020628004520"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15016",
@@ -3828,6 +5967,15 @@
    "picture": "img/7798039590342.jpg",
    "note": "Mix and match, 6 products",
    "pack": "75CL",
+   "barcode": "7798422330494",
+   "barcodes": [
+    "7798422330494",
+    "7798039599123",
+    "7798039590342",
+    "7798039594333",
+    "5060215330779",
+    "5060215334784"
+   ],
    "items": [
     "Triv Reserv Malbec \u00a39.49",
     "Trivento Pinot G",
@@ -3835,6 +5983,14 @@
     "Trivento Malbec Rose",
     "I Heart Prosecco Ext Dry Doc",
     "I Heart Prosecco Rose"
+   ],
+   "item_barcodes": [
+    "7798422330494",
+    "7798039599123",
+    "7798039590342",
+    "7798039594333",
+    "5060215330779",
+    "5060215334784"
    ]
   },
   {
@@ -3851,11 +6007,24 @@
    "picture": "",
    "note": "Mix and match, 4 products",
    "pack": "500ML",
+   "barcode": "5060317320432",
+   "barcodes": [
+    "5060317320432",
+    "5060317320449",
+    "5060317322573",
+    "5060317323044"
+   ],
    "items": [
     "Ufit Pro Strawberry",
     "Ufitpro50 Chocol",
     "Ufit Pro Salted Caramel",
     "Ufit Pro White Choclate"
+   ],
+   "item_barcodes": [
+    "5060317320432",
+    "5060317320449",
+    "5060317322573",
+    "5060317323044"
    ]
   },
   {
@@ -3872,9 +6041,18 @@
    "picture": "img/5059001015525.jpg",
    "note": "Mix and match, 2 products",
    "pack": "470G",
+   "barcode": "5059001015525",
+   "barcodes": [
+    "5059001015525",
+    "5059001015518"
+   ],
    "items": [
     "Vani Gold Pink Mult 5.49",
     "Vanish Gold White \u00a35.49"
+   ],
+   "item_barcodes": [
+    "5059001015525",
+    "5059001015518"
    ]
   },
   {
@@ -3891,11 +6069,24 @@
    "picture": "img/9414416305528.jpg",
    "note": "Mix and match, 4 products",
    "pack": "75CL",
+   "barcode": "9414416305528",
+   "barcodes": [
+    "9414416305528",
+    "9414416106262",
+    "9414416501876",
+    "9414416508356"
+   ],
    "items": [
     "Villa Maria Sauv",
     "Vil/mar Bin Blush Sauv",
     "Villa Maria Char",
     "Villa Maria Pino"
+   ],
+   "item_barcodes": [
+    "9414416305528",
+    "9414416106262",
+    "9414416501876",
+    "9414416508356"
    ]
   },
   {
@@ -3912,9 +6103,18 @@
    "picture": "img/5010438023323.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "5010438023323",
+   "barcodes": [
+    "5010438023323",
+    "5010438023637"
+   ],
    "items": [
     "Vimto Fizzy PM1.69",
     "Vimto Pina Guava ?1.69"
+   ],
+   "item_barcodes": [
+    "5010438023323",
+    "5010438023637"
    ]
   },
   {
@@ -3931,7 +6131,12 @@
    "picture": "img/3057640100178.jpg",
    "note": "",
    "pack": "1.5LTR",
-   "items": []
+   "barcode": "3057640100178",
+   "barcodes": [
+    "3057640100178"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15050",
@@ -3947,9 +6152,18 @@
    "picture": "img/3057640100178.jpg",
    "note": "Mix and match, 2 products",
    "pack": "1.5LTR",
+   "barcode": "3057640100178",
+   "barcodes": [
+    "3057640100178",
+    "3057640254468"
+   ],
    "items": [
     "Volvic Mineral W",
     "Volvic Water Sportscp Case"
+   ],
+   "item_barcodes": [
+    "3057640100178",
+    "3057640254468"
    ]
   },
   {
@@ -3966,9 +6180,18 @@
    "picture": "img/3057640100673.jpg",
    "note": "Mix and match, 2 products",
    "pack": "50CL",
+   "barcode": "3057640100673",
+   "barcodes": [
+    "3057640100673",
+    "3068320055008"
+   ],
    "items": [
     "Volvic Mineral W",
     "Evian Mineral Water"
+   ],
+   "item_barcodes": [
+    "3057640100673",
+    "3068320055008"
    ]
   },
   {
@@ -3985,6 +6208,18 @@
    "picture": "img/3057640372858.jpg",
    "note": "Mix and match, 9 products",
    "pack": "1.5LTR",
+   "barcode": "3057640372858",
+   "barcodes": [
+    "3057640372858",
+    "3057640407598",
+    "3057640600128",
+    "3057640373428",
+    "3057640410383",
+    "3057640316098",
+    "3057640492983",
+    "3057640535468",
+    "3057640569043"
+   ],
    "items": [
     "Volvic T/f Strawberry",
     "Volvic Touch Of Summer Fruits",
@@ -3995,6 +6230,17 @@
     "Volvic Tof W/melon Sugr Free",
     "T.o.f Mango&p/fr",
     "Volvic Tof Pea/rasp S/f"
+   ],
+   "item_barcodes": [
+    "3057640372858",
+    "3057640407598",
+    "3057640600128",
+    "3057640373428",
+    "3057640410383",
+    "3057640316098",
+    "3057640492983",
+    "3057640535468",
+    "3057640569043"
    ]
   },
   {
@@ -4011,6 +6257,15 @@
    "picture": "img/3057640406423.jpg",
    "note": "Mix and match, 6 products",
    "pack": "75CL",
+   "barcode": "3057640406423",
+   "barcodes": [
+    "3057640406423",
+    "3057640407093",
+    "3057640510533",
+    "3057640535208",
+    "3057640614903",
+    "3057640619298"
+   ],
    "items": [
     "Volvic Tof Lemon/lime S/cap",
     "Volvic T/o/f S/c Strawb",
@@ -4018,6 +6273,14 @@
     "Vol T/o/f Mang/pass S/f",
     "Vol T/o/f Cherry S/f",
     "Volvic Vit+ Peach S/f"
+   ],
+   "item_barcodes": [
+    "3057640406423",
+    "3057640407093",
+    "3057640510533",
+    "3057640535208",
+    "3057640614903",
+    "3057640619298"
    ]
   },
   {
@@ -4034,7 +6297,12 @@
    "picture": "img/5010044009452.jpg",
    "note": "",
    "pack": "6S",
-   "items": []
+   "barcode": "5010044009452",
+   "barcodes": [
+    "5010044009452"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15134",
@@ -4050,10 +6318,21 @@
    "picture": "img/5012144907607.jpg",
    "note": "Mix and match, 3 products",
    "pack": "720G",
+   "barcode": "5012144907607",
+   "barcodes": [
+    "5012144907607",
+    "5012144907621",
+    "5012144907645"
+   ],
    "items": [
     "Webbox Chub Beef",
     "Webbox Chub Chic",
     "Webbox Chub Duck"
+   ],
+   "item_barcodes": [
+    "5012144907607",
+    "5012144907621",
+    "5012144907645"
    ]
   },
   {
@@ -4070,7 +6349,12 @@
    "picture": "img/5010029228922.jpg",
    "note": "",
    "pack": "24'S",
-   "items": []
+   "barcode": "5010029228922",
+   "barcodes": [
+    "5010029228922"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15135",
@@ -4086,6 +6370,18 @@
    "picture": "img/5000166157292.jpg",
    "note": "Mix and match, 9 products",
    "pack": "85G",
+   "barcode": "5000166157292",
+   "barcodes": [
+    "5000166157292",
+    "5900951303135",
+    "5000166157377",
+    "5000166157360",
+    "5000166157438",
+    "4008429155901",
+    "4008429155994",
+    "4008429155833",
+    "5000166157476"
+   ],
    "items": [
     "Whiskas Pouch Mixed In Jelly",
     "Whis Pouch Poul Feast Ij",
@@ -4096,6 +6392,17 @@
     "Whiskas Pouch 1+ Tasty M",
     "Whisk 1+ Duo Surf & Turf",
     "Whis Kitten Pouch Fish"
+   ],
+   "item_barcodes": [
+    "5000166157292",
+    "5900951303135",
+    "5000166157377",
+    "5000166157360",
+    "5000166157438",
+    "4008429155901",
+    "4008429155994",
+    "4008429155833",
+    "5000166157476"
    ]
   },
   {
@@ -4112,10 +6419,21 @@
    "picture": "img/8445291338135.jpg",
    "note": "Mix and match, 3 products",
    "pack": "100G",
+   "barcode": "8445291338135",
+   "barcodes": [
+    "8445291338135",
+    "8445291337855",
+    "8445291338388"
+   ],
    "items": [
     "Win Po 12P Cij B&c \u00a34.49",
     "Win Po 12P Cig L&c 4.49",
     "Winalot Sd 12PK \u00a34.49"
+   ],
+   "item_barcodes": [
+    "8445291338135",
+    "8445291337855",
+    "8445291338388"
    ]
   },
   {
@@ -4132,10 +6450,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "330ML",
+   "barcode": "5024993863317",
+   "barcodes": [
+    "5024993863317",
+    "5024993863324",
+    "5024993863300"
+   ],
    "items": [
     "Wkd Blue 10 Pack",
     "Wkd Iron Brew 10 Pack",
     "Wkd Mixed 10 Pack"
+   ],
+   "item_barcodes": [
+    "5024993863317",
+    "5024993863324",
+    "5024993863300"
    ]
   },
   {
@@ -4152,7 +6481,12 @@
    "picture": "",
    "note": "",
    "pack": "70CL",
-   "items": []
+   "barcode": "5900343016728",
+   "barcodes": [
+    "5900343016728"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15142",
@@ -4168,7 +6502,12 @@
    "picture": "img/5000328375373.jpg",
    "note": "",
    "pack": "6X25G",
-   "items": []
+   "barcode": "5000328375373",
+   "barcodes": [
+    "5000328375373"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15143",
@@ -4184,9 +6523,18 @@
    "picture": "img/8720182699633.jpg",
    "note": "Mix and match, 2 products",
    "pack": "90G",
+   "barcode": "8720182699633",
+   "barcodes": [
+    "8720182699633",
+    "8721317741593"
+   ],
    "items": [
     "P/noodle B/bad Boy 1.49",
     "Pot Noodle Curry \u00a31.29"
+   ],
+   "item_barcodes": [
+    "8720182699633",
+    "8721317741593"
    ]
   },
   {
@@ -4203,7 +6551,12 @@
    "picture": "img/5000157150776.jpg",
    "note": "",
    "pack": "1",
-   "items": []
+   "barcode": "5000157150776",
+   "barcodes": [
+    "5000157150776"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14625",
@@ -4219,7 +6572,12 @@
    "picture": "img/072417199578.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "072417199578",
+   "barcodes": [
+    "072417199578"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-15141",
@@ -4235,7 +6593,12 @@
    "picture": "img/7622202830990.jpg",
    "note": "",
    "pack": "157G",
-   "items": []
+   "barcode": "7622202830990",
+   "barcodes": [
+    "7622202830990"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14465",
@@ -4251,7 +6614,12 @@
    "picture": "img/8606018618439.jpg",
    "note": "",
    "pack": "1",
-   "items": []
+   "barcode": "8606018618439",
+   "barcodes": [
+    "8606018618439"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14459",
@@ -4267,7 +6635,12 @@
    "picture": "img/50237890.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "50237890",
+   "barcodes": [
+    "50237890"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14464",
@@ -4283,10 +6656,21 @@
    "picture": "img/8711327667174.jpg",
    "note": "Mix and match, 3 products",
    "pack": "1",
+   "barcode": "8711327667174",
+   "barcodes": [
+    "8711327667174",
+    "8711327612372",
+    "8711327614109"
+   ],
    "items": [
     "Magnum Utopia",
     "Magnum Classic Grown Cocoa",
     "Magnum Almond"
+   ],
+   "item_barcodes": [
+    "8711327667174",
+    "8711327612372",
+    "8711327614109"
    ]
   },
   {
@@ -4303,6 +6687,16 @@
    "picture": "img/5060926500331.jpg",
    "note": "Mix and match, 7 products",
    "pack": "330ML",
+   "barcode": "5060926500331",
+   "barcodes": [
+    "5060926500331",
+    "5060926500461",
+    "5060926500584",
+    "5060926500607",
+    "5060926501680",
+    "5060926503233",
+    "5060926503240"
+   ],
    "items": [
     "Au Vodka Blue Raspberry",
     "Au Vodka Black Grape",
@@ -4311,6 +6705,15 @@
     "Au Vodka Pink Lemonade",
     "Au Vodka X Tango Orange",
     "Au Vodka X Tango Apple"
+   ],
+   "item_barcodes": [
+    "5060926500331",
+    "5060926500461",
+    "5060926500584",
+    "5060926500607",
+    "5060926501680",
+    "5060926503233",
+    "5060926503240"
    ]
   },
   {
@@ -4327,6 +6730,22 @@
    "picture": "img/5000382127406.jpg",
    "note": "Mix and match, 13 products",
    "pack": "1",
+   "barcode": "5000382127406",
+   "barcodes": [
+    "5000382127406",
+    "5000382127246",
+    "5000382128489",
+    "5000382127383",
+    "5000382127345",
+    "5000382127369",
+    "5000382127284",
+    "5000382127222",
+    "5000382128502",
+    "5000382127260",
+    "5000382128526",
+    "5000382127307",
+    "5000382128465"
+   ],
    "items": [
     "B X Cola ?1.39 2/?2.50",
     "Barr Dalion And B Pm?1.39",
@@ -4340,6 +6759,20 @@
     "Barr D/lem PM139 2forpm250",
     "Barr Lemonde PM139 2forpm250",
     "Barr Limeade PM139 2forpm250"
+   ],
+   "item_barcodes": [
+    "5000382127406",
+    "5000382127246",
+    "5000382128489",
+    "5000382127383",
+    "5000382127345",
+    "5000382127369",
+    "5000382127284",
+    "5000382127222",
+    "5000382128502",
+    "5000382127260",
+    "5000382128526",
+    "5000382127307"
    ]
   },
   {
@@ -4356,10 +6789,21 @@
    "picture": "img/5000116129706.jpg",
    "note": "",
    "pack": "",
+   "barcode": "5000116129706",
+   "barcodes": [
+    "5000116129706",
+    "5000227510844",
+    "5023472024027"
+   ],
    "items": [
     "Chicken Pie",
     "Aunt Bessies Mash Potato",
     "Farmer Jack& Garden Peas 500G"
+   ],
+   "item_barcodes": [
+    "5000116129706",
+    "5000227510844",
+    "5023472024027"
    ]
   },
   {
@@ -4376,10 +6820,21 @@
    "picture": "img/50201600.jpg",
    "note": "Mix and match, 3 products",
    "pack": "SGL",
+   "barcode": "50201600",
+   "barcodes": [
+    "50201600",
+    "57030951",
+    "57038988"
+   ],
    "items": [
     "Cadbury Creme Egg",
     "Cad White Creme Egg Std",
     "Cadbury Sgl Biscoff Egg 32G"
+   ],
+   "item_barcodes": [
+    "50201600",
+    "57030951",
+    "57038988"
    ]
   },
   {
@@ -4396,10 +6851,21 @@
    "picture": "img/8445290640079.jpg",
    "note": "Mix and match, 3 products",
    "pack": "100G",
+   "barcode": "8445290640079",
+   "barcodes": [
+    "8445290640079",
+    "8445290640093",
+    "8445291268821"
+   ],
    "items": [
     "Felix Agail Chick 3f1.59",
     "Felix Agail Tuna 3f1.59",
     "Felix Agail Chick 3f1.59"
+   ],
+   "item_barcodes": [
+    "8445290640079",
+    "8445290640093",
+    "8445291268821"
    ]
   },
   {
@@ -4416,9 +6882,18 @@
    "picture": "img/8445291268807.jpg",
    "note": "Mix and match, 2 products",
    "pack": "85G",
+   "barcode": "8445291268807",
+   "barcodes": [
+    "8445291268807",
+    "8445291268821"
+   ],
    "items": [
     "Felix Agail Tuna 3f1.59",
     "Felix Agail Chick 3f1.59"
+   ],
+   "item_barcodes": [
+    "8445291268807",
+    "8445291268821"
    ]
   },
   {
@@ -4435,7 +6910,12 @@
    "picture": "img/8445291037106.jpg",
    "note": "",
    "pack": "85G",
-   "items": []
+   "barcode": "8445291037106",
+   "barcodes": [
+    "8445291037106"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-4681",
@@ -4451,9 +6931,18 @@
    "picture": "img/8445290638885.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "8445290638885",
+   "barcodes": [
+    "8445290638885",
+    "8445290639127"
+   ],
    "items": [
     "Felix Tuna In Jlly PM3/149",
     "Felix Beef In Jelly Beef 3for1.49"
+   ],
+   "item_barcodes": [
+    "8445290638885",
+    "8445290639127"
    ]
   },
   {
@@ -4470,9 +6959,18 @@
    "picture": "img/8445290697301.jpg",
    "note": "Mix and match, 2 products",
    "pack": "85G",
+   "barcode": "8445290697301",
+   "barcodes": [
+    "8445290697301",
+    "8445290697325"
+   ],
    "items": [
     "Gourmet Beefingravy PM2/129",
     "Gourmet Perle Salmon 2 For PM \u00a31.29 85G"
+   ],
+   "item_barcodes": [
+    "8445290697301",
+    "8445290697325"
    ]
   },
   {
@@ -4489,7 +6987,12 @@
    "picture": "img/8445290697288.jpg",
    "note": "",
    "pack": "85G",
-   "items": []
+   "barcode": "8445290697288",
+   "barcodes": [
+    "8445290697288"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-4841",
@@ -4505,10 +7008,21 @@
    "picture": "img/8445290697288.jpg",
    "note": "Mix and match, 3 products",
    "pack": "85G",
+   "barcode": "8445290697288",
+   "barcodes": [
+    "8445290697288",
+    "8445290697301",
+    "5000382127864"
+   ],
    "items": [
     "Gourmet Perie Chic PM2F1.29",
     "Gourmet Beefingravy PM2/129",
     "Rubicon Sprkl Passion PM129"
+   ],
+   "item_barcodes": [
+    "8445290697288",
+    "8445290697301",
+    "5000382127864"
    ]
   },
   {
@@ -4525,7 +7039,12 @@
    "picture": "img/5010459005025.jpg",
    "note": "",
    "pack": "1.5LTR",
-   "items": []
+   "barcode": "5010459005025",
+   "barcodes": [
+    "5010459005025"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14627",
@@ -4541,9 +7060,18 @@
    "picture": "img/5010459000907.jpg",
    "note": "Mix and match, 2 products",
    "pack": "1.25LT",
+   "barcode": "5010459000907",
+   "barcodes": [
+    "5010459000907",
+    "5010459001102"
+   ],
    "items": [
     "H/s Strawberry Still",
     "Highland Spring Orange & Passion Fruit Still 1.25Lt"
+   ],
+   "item_barcodes": [
+    "5010459000907",
+    "5010459001102"
    ]
   },
   {
@@ -4560,7 +7088,12 @@
    "picture": "img/5014201655414.jpg",
    "note": "",
    "pack": "500ML",
-   "items": []
+   "barcode": "5014201655414",
+   "barcodes": [
+    "5014201655414"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-6789",
@@ -4576,7 +7109,12 @@
    "picture": "img/5060495116988.jpg",
    "note": "",
    "pack": "500ML",
-   "items": []
+   "barcode": "5060495116988",
+   "barcodes": [
+    "5060495116988"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14451",
@@ -4592,6 +7130,16 @@
    "picture": "img/5000112687309.jpg",
    "note": "Mix and match, 7 products",
    "pack": "",
+   "barcode": "5000112687309",
+   "barcodes": [
+    "5000112687309",
+    "5000112687439",
+    "5000289939188",
+    "5000289939201",
+    "5000289939225",
+    "5410263931495",
+    "5410316967907"
+   ],
    "items": [
     "Jack Daniels & Coke",
     "Jack Dan Coke Chery 2.59",
@@ -4600,6 +7148,15 @@
     "Gord Pink Gin & Ton 2.25",
     "Desperados Mojito Can",
     "Smirnoff & Cola PM219"
+   ],
+   "item_barcodes": [
+    "5000112687309",
+    "5000112687439",
+    "5000289939188",
+    "5000289939201",
+    "5000289939225",
+    "5410263931495",
+    "5410316967907"
    ]
   },
   {
@@ -4616,11 +7173,24 @@
    "picture": "img/5059944013497.jpg",
    "note": "Mix and match, 4 products",
    "pack": "1",
+   "barcode": "5059944013497",
+   "barcodes": [
+    "5059944013497",
+    "5059944013510",
+    "5059944013534",
+    "5059944013558"
+   ],
    "items": [
     "Jacks Basmati Rice Mc PM119",
     "Jacks Egg Fried \u00a31.19",
     "Jacks Lg Grn Rice \u00a31.19",
     "Jacks Sp Mex Rice Mic PM119"
+   ],
+   "item_barcodes": [
+    "5059944013497",
+    "5059944013510",
+    "5059944013534",
+    "5059944013558"
    ]
   },
   {
@@ -4637,9 +7207,18 @@
    "picture": "img/5063249304440.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "5063249304440",
+   "barcodes": [
+    "5063249304440",
+    "5063249304464"
+   ],
    "items": [
     "Jacks Min Ppdm PM85 2/1.35",
     "Jacks Prn Crkr PM85 2/1.35"
+   ],
+   "item_barcodes": [
+    "5063249304440",
+    "5063249304464"
    ]
   },
   {
@@ -4656,7 +7235,12 @@
    "picture": "img/8000300440881.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "8000300440881",
+   "barcodes": [
+    "8000300440881"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14454",
@@ -4672,9 +7256,18 @@
    "picture": "img/7393714517906.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "7393714517906",
+   "barcodes": [
+    "7393714517906",
+    "7393714518903"
+   ],
    "items": [
     "Kopparberg 0% Mixed Fruit",
     "Kopparberg 0% Alcohol Straberry Lime"
+   ],
+   "item_barcodes": [
+    "7393714517906",
+    "7393714518903"
    ]
   },
   {
@@ -4691,7 +7284,12 @@
    "picture": "img/5054267016446.jpg",
    "note": "",
    "pack": "500ML",
-   "items": []
+   "barcode": "5054267016446",
+   "barcodes": [
+    "5054267016446"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-14453",
@@ -4707,6 +7305,20 @@
    "picture": "img/5010038484098.jpg",
    "note": "Mix and match, 11 products",
    "pack": "660ML",
+   "barcode": "5010038484098",
+   "barcodes": [
+    "5010038484098",
+    "5014379004533",
+    "5014379010954",
+    "5014379012958",
+    "5014379014457",
+    "5014379029833",
+    "5035766062523",
+    "5901359074481",
+    "8008440212481",
+    "8008440246066",
+    "8712000022662"
+   ],
    "items": [
     "Madri Large Bottle",
     "Budweiser 4.5% A",
@@ -4719,6 +7331,19 @@
     "Peroni Nastro Azzurro",
     "Asahi Super Dry Large",
     "Heineken Lge Nrb"
+   ],
+   "item_barcodes": [
+    "5010038484098",
+    "5014379004533",
+    "5014379010954",
+    "5014379012958",
+    "5014379014457",
+    "5014379029833",
+    "5035766062523",
+    "5901359074481",
+    "8008440212481",
+    "8008440246066",
+    "8712000022662"
    ]
   },
   {
@@ -4735,7 +7360,12 @@
    "picture": "img/5000328085265.jpg",
    "note": "",
    "pack": "",
-   "items": []
+   "barcode": "5000328085265",
+   "barcodes": [
+    "5000328085265"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-5643",
@@ -4751,11 +7381,24 @@
    "picture": "img/4251097420257.jpg",
    "note": "Mix and match, 4 products",
    "pack": "",
+   "barcode": "4251097420257",
+   "barcodes": [
+    "4251097420257",
+    "4251097420196",
+    "4251097420165",
+    "4251097424200"
+   ],
    "items": [
     "Peperami BBQ PM125 2/PM200",
     "Peperami Hot PM125 2/PM200",
     "Peperami Original PM125",
     "Prami Dor BBQ ?1.25/2f?2"
+   ],
+   "item_barcodes": [
+    "4251097420257",
+    "4251097420196",
+    "4251097420165",
+    "4251097424200"
    ]
   },
   {
@@ -4772,10 +7415,21 @@
    "picture": "",
    "note": "Mix and match, 3 products",
    "pack": "1",
+   "barcode": "9917947565244",
+   "barcodes": [
+    "9917947565244",
+    "9917947566197",
+    "9917947567712"
+   ],
    "items": [
     "Pepsi Cola Max Can",
     "Pepsi Cherry Max",
     "Pepsi Regular"
+   ],
+   "item_barcodes": [
+    "9917947565244",
+    "9917947566197",
+    "9917947567712"
    ]
   },
   {
@@ -4792,6 +7446,57 @@
    "picture": "img/4062139024216.jpg",
    "note": "Mix and match, 48 products",
    "pack": "500ML",
+   "barcode": "4062139024216",
+   "barcodes": [
+    "4062139024216",
+    "4062139024247",
+    "4062139024421",
+    "4062139032853",
+    "5000112684315",
+    "5000112684483",
+    "5000112684520",
+    "5000112684766",
+    "5000112685411",
+    "5000159610582",
+    "5000168012551",
+    "5000168012773",
+    "5000168039718",
+    "5000168039756",
+    "5000237206157",
+    "5000237206171",
+    "5000237206195",
+    "5000237206218",
+    "5000237206232",
+    "5000237206256",
+    "5000237206355",
+    "5000237206379",
+    "5000328036526",
+    "5000328036618",
+    "5000328037240",
+    "5000328037271",
+    "5000328037424",
+    "5000328043890",
+    "5000328085661",
+    "5000328085722",
+    "5017764004767",
+    "5017764005696",
+    "5017764005733",
+    "5017764901202",
+    "5055115817154",
+    "5060041440024",
+    "7613033126390",
+    "7613036512992",
+    "7622201461874",
+    "7622201675349",
+    "7622201746742",
+    "8445290622624",
+    "8445290622662",
+    "8445290622686",
+    "8445291384941",
+    "8445291762572",
+    "8445291892439",
+    "8593893786394"
+   ],
    "items": [
     "Pepsi Max Pet \u00a31.39",
     "Pepsi Max Cherry Pet PM139",
@@ -4805,6 +7510,20 @@
     "Bounty Trio Bar",
     "Jacobs Cheeselets Pm?1.25",
     "Jacob M/c Chpl&lime 1.25"
+   ],
+   "item_barcodes": [
+    "4062139024216",
+    "4062139024247",
+    "4062139024421",
+    "4062139032853",
+    "5000112684315",
+    "5000112684483",
+    "5000112684520",
+    "5000112684766",
+    "5000112685411",
+    "5000159610582",
+    "5000168012551",
+    "5000168012773"
    ]
   },
   {
@@ -4821,9 +7540,18 @@
    "picture": "img/850003560670.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "850003560670",
+   "barcodes": [
+    "850003560670",
+    "850003560717"
+   ],
    "items": [
     "Prime Blue Raspberry",
     "Prime Tropical Punch"
+   ],
+   "item_barcodes": [
+    "850003560670",
+    "850003560717"
    ]
   },
   {
@@ -4840,9 +7568,18 @@
    "picture": "img/4060800307750.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "4060800307750",
+   "barcodes": [
+    "4060800307750",
+    "4060800307767"
+   ],
    "items": [
     "R/s Pun Trop Guav \u00a31.29",
     "R/s Xdur Blue/pom PM1.29"
+   ],
+   "item_barcodes": [
+    "4060800307750",
+    "4060800307767"
    ]
   },
   {
@@ -4859,11 +7596,24 @@
    "picture": "img/5012686001009.jpg",
    "note": "Mix and match, 4 products",
    "pack": "500ML",
+   "barcode": "5012686001009",
+   "barcodes": [
+    "5012686001009",
+    "5012686001184",
+    "5012686019509",
+    "5037808009121"
+   ],
    "items": [
     "Shephard Neame S",
     "Spitfire Amber",
     "Shepherd Neame S",
     "Jucce Watermelon 3MG"
+   ],
+   "item_barcodes": [
+    "5012686001009",
+    "5012686001184",
+    "5012686019509",
+    "5037808009121"
    ]
   },
   {
@@ -4880,7 +7630,12 @@
    "picture": "img/5410316970518.jpg",
    "note": "",
    "pack": "440ML",
-   "items": []
+   "barcode": "5410316970518",
+   "barcodes": [
+    "5410316970518"
+   ],
+   "items": [],
+   "item_barcodes": []
   },
   {
    "id": "till-9608",
@@ -4896,9 +7651,18 @@
    "picture": "img/5010102353114.jpg",
    "note": "Mix and match, 2 products",
    "pack": "500ML",
+   "barcode": "5010102353114",
+   "barcodes": [
+    "5010102353114",
+    "5010102353145"
+   ],
    "items": [
     "Tango Zro Sour W/melon",
     "Tango Zro Sour Trop"
+   ],
+   "item_barcodes": [
+    "5010102353114",
+    "5010102353145"
    ]
   },
   {
@@ -4915,9 +7679,18 @@
    "picture": "img/5000159608794.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "5000159608794",
+   "barcodes": [
+    "5000159608794",
+    "5000159609203"
+   ],
    "items": [
     "Twix Hazelnut Single",
     "Twix Hazelnut Bar 89P"
+   ],
+   "item_barcodes": [
+    "5000159608794",
+    "5000159609203"
    ]
   },
   {
@@ -4934,10 +7707,21 @@
    "picture": "img/5000328042596.jpg",
    "note": "Mix and match, 3 products",
    "pack": "",
+   "barcode": "5000328042596",
+   "barcodes": [
+    "5000328042596",
+    "5000328042633",
+    "5000328042664"
+   ],
    "items": [
     "Walkers Cheese & Onion PM85",
     "Walkers Ready Salted PM85",
     "Walkers Salt&vinegar PM85"
+   ],
+   "item_barcodes": [
+    "5000328042596",
+    "5000328042633",
+    "5000328042664"
    ]
   },
   {
@@ -4954,9 +7738,18 @@
    "picture": "img/5000328037240.jpg",
    "note": "Mix and match, 2 products",
    "pack": "",
+   "barcode": "5000328037240",
+   "barcodes": [
+    "5000328037240",
+    "5000328037271"
+   ],
    "items": [
     "Wotsits Flamin Hot PM135",
     "Wotsits Cheese PM1.35"
+   ],
+   "item_barcodes": [
+    "5000328037240",
+    "5000328037271"
    ]
   }
  ]

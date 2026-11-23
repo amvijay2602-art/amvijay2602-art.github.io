@@ -345,7 +345,7 @@
         var shown = list.filter(function (p) {
           if (deptFilter !== "all" && p.department !== deptFilter) return false;
           if (!q) return true;
-          var hay = [p.title, p.deal, p.department, p.note].concat(p.items || []).join(" ").toLowerCase();
+          var hay = [p.title, p.deal, p.department, p.note, p.barcode].concat(p.items || []).concat(p.barcodes || []).join(" ").toLowerCase();
           return hay.indexOf(q) >= 0;
         });
         var box = $("promoList");
