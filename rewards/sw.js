@@ -17,7 +17,9 @@ self.addEventListener("fetch", event => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;
-  const promo = /promotions\.json(?:\?|$)/.test(url.pathname + url.search);
+  // Network first for the feed, the page itself and the poster template, so changes show straight away.
+  const promo = /promotions\.json(?:\?|$)/.test(url.pathname + url.search) || req.mode === "navigate" ||
+    /\/rewards\/(?:index\.html)?$/.test(url.pathname) || url.pathname.indexOf("/rewards/poster/") === 0;
   if (promo) {
     event.respondWith((async () => {
       try {
@@ -26,7 +28,7 @@ self.addEventListener("fetch", event => {
         caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
         return fresh;
       } catch (e) {
-        const hit = await caches.match(req) || await caches.match("./promotions.json");
+        const hit = await caches.match(req) || (/promotions\.json/.test(url.pathname) ? await caches.match("./promotions.json") : null);
         if (hit) return hit;
         throw e;
       }
