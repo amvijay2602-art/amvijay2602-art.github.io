@@ -1,0 +1,46 @@
+/* Customer Rewards Club. Promotions are fetched fresh (network first) so ended offers drop off. */
+const CACHE = "birkhill-rewards-customer-v1";
+const SHELL = ["./","index.html","manifest.json","logo.png","icon-192.png","icon-512.png","jsbarcode.min.js"];
+
+self.addEventListener("install", event => {
+  event.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));
+});
+self.addEventListener("activate", event => {
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await self.clients.claim();
+  })());
+});
+self.addEventListener("fetch", event => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+  const url = new URL(req.url);
+  if (url.origin !== location.origin) return;
+  const promo = /promotions\.json(?:\?|$)/.test(url.pathname + url.search);
+  if (promo) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req, { cache: "no-store" });
+        const copy = fresh.clone();
+        caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+        return fresh;
+      } catch (e) {
+        const hit = await caches.match(req) || await caches.match("./promotions.json");
+        if (hit) return hit;
+        throw e;
+      }
+    })());
+    return;
+  }
+  event.respondWith((async () => {
+    const hit = await caches.match(req);
+    if (hit) return hit;
+    const fresh = await fetch(req);
+    if (fresh.ok && url.pathname.startsWith("/rewards/")) {
+      const copy = fresh.clone();
+      caches.open(CACHE).then(c => c.put(req, copy)).catch(() => {});
+    }
+    return fresh;
+  })());
+});

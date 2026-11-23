@@ -1,0 +1,14 @@
+{
+  "name": "Birkhill Rewards Club",
+  "short_name": "Birkhill Rewards",
+  "description": "Your Birkhill Stores club card and current promotions",
+  "display": "standalone",
+  "start_url": "./",
+  "scope": "./",
+  "theme_color": "#17643F",
+  "background_color": "#17643F",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
