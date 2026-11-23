@@ -269,7 +269,7 @@
   });
 
   /* ---- Job History view (23 Nov 2026) ---- */
-  var APPNAME = { date: "Date Check", chiller: "Chiller date check" };
+  var APPNAME = { date: "Date Check", chiller: "Chiller date check", count: "Stock Count" };
   function hcss() {
     if (document.getElementById("jh-css")) return;
     var st = document.createElement("style"); st.id = "jh-css";

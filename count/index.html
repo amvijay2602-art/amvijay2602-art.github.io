@@ -31,6 +31,7 @@ h2 { font-size:1.15rem; margin:0 0 8px; } h3 { font-size:1rem; margin:0 0 6px; }
 .muted { color:var(--muted); font-size:.9rem; }
 button, .btn { font:inherit; }
 .btn { display:flex; align-items:center; justify-content:center; gap:6px; width:100%; min-height:52px; border:0; border-radius:14px; padding:12px 14px; font-size:1.05rem; font-weight:700; margin-top:8px; cursor:pointer; background:var(--g); color:#fff; text-decoration:none; text-align:center; }
+.btn.skipb { background:#fff; color:#b8501a; border:2px solid #E86B2A; font-weight:800; }
 .btn.o { background:var(--o); } .btn.sec { background:#e5efe9; color:var(--g); } .btn.ghost { background:#fff; color:var(--g); border:2px solid var(--g); }
 .btn.warn { background:var(--amberbg); color:var(--amber); } .btn.red { background:var(--redbg); color:var(--red); }
 .btn:disabled { opacity:.5; }
@@ -225,6 +226,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     <div class="card">
       <h2 id="repTitle"></h2>
       <div class="msg ok" id="repSaved">Report saved on this phone. The checked list is cleared, ready for the next check.</div>
+      <div id="repHist" style="margin:10px 0"></div>
       <div id="repBody"></div>
     </div>
   </section>
@@ -241,7 +243,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
 <div class="overlay hidden" id="overlay"><div class="pop" id="pop"></div></div>
 <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
-  <script>
+  <script src="../datecount.js?v=20261123sk"></script>
+<script>
 (function () {
   "use strict";
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
@@ -443,7 +446,9 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     return { id: S.id, dept: S.name, staff: S.staffAll.join(", "), started: S.startedText || "", finished: S.finishedText || londonTime(), snap: S.snap, status: st.k, statusText: st.t,
              total: S.items.length, checked: c.map(ln), zero: c.filter(function (l) { return l.r.count === 0; }).map(ln),
              diffs: c.filter(function (l) { return l.d !== 0; }).sort(function (a, b) { return a.d - b.d; }).map(ln), expiry: c.filter(function (l) { return l.alert; }).map(ln),
-             skipped: L.filter(function (l) { return l.kind === "skip"; }).length, pending: L.filter(function (l) { return l.kind === "pending"; }).length,
+             skipped: L.filter(function (l) { return l.kind === "skip"; }).length,
+             skippedList: L.filter(function (l) { return l.kind === "skip"; }).map(function (l) { return { n: l.it.n, b: (l.it.b && l.it.b[0]) || "", s: l.it.s || "", till: l.r && l.r.till != null ? l.r.till : l.it.q, time: (l.r && l.r.atText) || "", staff: (l.r && l.r.staff) || "", note: (l.r && l.r.note) || "Skipped" }; }),
+             pending: L.filter(function (l) { return l.kind === "pending"; }).length,
              price: price, baskets: bsk, priceAt: PC ? (PC.at || "") : "", saved: new Date().toISOString() };
   }
   function reportText(R) {
@@ -451,6 +456,9 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     var t = "Birkhill Stores stock check\n" + R.dept + ": " + R.status + "\nBy " + R.staff + ", " + R.started + " to " + R.finished + "\nChecked " + R.checked.length + " of " + R.total + ". Till stock as of " + R.snap + ".\n";
     t += "Out of Stock: " + R.zero.length + "\nDifferences: " + R.diffs.length + "\nDate issues: " + R.expiry.length + "\nPrice issues: " + R.price.length + "\nAdded to draft baskets: Parfetts " + R.baskets.parfetts.length + ", Eden Farm " + R.baskets.eden.length + "\n";
     R.diffs.slice(0, 5).forEach(function (l) { t += "- " + l.n + " (" + (l.b || "no barcode") + "): till " + l.till + ", counted " + l.cnt + "\n"; });
+    var sl = R.skippedList || [];
+    t += "Skipped (not counted): " + sl.length + "\n";
+    sl.slice(0, 10).forEach(function (l) { t += "- " + l.n + " (" + (l.b || "no barcode") + "): till " + l.till + (l.time ? ", " + l.time : "") + "\n"; });
     return t + "Till not changed. Baskets are drafts, not ordered.";
   }
   function reportHtml(R) {
@@ -466,6 +474,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     [["parfetts", "Added to Parfetts basket (draft)"], ["eden", "Added to Eden Farm basket (draft)"], ["unknown", "Zero stock, supplier unknown"], ["other", "Zero stock, other supplier"], ["excluded", "Zero stock, tobacco or vape (never in a basket)"]].forEach(function (g) {
       h += sec(g[1], R.baskets[g[0]], function (l) { return "<div><b>" + esc(l.n) + "</b><div class='muted'>Barcode " + esc(l.b || "none") + ", cost " + gbp(l.cost) + ", sell " + gbp(l.sell) + ", pack " + (l.pack || "not known") + (l.sup && g[0] === "other" ? ", " + esc(l.sup) : "") + "</div></div><b>" + (g[0] === "parfetts" || g[0] === "eden" ? l.packs + " pack" + (l.packs === 1 ? "" : "s") : "") + "</b>"; });
     });
+    h += sec("Skipped (not counted, no action)", R.skippedList || [], function (l) { return "<div><b>" + esc(l.n) + "</b><div class='muted'>Barcode " + esc(l.b || "none") + ", till " + esc(l.till) + (l.time ? ", " + esc(l.time) : "") + (l.staff ? ", " + esc(l.staff) : "") + "</div></div><span class='muted'>Skipped</span>"; });
     h += sec("All products checked", R.checked, function (l) { return "<div><b>" + esc(l.n) + "</b><div class='muted'>Barcode " + esc(l.b || "none") + ", till " + l.till + ", counted " + l.cnt + (l.date ? ", date " + esc(l.date) : "") + "</div></div>" + (l.d === 0 ? "<b style='color:var(--g)'>Match</b>" : diffTxt(l)); });
     return h;
   }
@@ -491,7 +500,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     add("<< /Type /Catalog /Pages 2 0 R >>"); add(""); add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"); add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
     var kids = [];
     pages.forEach(function (pg, i) {
-      var foot = "0.094 0.204 0.165 rg BT /F1 " + FS + " Tf " + M + " 20 Td (" + enc("Birkhill Stores, 4-8 Fir Road, Eckington, Sheffield S21 4BY") + ") Tj ET BT /F1 " + FS + " Tf " + (W - M - 60) + " 20 Td (" + enc("Page " + (i + 1)) + ") Tj ET";
+      var foot = "0.094 0.204 0.165 rg BT /F1 " + FS + " Tf " + M + " 20 Td (" + enc("Birkhill Stores, 6-8 Fir Road, Eckington, Sheffield S21 4BY") + ") Tj ET BT /F1 " + FS + " Tf " + (W - M - 60) + " 20 Td (" + enc("Page " + (i + 1)) + ") Tj ET";
       var body = pg.join("\n") + "\n" + foot;
       var c = add("<< /Length " + body.length + " >>\nstream\n" + body + "\nendstream");
       kids.push(add("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + W + " " + H + "] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents " + c + " 0 R >>"));
@@ -516,6 +525,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     [["parfetts", "Added to Parfetts basket (draft, not ordered)"], ["eden", "Added to Eden Farm basket (draft, not ordered)"], ["unknown", "Zero stock, supplier unknown"], ["other", "Zero stock, other supplier"], ["excluded", "Zero stock, tobacco or vape (never in a basket)"]].forEach(function (g) {
       sec(g[1], R.baskets[g[0]], function (l) { row(l.n + ". Barcode " + (l.b || "none") + ". Cost " + gbp(l.cost) + ", sell " + gbp(l.sell) + ", pack " + (l.pack || "not known") + (g[0] === "parfetts" || g[0] === "eden" ? ". Suggest " + l.packs + " pack(s), " + l.units + " units." : (l.sup ? ". " + l.sup + "." : "."))); });
     });
+    sec("Skipped (not counted, no action)", R.skippedList || [], function (l) { row(l.n + ". Barcode " + (l.b || "none") + ". Till " + l.till + (l.time ? ". Skipped at " + l.time : "") + (l.staff ? " by " + l.staff : "") + "."); });
     sec("All products checked", R.checked, function (l) { row(l.n + ". Barcode " + (l.b || "none") + ". Till " + l.till + ", counted " + l.cnt + (l.date ? ", date " + l.date : "") + "."); });
     return pdfBlob("Stock check report: " + R.dept, B);
   }
@@ -761,7 +771,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   }
   function bar() {
     var main = step === 1 ? "<button class='btn o' id='aMain'>&#128247; Scan barcode</button>" : step === 2 ? "<button class='btn o' id='aMain'>" + countMainLabel() + "</button>" : "<button class='btn o' id='aMain'>Save and next</button>";
-    $("actionIn").innerHTML = main + "<div class='small'><button class='btn sec' id='aPrev'>&#8592; Previous</button><button class='btn sec' id='aPause'>Pause</button><button class='btn sec' id='aSkip'>Skip</button></div>";
+    $("actionIn").innerHTML = main + "<div class='small'><button class='btn sec' id='aPrev'>&#8592; Previous</button><button class='btn sec' id='aPause'>Pause</button><button class='btn skipb' id='aSkip' aria-label='Skip this product, nothing is saved'>Skip</button></div>";
     $("actionBar").classList.remove("hidden");
     $("aMain").onclick = step === 1 ? toggleCam : step === 2 ? countNext : dateSave;
     $("aPrev").onclick = prev; $("aPause").onclick = pausePop; $("aSkip").onclick = skipPop;
@@ -979,7 +989,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     });
     if (r.status === "skip") cur.photos.forEach(function (ph) { if (ph.nw) idbDel(ph.p); });
     save();
-    var bl = null; try { bl = basketLocalUpdate(it, r); } catch (e) { bl = null; }
+    var bl = null; if (r.status !== "skip") { try { bl = basketLocalUpdate(it, r); } catch (e) { bl = null; } }
     setTimeout(function () { busy = false; }, 350);
     var n = nextIndex();
     if (n < 0) { go("review"); return; }
@@ -990,10 +1000,27 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     }
   }
   function prev() { if (S.idx > 0) { S.idx--; save(); renderCount(); window.scrollTo(0, 0); } }
+  // Skip (23 Nov 2026, Vijay): one tap, no action. Only a "Skipped" record is kept (COUNT row "count SKIP",
+  // Job History, the check's Skipped list). No count, no Out of Stock, no basket, no date, no difference,
+  // till never changed. A product that is already counted keeps its count and Skip just moves on.
   function skipPop() {
-    pop("<h2>Skip " + esc(item().n) + "?</h2><div class='muted'>A skip is not counted. Choose why:</div>" + ["Can't find it right now", "Needs a manager", "Blocked or no access", "No time, count later", "Other"].map(function (x) { return "<button class='btn sec sk'>" + x + "</button>"; }).join("") + "<button class='btn ghost' id='skNo'>Back</button>");
-    each(".sk", function (b) { b.onclick = function () { closePop(); cur.scan = "skip"; commit({ status: "skip", count: null, held: 0, note: b.textContent }); }; });
-    $("skNo").onclick = closePop;
+    if (busy) return;
+    var it = item(), prevR = S.res[it.id];
+    if (prevR && prevR.status === "counted") {
+      var nx = nextIndex(); stopCam();
+      if (nx < 0) { go("review"); return; }
+      S.idx = nx; save(); renderCount(); window.scrollTo(0, 0);
+      $("scanMsg").innerHTML = "<div class='msg info'>" + esc(it.n) + " was already counted. Its count is kept.</div>" + $("scanMsg").innerHTML;
+      return;
+    }
+    stopCam();
+    cur.scan = "skip"; cur.dtype = ""; cur.batches = [];
+    commit({ status: "skip", count: null, held: 0, note: "Skipped" });
+    try {
+      if (window.BirkhillDateCount && BirkhillDateCount.history) BirkhillDateCount.history.add({ app: "count", dept: S.name, session: S.id, key: String(it.id), id: String(it.id),
+        name: it.n, barcode: it.b[0] || "", status: "Skipped", result: "", count: "", date: "", till: Number(it.q) || 0, staff: S.staff });
+    } catch (e) {}
+    if (view === "count") $("scanMsg").innerHTML = "<div class='msg info'>Skipped " + esc(it.n) + ". Nothing saved as a count. Next product.</div>" + $("scanMsg").innerHTML;
   }
   function stoppedAt() { var i = firstPending(S.idx); if (i < 0) i = firstPending(0); return i >= 0 ? S.items[i].n : item().n; }
   function handover() {
@@ -1042,6 +1069,9 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     var t = "Birkhill Stores stock count\n" + S.name + ": " + st.k + "\nBy " + S.staffAll.join(", ") + ", " + (S.startedText || "") + " to " + (S.finishedText || londonTime()) + "\nCounted " + c.length + " of " + S.items.length + ". Till stock as of " + S.snap + ".\n";
     t += "Short: " + sh.length + " lines (" + sh.reduce(function (a, l) { return a - l.d; }, 0) + " units)\nOver: " + ov.length + " lines (" + ov.reduce(function (a, l) { return a + l.d; }, 0) + " units)\nOut of Stock: " + oos.length + "\nDate issues: " + dt.length + "\n";
     sh.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 5).forEach(function (l) { t += "- " + l.it.n + " (" + ((l.it.b && l.it.b[0]) || "no barcode") + "): till " + l.r.till + ", counted " + l.r.count + " (short " + (-l.d) + ")\n"; });
+    var skl = L.filter(function (l) { return l.kind === "skip"; });
+    t += "Skipped (not counted): " + skl.length + "\n";
+    skl.slice(0, 5).forEach(function (l) { t += "- " + l.it.n + " (" + ((l.it.b && l.it.b[0]) || "no barcode") + "): till " + (l.r ? l.r.till : l.it.q) + "\n"; });
     return t + "Till not changed. Full report (PDF) follows.";
   }
   function renderReview() {
@@ -1115,6 +1145,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   }
   flush();
 })();
+  try { if (window.BirkhillDateCount && BirkhillDateCount.history) { var jhb = BirkhillDateCount.history.button("repHist", { id: "jobHistoryBtn" }); if (jhb) jhb.style.width = "100%"; } } catch (e) {}
 </script>
   <script src="../nav.js"></script>
 </body>
