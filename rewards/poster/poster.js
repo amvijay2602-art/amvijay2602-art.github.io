@@ -7,7 +7,7 @@
   var CFG = {
     base: "",
     logo: "logo.png",
-    address: "Birkhill Stores, 4-8 Fir Road, Eckington, Sheffield S21 4BY",
+    address: "Birkhill Stores, 6-8 Fir Road, Eckington, Sheffield S21 4BY",
     hours: "Open 7:00 AM - 9:00 PM, 7 days a week"
   };
 
