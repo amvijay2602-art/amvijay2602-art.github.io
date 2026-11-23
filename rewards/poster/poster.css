@@ -34,19 +34,22 @@
 .bhp .bhp-dealbox .bhp-big { font-size: 150px; font-weight: 900; color: #ffd21f; line-height: 1.0; letter-spacing: -3px; white-space: nowrap; }
 .bhp .bhp-dealbox .bhp-big.bhp-mid2 { font-size: 112px; }
 .bhp .bhp-dealbox .bhp-big.bhp-small { font-size: 84px; letter-spacing: -1px; }
-.bhp .bhp-save { position: absolute; left: 8px; top: 0; z-index: 4; width: 132px; height: 132px; border-radius: 50%; background: #f07f12; border: 6px solid #fff; color: #fff;
+.bhp .bhp-save { position: absolute; left: -30px; top: -14px; z-index: 4; width: 132px; height: 132px; border-radius: 50%; background: #f07f12; border: 6px solid #fff; color: #fff;
   display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 800; font-size: 26px; line-height: 1.0; box-shadow: 0 4px 10px rgba(0,0,0,.18); transform: rotate(10deg); }
 .bhp .bhp-save b { font-size: 36px; font-weight: 900; }
 .bhp .bhp-brush { margin-top: 20px; position: relative; isolation: isolate; color: #fff; font-weight: 700; font-size: 38px; text-align: center; padding: 18px 30px 20px; white-space: nowrap; }
 .bhp .bhp-brush svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
 .bhp .bhp-brush span { position: relative; }
-.bhp .bhp-right { flex: 1 1 auto; position: relative; min-height: 380px; display: flex; align-items: center; justify-content: center; }
-.bhp .bhp-pics { position: relative; width: 100%; height: 100%; display: flex; align-items: flex-end; justify-content: center; }
-.bhp .bhp-pics img { object-fit: contain; border-radius: 18px; filter: drop-shadow(0 10px 12px rgba(0,0,0,.18)); background: transparent; }
-.bhp .bhp-pics.bhp-n1 img { width: 420px; height: 400px; }
-.bhp .bhp-pics.bhp-n2 img { width: 250px; height: 380px; margin: 0 -14px; }
-.bhp .bhp-pics.bhp-n3 img { width: 200px; height: 370px; margin: 0 -18px; }
-.bhp .bhp-pics.bhp-n3 img:nth-child(2) { height: 400px; z-index: 2; position: relative; }
+.bhp .bhp-right { flex: 1 1 0; min-width: 0; position: relative; min-height: 450px; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 28px; }
+.bhp .bhp-pics { position: relative; width: 100%; height: 100%; padding-left: 70px; display: flex; align-items: center; justify-content: center; }
+.bhp .bhp-pics img { object-fit: contain; mix-blend-mode: multiply; background: #ffffff; }
+.bhp .bhp-pics.bhp-n1 img { width: 100%; max-width: 100%; min-width: 0; height: 450px; }
+.bhp .bhp-pics.bhp-n2 img, .bhp .bhp-pics.bhp-n3 img { flex: 1 1 0; min-width: 0; width: auto; height: 440px; margin: 0 2px; }
+.bhp .bhp-pics.bhp-wide { flex-wrap: wrap; align-content: center; padding-left: 60px; }
+.bhp .bhp-pics.bhp-wide img { flex: 1 1 0; height: 150px; }
+.bhp .bhp-pics.bhp-wide img:first-child { flex: 0 0 100%; height: 290px; }
+.bhp.bhp-many .bhp-pics.bhp-wide img { height: 90px !important; }
+.bhp.bhp-many .bhp-pics.bhp-wide img:first-child { height: 170px !important; }
 .bhp .bhp-icon { width: 340px; height: 340px; border-radius: 50%; background: #e6f4ea; border: 8px solid #bfe3c9; display: flex; align-items: center; justify-content: center; }
 .bhp .bhp-icon svg { width: 200px; height: 200px; }
 .bhp .bhp-inner > .bhp-tbl { margin-top: 26px; width: 100%; flex: 1 1 0; min-height: 120px; border: 6px solid #8fd19e; border-radius: 26px; background: #f2fbf4; padding: 14px 24px; overflow: hidden; z-index: 2;
@@ -88,8 +91,8 @@
 .bhp.bhp-many .bhp-mid { margin-top: 16px; }
 .bhp.bhp-many .bhp-left { flex-basis: 420px; }
 .bhp.bhp-many .bhp-dealbox { padding: 12px 14px 14px; border-width: 8px; }
-.bhp.bhp-many .bhp-right { min-height: 250px; }
-.bhp.bhp-many .bhp-pics img { height: 250px !important; }
+.bhp.bhp-many .bhp-right { min-height: 270px; }
+.bhp.bhp-many .bhp-pics img { height: 270px !important; }
 .bhp.bhp-many .bhp-icon { width: 240px; height: 240px; }
 .bhp.bhp-many .bhp-icon svg { width: 140px; height: 140px; }
 .bhp.bhp-many .bhp-brush { margin-top: 12px; padding: 12px 24px 14px; }

@@ -107,8 +107,12 @@
     var notes = String(p.note || "").split(/;\s*/).filter(function (s) { return s && !/^mix and match/i.test(s); });
     if (p.dept_key === "alcohol") notes.push("Over 18s only. Challenge 25.");
     w.note = notes.join(". ").replace(/\.\./g, ".");
-    var pics = Array.isArray(p.pictures) && p.pictures.length ? p.pictures.slice(0, 3) : (p.picture ? [p.picture] : []);
+    // Till offers carry their Parfetts photos in "pictures" (empty means no photo, so a department icon shows).
+    var pics = Array.isArray(p.pictures) ? p.pictures.slice(0, 3) : (p.picture ? [p.picture] : []);
     w.pics = pics;
+    // Boxes and multipacks (wide photos) show one big photo with the others smaller underneath.
+    var ars = Array.isArray(p.picture_ratios) ? p.picture_ratios : [];
+    w.wide = pics.length > 1 && ars.some(function (r) { return r > 0.85; });
     return w;
   }
 
@@ -118,7 +122,7 @@
     el.className = "bhp" + (w.n > 24 ? " bhp-many" : "");
     el.setAttribute("data-id", p.id || "");
     var pics = w.pics.length
-      ? '<div class="bhp-pics bhp-n' + w.pics.length + '">' + w.pics.map(function (src) {
+      ? '<div class="bhp-pics bhp-n' + w.pics.length + (w.wide ? ' bhp-wide' : '') + '">' + w.pics.map(function (src) {
           return '<img crossorigin="anonymous" decoding="async" src="' + esc(url(src)) + '" alt="">';
         }).join("") + "</div>"
       : '<div class="bhp-icon">' + deptIcon(p.dept_key) + "</div>";
