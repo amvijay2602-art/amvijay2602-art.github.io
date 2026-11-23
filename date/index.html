@@ -325,6 +325,15 @@
       font-weight: 800;
       cursor: pointer;
     }
+    /* Job History (23 Nov 2026) */
+    .dc-row3 { grid-template-columns: 1fr 1fr 1fr !important; }
+    .dc-btn.cancel { border-color: #7a3b3b; color: #7a3b3b; }
+    .jh-bar { margin-top: 14px; padding: 12px; border-radius: 14px; background: #fff; border: 1px solid #d5e3da; }
+    .jh-last { margin: 0 0 10px; font-size: 0.95rem; font-weight: 600; color: #18342A; }
+    .jh-bar .jh-open { width: 100%; }
+    .dc-ready { margin: 12px 0; padding: 12px; border-radius: 12px; background: #e8f6ec; border: 1px solid #b7e0c2; font-weight: 700; color: #17643F; }
+    .dc-ready button { display: block; width: 100%; margin-top: 10px; min-height: 48px; border: 0; border-radius: 12px; background: #17643F; color: #fff; font-weight: 800; font-size: 1.05rem; }
+    .hidden { display: none !important; }
   </style>
 
   <style id="birkhill-theme">
@@ -349,6 +358,7 @@
 <body>
   <h1>Birkhill Date Check</h1>
   <div class="card">
+    <div id="dcReady" class="dc-ready hidden"><span id="dcReadyText">Check finished. The screen is clear and ready for the next check.</span><button type="button" id="dcStartNew">Start new check</button></div>
     <div class="find-block">
       <span class="find-label">Find the product</span>
       <div class="scan-actions">
@@ -406,13 +416,17 @@
       </div></div>
     </div>
     <button id="save" type="button">Save</button>
-    <div class="dc-row2">
+    <div class="dc-row2 dc-row3">
       <button id="dcSkip" class="dc-btn" type="button">Skip</button>
+      <button id="dcCancel" class="dc-btn cancel" type="button">Cancel</button>
       <button id="dcFinish" class="dc-btn finish" type="button">Finish</button>
     </div>
     <p id="dcProgress" class="hint">Skip moves on to the next item. Finish ends this check at any time.</p>
     <div id="status"></div>
-    <div id="scannedBox" class="bk-scanned">
+    <div id="jobBar" class="jh-bar">
+      <p id="jobLast" class="jh-last">Done, Skipped and Cancelled items go straight to Job History. The screen stays clear for the next item.</p>
+    </div>
+    <div id="scannedBox" class="bk-scanned hidden">
       <h2>Scanned items</h2>
       <p id="scannedTotals" class="bk-scan-totals hidden"></p>
       <ul id="scannedList" class="bk-scan-list"></ul>
@@ -428,7 +442,7 @@
   </div>
   <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
-  <script src="../datecount.js"></script>
+  <script src="../datecount.js?v=20261123jh"></script>
   <script src="../barcode-scan.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
@@ -731,7 +745,7 @@
         listEl: document.getElementById("scannedList"),
         totalsEl: document.getElementById("scannedTotals"),
         emptyEl: document.getElementById("scannedEmpty"),
-        items: scannedItems,
+        items: scannedItems.filter(function (it) { return !it.moved; }),
         alreadyNewest: true,
         name: function (item) { return item.name || "Unknown"; },
         barcode: function (item) { return item.barcode || ""; },
@@ -872,20 +886,24 @@
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ name: name, photo: photoDataUrl || "", lines: lines })
       }).then(function () {
+        // Kept on the phone as before (never deleted), but marked moved: it is in Job History, not on the screen.
         scannedItems.unshift({
           name: name,
           barcode: currentBarcode || "",
           lines: lines,
-          at: Date.now()
+          at: Date.now(),
+          moved: true
         });
         persistScanned();
         renderScanned();
         if (dc) {
           const first = lines.slice().sort(function (a, b) { return a.date < b.date ? -1 : 1; })[0];
-          dc.count(dcItem(name), Number(shelfRaw), first.date, "OK", first.qty === "" ? null : Number(first.qty));
+          const it = dcItem(name); it.lines = lines;
+          dc.count(it, Number(shelfRaw), first.date, "OK", first.qty === "" ? null : Number(first.qty));
           dcUpdate();
         }
-        setStatus("Saved ✓", "ok");
+        jobSaved(name, "Done");
+        setStatus("Saved ✓ " + name + " is Done and in Job History. Next item.", "ok");
         clearForm();
       }).catch(function () {
         setStatus("Could not save. Check your connection and try again.", "error");
@@ -917,18 +935,64 @@
       dc.skip(dcItem(name));
       clearForm();
       dcUpdate();
-      setStatus("Skipped " + name + ". Next item.", "ok");
+      jobSaved(name, "Skipped");
+      setStatus("Skipped " + name + ". Saved in Job History. Next item.", "ok");
     });
+    // Cancel (23 Nov 2026): stop this item. Saved in Job History as Cancelled, form cleared. Nothing sent, till not changed.
+    document.getElementById("dcCancel").addEventListener("click", function () {
+      const name = nameInput.value.trim() || (currentBarcode ? "Barcode " + currentBarcode : "");
+      if (!name) { clearForm(); setStatus("Nothing to cancel. Ready for the next item.", "ok"); return; }
+      if (dc) dc.cancel(dcItem(name));
+      clearForm();
+      dcUpdate();
+      jobSaved(name, "Cancelled");
+      setStatus("Cancelled " + name + ". Saved in Job History. Next item.", "ok");
+    });
+    function jobSaved(name, status) {
+      const el = document.getElementById("jobLast");
+      if (el) el.textContent = "Last job: " + name + " - " + status + " at " + new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date()).replace(" ", "").toLowerCase() + ". Saved in Job History.";
+    }
+    // Finish (23 Nov 2026): save, then clear the screen and reset to a clean start for the next check.
+    function dcResetAfterFinish(sm) {
+      clearForm();
+      dcUpdate();
+      const el = document.getElementById("jobLast");
+      if (el) el.textContent = "Done, Skipped and Cancelled items go straight to Job History. The screen stays clear for the next item.";
+      const rb = document.getElementById("dcReady"), rt = document.getElementById("dcReadyText");
+      if (rt) rt.textContent = sm && sm.session ? ("Check finished: " + sm.checked + " checked, " + sm.skipped + " skipped, " + (sm.cancelled || 0) + " cancelled. Saved in Job History. The screen is clear and ready for the next check.")
+        : "The screen is clear and ready for the next check.";
+      if (rb) rb.classList.remove("hidden");
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
+      setStatus("Ready for the next check.", "ok");
+    }
     document.getElementById("dcFinish").addEventListener("click", function () {
       if (!dc) return;
-      dc.finish();
+      dc.finish({ onClose: dcResetAfterFinish });
       dcUpdate();
-      setStatus("Date check finished.", "ok");
+      setStatus("Date check finished. Tap OK to clear the screen.", "ok");
     });
+    document.getElementById("dcStartNew").addEventListener("click", function () {
+      const rb = document.getElementById("dcReady"); if (rb) rb.classList.add("hidden");
+      try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) {}
+      setStatus("New check. Scan the first item.", "ok");
+    });
+    if (window.BirkhillDateCount && BirkhillDateCount.history) BirkhillDateCount.history.button("jobBar", { id: "jobHistoryBtn" });
     dcUpdate();
 
     window.__dateCheck = { lookup: lookup, applyCode: applyCode, goToEntry: goToEntry, tillQty: tillQty, showTillStock: showTillStock };
     restoreScanned();
+    // Job History catch-up (23 Nov 2026): items saved before this update move to Job History (kept on the phone).
+    (function () {
+      const H = window.BirkhillDateCount && BirkhillDateCount.history; if (!H) return;
+      let changed = false;
+      scannedItems.forEach(function (it) {
+        if (it.moved) return;
+        const d = BirkhillDateCount.londonISO(new Date(it.at || Date.now()));
+        if (!H.hasSameDay(d, it.name, it.barcode)) H.add({ app: "date", dept: "Date check", status: "Done", name: it.name || "", barcode: it.barcode || "", lines: it.lines || null, at: it.at || Date.now(), result: "OK", count: "", migrated: true });
+        it.moved = true; changed = true;
+      });
+      if (changed) persistScanned();
+    })();
     renderScanned();
   </script>
   <script src="../nav.js"></script>

@@ -1181,6 +1181,15 @@
     .dc-ready { margin: 0 0 12px; padding: 12px; border-radius: 12px; background: #e8f6ec; border: 1px solid #b7e0c2; font-weight: 700; color: #17643F; }
     .dc-ready button { display: block; width: 100%; margin-top: 10px; min-height: 48px; border: 0; border-radius: 12px; background: #17643F; color: #fff; font-weight: 800; font-size: 1.05rem; }
     .list-finish { width: 100%; margin-top: 12px; }
+    /* Job History (23 Nov 2026): Done, Skipped and Cancelled lines leave the list and go to Job History */
+    .p20-actions.four { grid-template-columns: 1fr 1fr; }
+    .p20-btn.cancel { background: #fff; color: #7a3b3b; border-color: #7a3b3b; }
+    .dc-row3 { grid-template-columns: 1fr 1fr 1fr !important; }
+    .dc-btn.cancel { border-color: #7a3b3b; color: #7a3b3b; }
+    .jh-bar { margin: 0 0 12px; display: flex; gap: 10px; align-items: center; }
+    .jh-bar .jh-last { flex: 1 1 auto; margin: 0; font-size: 0.88rem; font-weight: 700; color: #18342A; }
+    .jh-bar .jh-open { flex: 0 0 auto; }
+    .p20-alldone { margin: 0; padding: 14px; border-radius: 12px; background: #e8f6ec; border: 1px solid #b7e0c2; font-weight: 800; color: #17643F; }
   </style>
 
   <style id="birkhill-theme">
@@ -1217,6 +1226,7 @@
     <h2>Today's 20 priority checks</h2>
     <p class="p20-lead">Short dates (3 days or less) must be removed. <span id="p20Progress"></span></p>
     <div class="p20-finishbar"><span id="dcProgress">Count each line on the shelf. Skip if you can't, Finish when you stop.</span><button type="button" id="p20Finish" class="dc-btn finish solid">Finish</button></div>
+    <div id="jobBarChiller" class="jh-bar"><p id="jobLast" class="jh-last">Done, Skipped and Cancelled lines move to Job History.</p></div>
     <div id="dcReady" class="dc-ready hidden"><span id="dcReadyText">Check finished. The screen is clear and ready for the next check.</span><button type="button" id="dcStartNew">Start new check</button></div>
     <ul id="priority20List" class="p20-list"></ul>
     <p id="p20Empty" class="hint hidden">Today's list could not be loaded. You can still scan below.</p>
@@ -1282,8 +1292,9 @@
       </div>
       <p class="dc-oos-hint">0 on shelf: Out of Stock. No date needed. Tap Save.</p>
       <button id="save" class="save-btn" type="button">Save</button>
-      <div class="dc-row2">
+      <div class="dc-row2 dc-row3">
         <button id="dcSkip" class="dc-btn" type="button">Skip</button>
+        <button id="dcCancel" class="dc-btn cancel" type="button">Cancel</button>
         <button id="dcFinish" class="dc-btn finish" type="button">Finish</button>
       </div>
     </div>
@@ -1499,7 +1510,7 @@
   </div>
   <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
-  <script src="../datecount.js?v=20261122fin"></script>
+  <script src="../datecount.js?v=20261123jh"></script>
   <script src="../barcode-scan.js"></script>
   <script>
     const ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
@@ -1840,10 +1851,18 @@
       } catch (e) {}
     }
 
+    // Job History (23 Nov 2026): a saved date-check line is Done and goes to Job History (saved by
+    // datecount.js); it is kept on the phone but marked moved so it leaves the active screen.
     function addDateListItem(item) {
+      item.moved = true;
       dateItems.unshift(item);
       persistCheckLists();
       renderCheckList();
+      jobSaved(item.name, item.result === "REMOVE" ? "Done (Remove)" : (item.result === "OOS" ? "Done (Out of Stock)" : "Done"));
+    }
+    function jobSaved(name, status) {
+      const el = document.getElementById("jobLast");
+      if (el) el.textContent = "Last job: " + name + " - " + status + " at " + nowLondonTime() + ". Saved in Job History.";
     }
 
     function addGapListItem(item) {
@@ -1873,7 +1892,8 @@
     function renderCheckList() {
       if (!checkItemList) return;
       const isGap = mode === "gap";
-      const items = isGap ? gapItems : dateItems;
+      const items = isGap ? gapItems : dateItems.filter(function (it) { return !it.moved; });
+      if (checkEmptyList) checkEmptyList.textContent = isGap ? "No items yet. Scan or enter a product, then save." : "Done, Skipped and Cancelled lines go straight to Job History. Scan or enter the next product.";
       if (checkListTitle) {
         checkListTitle.textContent = isGap ? "Today's gap check" : (p20Kind === "weekly" ? "Weekly full check" : "Today's date check");
       }
@@ -2052,6 +2072,12 @@
       if (!list) return;
       const items = Array.prototype.slice.call(list.querySelectorAll(".p20-item"));
       const ix = items.findIndex(function (li) { return li.getAttribute("data-n") === String(n); });
+      if (ix < 0) {   // the line left the list (Job History): go to the next one still to do
+        const nn = Number(n);
+        const next = items.filter(function (li) { return Number(li.getAttribute("data-n")) > nn; })[0] || items[0];
+        if (next) { try { next.scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {} }
+        return;
+      }
       for (let i = ix + 1; i < items.length; i++) {
         if (!items[i].classList.contains("is-done") && !items[i].classList.contains("is-removed") && !items[i].classList.contains("is-skipped")) {
           try { items[i].scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
@@ -2081,7 +2107,9 @@
       dcUpdate();
       const rb = document.getElementById("dcReady");
       const rt = document.getElementById("dcReadyText");
-      if (rt) rt.textContent = sm && sm.session ? ("Check finished at " + nowLondonTime() + ": " + sm.checked + " checked, " + sm.skipped + " skipped. The screen is clear and ready for the next check.")
+      const jl = document.getElementById("jobLast");
+      if (jl) jl.textContent = "Done, Skipped and Cancelled lines move to Job History.";
+      if (rt) rt.textContent = sm && sm.session ? ("Check finished at " + nowLondonTime() + ": " + sm.checked + " checked, " + sm.skipped + " skipped, " + (sm.cancelled || 0) + " cancelled. Saved in Job History. The screen is clear and ready for the next check.")
         : "The screen is clear and ready for the next check.";
       if (rb) rb.classList.remove("hidden");
       try { window.scrollTo({ top: 0, behavior: "smooth" }); } catch (e) { window.scrollTo(0, 0); }
@@ -2104,8 +2132,21 @@
       clearForm();
       dcUpdate();
       p20Render();
-      setStatus("Skipped " + name + ". Next item.", "ok");
+      jobSaved(name, "Skipped");
+      setStatus("Skipped " + name + ". Saved in Job History. Next item.", "ok");
     });
+    // Cancel (23 Nov 2026): stop this item. Saved in Job History as Cancelled. Nothing sent, till not changed.
+    document.getElementById("dcCancel").addEventListener("click", function () {
+      const name = nameInput.value.trim() || (checkBarcode ? "Barcode " + checkBarcode : "");
+      if (!name) { clearForm(); setStatus("Nothing to cancel. Ready for the next item.", "ok"); return; }
+      if (dc) dc.cancel(dcItemManual(name, checkBarcode));
+      clearForm();
+      dcUpdate();
+      p20Render();
+      jobSaved(name, "Cancelled");
+      setStatus("Cancelled " + name + ". Saved in Job History. Next item.", "ok");
+    });
+    if (window.BirkhillDateCount && BirkhillDateCount.history) BirkhillDateCount.history.button("jobBarChiller", { id: "jobHistoryBtn" });
 
     const P20_KEY_DAILY = "birkhill-chiller-priority20-v1";
     const P20_KEY_WEEKLY = "birkhill-chiller-weekly-full-v1";
@@ -2214,11 +2255,15 @@
       }
       if (empty) empty.classList.add("hidden");
       const keep = {};
+      // Job History (23 Nov 2026): lines that are Done, Skipped or Cancelled leave the active list straight away.
+      const handled = function (it) { const st = dc ? dc.status(dcKeyP20(it)) : null; return !!p20Results[String(it.n)] || st === "counted" || st === "skip" || st === "cancel"; };
+      const allItems = items;
       list.querySelectorAll(".p20-item").forEach(function (li) {
         const g = function (sel) { const el = li.querySelector(sel); return el ? el.value : null; };
         keep[li.getAttribute("data-n")] = { date: g(".p20-date"), qty: g(".p20-qty"), shelf: g(".p20-shelf") };
       });
-      list.innerHTML = items.map(function (it) {
+      const activeItems = allItems.filter(function (it) { return !handled(it); });
+      list.innerHTML = (!activeItems.length ? '<li class="p20-alldone">All ' + allItems.length + ' lines are done, skipped or cancelled. They are saved in Job History. Tap Finish to end this check.</li>' : "") + activeItems.map(function (it) {
         const key = String(it.n);
         const saved = p20Results[key];
         const dateVal = (saved && saved.date) || it.use_by || "";
@@ -2253,10 +2298,11 @@
           '<button type="button" class="dc-plus" aria-label="One more">+</button></div></div></div>' +
           '<label class="p20-photo">📷 ' + photoHint + '<input class="p20-photo-input" type="file" accept="image/*" capture="environment"></label>' +
           (p20Photos[key] ? '<img class="p20-photoprev" alt="Date photo" src="' + p20Photos[key] + '" style="display:block">' : '<img class="p20-photoprev" alt="Date photo">') +
-          '<div class="p20-actions three">' +
+          '<div class="p20-actions four">' +
           '<button type="button" class="p20-btn ok" data-result="OK">OK</button>' +
           '<button type="button" class="p20-btn remove" data-result="REMOVE">Remove</button>' +
           '<button type="button" class="p20-btn skip" data-result="SKIP">Skip</button>' +
+          '<button type="button" class="p20-btn cancel" data-result="CANCEL">Cancel</button>' +
           '</div><p class="p20-err"></p></li>';
       }).join("");
       Object.keys(keep).forEach(function (n) {
@@ -2285,10 +2331,21 @@
       const n = li.getAttribute("data-n");
       const item = (p20Data.items || []).filter(function (it) { return String(it.n) === n; })[0];
       if (!item) return;
+      if (result === "CANCEL") {
+        p20SetErr(li, "");
+        if (dc) dc.cancel(dcItemP20(item));
+        jobSaved(item.name, "Cancelled");
+        setStatus("Cancelled " + item.name + ". Saved in Job History. Next item.", "ok");
+        p20Render();
+        dcUpdate();
+        p20FocusNext(n);
+        return;
+      }
       if (result === "SKIP") {
         p20SetErr(li, "");
         if (dc) dc.skip(dcItemP20(item));
-        setStatus("Skipped " + item.name + ". Next item.", "ok");
+        jobSaved(item.name, "Skipped");
+        setStatus("Skipped " + item.name + ". Saved in Job History. Next item.", "ok");
         p20Render();
         dcUpdate();
         p20FocusNext(n);
@@ -2451,6 +2508,18 @@
 
 
     restoreCheckLists();
+    // Job History catch-up (23 Nov 2026): date-check lines saved before this update move to Job History (kept on the phone).
+    (function () {
+      const H = window.BirkhillDateCount && BirkhillDateCount.history; if (!H) return;
+      let changed = false;
+      dateItems.forEach(function (it) {
+        if (it.moved) return;
+        const d = BirkhillDateCount.londonISO(new Date(it.at || Date.now()));
+        if (!H.hasSameDay(d, it.name, it.barcode)) H.add({ app: "chiller", dept: "Chiller date check", status: "Done", name: it.name || "", barcode: it.barcode || "", lines: it.lines || null, at: it.at || Date.now(), result: it.result || "OK", count: it.result === "OOS" ? 0 : "", migrated: true });
+        it.moved = true; changed = true;
+      });
+      if (changed) persistCheckLists();
+    })();
     renderCheckList();
 
     const checkScanBtn = document.getElementById("checkScanBtn");
