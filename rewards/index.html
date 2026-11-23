@@ -12,6 +12,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <link rel="icon" type="image/png" href="icon-192.png">
+  <link rel="stylesheet" href="poster/poster.css">
   <style>
     :root {
       --green: #17643F;
@@ -37,12 +38,15 @@
       min-height: 100%;
     }
     body {
-      padding: 16px 16px 40px;
+      padding: 16px 12px 40px;
       padding-top: max(16px, env(safe-area-inset-top));
       padding-bottom: max(40px, env(safe-area-inset-bottom));
-      max-width: 480px;
+      max-width: 1100px;
       margin: 0 auto;
     }
+    #enterView, #cardView { max-width: 480px; margin: 0 auto; }
+    #promoList { margin-top: 4px; }
+    .poster-tip { color: var(--muted); font-size: 0.92rem; margin: 0 0 10px; }
     header { text-align: center; margin-bottom: 16px; }
     header img.logo { height: 72px; width: auto; display: block; margin: 0 auto 8px; }
     h1 { font-size: 1.45rem; margin: 0; }
@@ -207,6 +211,7 @@
     <p class="updated" id="updated">Loading promotions...</p>
     <input class="search" id="search" type="search" placeholder="Search promotions" aria-label="Search promotions">
     <div class="chips" id="chips"></div>
+    <p class="poster-tip" id="posterTip">Tap a poster to see it full size, then download or share it.</p>
     <div id="promoList"></div>
     <p class="empty hidden" id="promoEmpty">No promotions match that search.</p>
     <p class="alcohol-note hidden" id="alcoholNote">Alcohol promotions are for people aged 18 or over.</p>
@@ -214,6 +219,8 @@
   </section>
 
   <script src="jsbarcode.min.js"></script>
+  <script src="poster/html-to-image.js"></script>
+  <script src="poster/poster.js"></script>
   <script>
     (function () {
       var STORE = "birkhill-rewards-card";
@@ -345,27 +352,12 @@
         var shown = list.filter(function (p) {
           if (deptFilter !== "all" && p.department !== deptFilter) return false;
           if (!q) return true;
-          var hay = [p.title, p.deal, p.department, p.note, p.barcode].concat(p.items || []).concat(p.barcodes || []).join(" ").toLowerCase();
+          var hay = [p.title, p.headline, p.deal, p.department, p.note, p.barcode].concat((p.lines || []).map(function (l) { return l.name + " " + l.barcode; })).concat(p.items || []).concat(p.barcodes || []).join(" ").toLowerCase();
           return hay.indexOf(q) >= 0;
         });
         var box = $("promoList");
-        box.innerHTML = "";
-        shown.forEach(function (p) {
-          var art = document.createElement("article");
-          art.className = "promo";
-          var pic = p.picture
-            ? "<img src=\"" + p.picture + "\" alt=\"\">"
-            : "<div class=\"ph\">No picture</div>";
-          var end = p.end ? (soon(p, now) ? "<span class=\"soon\">Ends " + p.end + "</span>" : "Ends " + p.end) : "While stocks last";
-          var items = (p.items && p.items.length) ? "<div class=\"note\">" + p.items.join(", ") + "</div>" : "";
-          var note = p.note ? "<div class=\"note\">" + p.note + "</div>" : "";
-          var was = p.normal ? "<div class=\"was\">" + p.normal + "</div>" : "";
-          art.innerHTML = pic + "<div><h3>" + p.title + "</h3>" + was +
-            "<div class=\"deal\">" + p.deal + "</div>" +
-            "<div class=\"meta\">" + end + (p.pack ? " · " + p.pack : "") + "</div>" +
-            items + note + "</div>";
-          box.appendChild(art);
-        });
+        BirkhillPoster.grid(box, shown);
+        $("updated").setAttribute("data-count", String(shown.length));
         show($("promoEmpty"), shown.length === 0);
         show($("alcoholNote"), list.some(function (p) { return p.dept_key === "alcohol"; }));
         $("updated").textContent = data.updated ? ("Updated " + data.updated + ", from the till.") : "";
