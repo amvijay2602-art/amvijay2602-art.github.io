@@ -2,7 +2,7 @@
    Key comes from the link (#k=...) once, then is remembered on this phone. */
 (function () {
   var KEY_STORE = "birkhill-data-key";
-  var DATA = /(^|\/)(titles|stock|products|news|reports|stockcount|sessions|priority20|weekly_full|returns_today|delivery_today|mag_returns|shelfscan|stockin|stockin_products|baskets|live_status|pricecheck|supmap|inv\/[A-Za-z0-9_-]+)\.json(\?.*)?$/;
+  var DATA = /(^|\/)(titles|stock|products|news|reports|stockcount|sessions|priority20|weekly_full|returns_today|delivery_today|mag_returns|shelfscan|stockin|stockin_products|baskets|live_status|pricecheck|supmap|datecheck|eden_edn|inv\/[A-Za-z0-9_-]+)\.json(\?.*)?$/;
   var m = /[#&]k=([A-Za-z0-9_-]{16,})/.exec(location.hash || "");
   if (m) {
     try { localStorage.setItem(KEY_STORE, m[1]); } catch (e) {}
