@@ -82,6 +82,11 @@
     .sm-prow { display:grid; grid-template-columns:84px 1fr 1fr; gap:8px; align-items:center; margin:6px 0; }
     .sm-prow a.btn { display:flex; align-items:center; justify-content:center; text-align:center; text-decoration:none; font-size:.92rem; }
     .sm-prow .btn { font-size:.92rem; }
+    .sm-acc { display:grid; grid-template-columns:84px 1fr; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid #eef0f4; }
+    .sm-acc a.btn { display:flex; align-items:center; justify-content:center; text-decoration:none; min-height:44px; font-size:.95rem; }
+    .sm-acc-st { grid-column:2; font-size:.92rem; }
+    .sm-acc-st label { display:flex; align-items:center; gap:8px; } .sm-acc-st input { width:22px; height:22px; accent-color:var(--g); }
+    .sm-acc-ok { color:var(--g); font-weight:800; } .sm-acc-st a { color:var(--muted); font-weight:700; margin-left:10px; }
   </style>
 </head>
 <body>
@@ -160,6 +165,11 @@
     </section>
 
     <section id="secSocial" class="hidden">
+      <div class="card" id="smAcc">
+        <h2>Your accounts</h2>
+        <div class="muted">Log in once on this phone. After that, Share sends the poster straight to the app and you press Post.</div>
+        <div id="smAccList"></div>
+      </div>
       <div class="card">
         <div class="sm-due-n" id="smDueN">Due now: ...</div>
         <div class="muted" id="smDueHelp"></div>

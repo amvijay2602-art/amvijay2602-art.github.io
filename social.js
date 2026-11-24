@@ -362,9 +362,41 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-cx]"), function (b) { b.addEventListener("click", function () { if (confirm("Cancel this schedule? Posts already made stay online.")) { act(b.getAttribute("data-cx"), "cancel"); say("Cancelled. No more Post now cards for this schedule."); } }); });
   }
 
+  /* ---- Your accounts: log in buttons (no passwords or tokens are stored, only a "logged in" tick on this phone) ---- */
+  var LOGKEY = "birkhill-social-loggedin-v1";
+  var IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var LOGIN = { facebook: { app: "fb://", web: "https://www.facebook.com/login" },
+    instagram: { app: "instagram://", web: "https://www.instagram.com/accounts/login/" },
+    tiktok: { app: IOS ? "tiktok://" : "snssdk1233://", web: "https://www.tiktok.com/login" } };
+  function loginPlan(plat) { return { app: MOBILE ? LOGIN[plat].app : "", web: LOGIN[plat].web, mobile: MOBILE }; }
+  function accounts() {
+    var st = M.jget(LOGKEY, {});
+    $("smAccList").innerHTML = PLAT.map(function (x) {
+      var k = x[0], on = !!st[k];
+      return '<div class="sm-acc" data-acc="' + k + '"><b>' + x[1] + '</b><a class="btn line" href="' + LOGIN[k].web + '" target="_blank" rel="noopener" data-login="' + k + '">Log in to ' + x[1] + '</a>' +
+        '<div class="sm-acc-st">' + (on ? '<span class="sm-acc-ok">Logged in on this phone</span><a href="#" data-undo="' + k + '">Undo</a>'
+          : '<label><input type="checkbox" data-mark="' + k + '"> Mark as logged in</label>') + '</div></div>';
+    }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-login]"), function (a) { a.addEventListener("click", function (e) {
+      var plan = loginPlan(a.getAttribute("data-login"));
+      if (!plan.mobile) return; // computer: opens the web login page in a new tab
+      e.preventDefault();
+      var left = false, done = function () { left = true; };
+      document.addEventListener("visibilitychange", function h() { if (document.hidden) { done(); document.removeEventListener("visibilitychange", h); } });
+      window.addEventListener("pagehide", done, { once: true });
+      location.href = plan.app; // try the app first
+      setTimeout(function () { if (!left && !document.hidden) location.href = plan.web; }, 1500); // no app: web login page
+    }); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-mark]"), function (c) { c.addEventListener("change", function () {
+      var s2 = M.jget(LOGKEY, {}); if (c.checked) s2[c.getAttribute("data-mark")] = new Date().toISOString(); M.jset(LOGKEY, s2); accounts(); }); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-undo]"), function (u) { u.addEventListener("click", function (e) {
+      e.preventDefault(); var s2 = M.jget(LOGKEY, {}); delete s2[u.getAttribute("data-undo")]; M.jset(LOGKEY, s2); accounts(); }); });
+  }
+
   /* ---- start ---- */
   function init() {
     M = window.BirkhillMaster; esc = M.esc; uk = M.uk;
+    accounts();
     $("smDays").innerHTML = DAYS.map(function (d) { return '<label>' + d + '<input type="checkbox" id="smD_' + d + '"></label>'; }).join("");
     $("smPlats").innerHTML = PLAT.map(function (x) { return '<label class="ck"><input type="checkbox" id="smP_' + x[0] + '"> ' + x[1] + '</label>'; }).join("") +
       '<button type="button" class="btn line" id="smAll3">All three</button>';
@@ -408,5 +440,5 @@
     setInterval(getFeed, 60000);
     document.addEventListener("visibilitychange", function () { if (!document.hidden) getFeed(); });
   }
-  window.BirkhillSocial = { init: init, caption: caption, hashtags: hashtags, times: times, londonToDate: londonToDate, stamp: stamp };
+  window.BirkhillSocial = { init: init, loginPlan: loginPlan, caption: caption, hashtags: hashtags, times: times, londonToDate: londonToDate, stamp: stamp };
 })();
