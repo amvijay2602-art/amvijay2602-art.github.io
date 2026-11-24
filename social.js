@@ -1,29 +1,34 @@
-/* Birkhill Master Dashboard: Social Media Advertising (24 Nov 2026).
+/* Birkhill Master Dashboard: Social Media Advertising, free route (24 Nov 2026). Vijay posts from his own phone.
    Posters come straight from the existing Rewards promotions feed (rewards/promotions.json, built read-only from the till)
    and are drawn with the same poster template as the staff Promotions page (rewards/poster/poster.js). Nothing is uploaded twice.
-   Schedules are saved as 'SMADD: {json}' rows, approvals and cancels as 'SMACT: id | action | staff | time' rows in Camera Entries
-   (same Apps Script as the other apps). The box (birkhill-master/social_ads.py tick) keeps the queue, stops posts at the offer end,
-   and hands due posts to the authorised BulkPublish connection. Nothing here posts by itself. */
+   When a post is due, a Post now card makes the poster PNG in the browser, copies the caption and opens the phone share sheet.
+   Nothing here posts by itself and nothing is sent to any social network.
+   Saves: 'SMADD: {json}' rows; 'SMACT: adId | approve/cancel/posted/skip | staff | time | postId' rows in Camera Entries
+   (same Apps Script as the other apps). The box job birkhill-master/social_ads.py tick is optional: it keeps a copy and a due list. */
 (function () {
   "use strict";
   var SHOP = "6-8 Fir Road, Eckington, Sheffield S21 4BY";
   var BLOCK = /tobacco|cigar|cigarette|\bvape\b|vaping|nicotine|e-?liquid|lost mary|\belf ?bar\b|\bhawcos\b|\bjucce\b|nic ?salts?|e-?cig|\bpod ?salt\b/i;
   var PLAT = [["facebook", "Facebook"], ["instagram", "Instagram"], ["tiktok", "TikTok"]];
+  var PNAME = { facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" };
+  var MOBILE = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  var OPEN = { facebook: "https://www.facebook.com/", instagram: MOBILE ? "instagram://library" : "https://www.instagram.com/", tiktok: "https://www.tiktok.com/upload" };
   var DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-  var LKEY = "birkhill-social-local-v1";
+  var LKEY = "birkhill-social-local-v1", AKEY = "birkhill-social-local-v1-acts";
   var M = null, esc = null, uk = null; // helpers shared by master.html, set in init()
   var $ = function (id) { return document.getElementById(id); };
-  var FEED = null, ALL = [], SEL = {}, BOX = null, LIB = null, NOW = function () { return new Date(); };
+  var ALL = [], SEL = {}, BOX = null, LIB = null, FEED_BY = {}, PNG = {};
+  function NOW() { return new Date(); }
 
   function load(src) { return new Promise(function (res, rej) { var s = document.createElement("script"); s.src = src; s.async = false; s.onload = res; s.onerror = function () { rej(new Error("load " + src)); }; document.body.appendChild(s); }); }
   function lib() {
     if (LIB) return LIB;
     var l = document.createElement("link"); l.rel = "stylesheet"; l.href = "rewards/poster/poster.css"; document.head.appendChild(l);
     LIB = load("rewards/poster/html-to-image.js").then(function () { return load("rewards/poster/poster.js"); }).then(function () {
-      window.BirkhillPoster.config({ base: "rewards/", logo: "rewards/logo.png" }); return window.BirkhillPoster; });
+      window.BirkhillPoster.config({ base: "rewards/", logo: "logo.png" }); return window.BirkhillPoster; });
     return LIB;
   }
-  function endOf(p) { return p.end_iso ? new Date(p.end_iso) : null; }
+  function endOf(p) { return p && p.end_iso ? new Date(p.end_iso) : null; }
   function ended(p) { var e = endOf(p); return !!(e && e <= NOW()); }
   function blocked(p) { return BLOCK.test([p.title, p.headline, p.department, (p.items || []).join(" ")].join(" ")); }
   function money(v) { var n = Number(v); if (!isFinite(n) || !v) return ""; return n > 0 && n < 1 ? Math.round(n * 100) + "p" : "\u00a3" + n.toFixed(2); }
@@ -53,39 +58,35 @@
   }
   function detail(p) {
     var l0 = (p.lines || [])[0] || {};
-    return { id: p.id, headline: p.headline || p.title, product: l0.name || p.title, barcode: p.barcode, barcodes: p.barcodes || [],
-      deal: p.deal, price: p.price, normal_price: p.normal_price || l0.price, normal: p.normal, end: p.end, end_iso: p.end_iso,
-      department: p.department, dept_key: p.dept_key, picture: (p.pictures || [])[0] || p.picture || "", items: (p.lines || []).length || 1 };
+    return { id: p.id, headline: p.headline || p.title, barcode: p.barcode, deal: p.deal, price: p.price, normal_price: p.normal_price || l0.price,
+      normal: p.normal, end: p.end, end_iso: p.end_iso, picture: (p.pictures || [])[0] || p.picture || "", items: (p.lines || []).length || 1 };
   }
 
   /* ---- UK time helpers ---- */
-  function londonToDate(day, time) { // "2026-11-24", "18:00" in Europe/London -> Date
-    var guess = new Date(day + "T" + time + ":00Z");
-    for (var i = 0; i < 2; i++) {
-      var parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false }).formatToParts(guess);
-      var g = {}; parts.forEach(function (x) { g[x.type] = x.value; });
-      var shown = new Date(g.year + "-" + g.month + "-" + g.day + "T" + (g.hour === "24" ? "00" : g.hour) + ":" + g.minute + ":00Z");
-      guess = new Date(guess.getTime() - (shown.getTime() - new Date(day + "T" + time + ":00Z").getTime()));
-    }
+  var FMT = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false });
+  function parts(d) { var g = {}; FMT.formatToParts(d).forEach(function (x) { g[x.type] = x.value; }); if (g.hour === "24") g.hour = "00"; return g; }
+  function londonToDate(day, time) {
+    var want = new Date(day + "T" + time + ":00Z"), guess = want;
+    for (var i = 0; i < 2; i++) { var g = parts(guess); var shown = new Date(g.year + "-" + g.month + "-" + g.day + "T" + g.hour + ":" + g.minute + ":00Z");
+      guess = new Date(guess.getTime() - (shown.getTime() - want.getTime())); }
     return guess;
   }
+  function stamp(d) { var g = parts(d); return g.year + g.month + g.day + g.hour + g.minute; }
   function addDays(day, n) { var d = new Date(day + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); }
   function dow(day) { return DAYS[(new Date(day + "T12:00:00Z").getUTCDay() + 6) % 7]; }
-  /* Post times for one poster: from the start, by the repeat rule, always before the offer ends (max 60). */
-  function times(s, p) {
-    var out = [], end = endOf(p), day = s.date, n = 0;
+  /* All post times from the start, by the repeat rule, before `limit` (max 60). Same rule as the box job. */
+  function allTimes(s, limit) {
+    var out = [], day = s.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day || "")) return out;
     for (var i = 0; i < 400 && out.length < 60; i++) {
       var t = londonToDate(day, s.time);
-      if (end && t >= end) break;
-      if (s.repeat === "once" || s.repeat === "daily" || (s.repeat === "weekly" && s.days.indexOf(dow(day)) >= 0)) {
-        if (t > NOW()) out.push(t.toISOString());
-        n++;
-      }
-      if (s.repeat === "once" && n) break;
+      if (limit && t >= limit) break;
+      if (s.repeat === "once" || s.repeat === "daily" || (s.repeat === "weekly" && s.days.indexOf(dow(day)) >= 0)) { out.push(t); if (s.repeat === "once") break; }
       day = addDays(day, 1);
     }
     return out;
   }
+  function times(s, p) { var n = NOW(); return allTimes(s, endOf(p)).filter(function (t) { return t > n; }).map(function (t) { return t.toISOString(); }); }
 
   /* ---- poster picker ---- */
   function cardHtml(p) {
@@ -116,13 +117,13 @@
       Array.prototype.forEach.call(g.querySelectorAll(".sm-card"), function (c) { io.observe(c); });
     }).catch(function () { $("smCount").textContent += " Poster pictures could not load."; });
   }
-  var FEED_BY = {};
   function selected() { return Object.keys(SEL).map(function (id) { return FEED_BY[id]; }).filter(Boolean); }
+  function platforms() { return PLAT.filter(function (x) { return $("smP_" + x[0]).checked; }).map(function (x) { return x[0]; }); }
   function showSelected() {
     var ps = selected();
     $("smSelN").textContent = ps.length ? ps.length + " poster(s) selected" : "No posters selected yet. Tap Select Existing Posters.";
     $("smSel").innerHTML = ps.map(function (p) {
-      var d = detail(p), pl = platforms(), tk = p.dept_key === "alcohol" && pl.indexOf("tiktok") >= 0;
+      var d = detail(p), tk = p.dept_key === "alcohol" && platforms().indexOf("tiktok") >= 0;
       return '<div class="sm-sel" data-sid="' + esc(p.id) + '">' +
         '<div class="sm-sel-top">' + (d.picture ? '<img src="rewards/' + esc(d.picture) + '" alt="">' : '<div class="sm-noimg">No photo</div>') +
         '<table><tr><th>Product</th><td>' + esc(d.headline) + (d.items > 1 ? " (" + d.items + " products)" : "") + '</td></tr>' +
@@ -140,17 +141,16 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-rm]"), function (b) { b.addEventListener("click", function () { delete SEL[b.getAttribute("data-rm")]; showSelected(); }); });
     preview();
   }
-  function platforms() { return PLAT.filter(function (x) { return $("smP_" + x[0]).checked; }).map(function (x) { return x[0]; }); }
   function sched() {
     return { date: $("smDate").value, time: $("smTime").value || "10:00", repeat: $("smRepeat").value,
-      days: DAYS.filter(function (d) { return $("smD_" + d).checked; }), auto: $("smAuto").checked, timezone: "Europe/London" };
+      days: DAYS.filter(function (d) { return $("smD_" + d).checked; }), auto: false, timezone: "Europe/London" };
   }
   function preview() {
     var s = sched();
     Array.prototype.forEach.call(document.querySelectorAll("[data-when]"), function (el) {
       var p = FEED_BY[el.getAttribute("data-when")]; if (!p || !s.date) { el.textContent = ""; return; }
       var t = times(s, p);
-      el.innerHTML = t.length ? "Posts " + t.length + " time(s): " + esc(t.slice(0, 4).map(uk).join(", ")) + (t.length > 4 ? " and " + (t.length - 4) + " more" : "") + ". Last post before the offer ends " + esc(p.end || "") + "."
+      el.innerHTML = t.length ? "Due " + t.length + " time(s): " + esc(t.slice(0, 4).map(uk).join(", ")) + (t.length > 4 ? " and " + (t.length - 4) + " more" : "") + ". Last one before the offer ends " + esc(p.end || "") + "."
         : '<b class="sm-red">No post time is before this offer ends. Pick an earlier date.</b>';
     });
   }
@@ -168,70 +168,187 @@
     return p;
   }
   function say(t, cls) { var m = $("smMsg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); m.style.display = "block"; }
-  function locals() { return M.jget(LKEY, []); }
+  function sayTop(t, cls) { var m = $("smDueMsg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); m.style.display = "block"; }
+  function snapOf(p) { var d = detail(p); return { id: p.id, deal: d.deal, price: d.price, end_iso: d.end_iso }; }
   function create(approve) {
     var s = sched(), pl = platforms(), ps = selected(), pr = problems(s, pl, ps);
     if (pr.length) { say(pr.join(" "), "err"); return; }
     var id = "SM" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
     var rec = { id: id, created_at: new Date().toISOString(), by: M.clean(M.staff()), platforms: pl, schedule: s, approved: !!approve,
-      promos: ps.map(function (p) { var d = detail(p); return { id: p.id, deal: d.deal, price: d.price, end_iso: d.end_iso, caption: SEL[p.id].caption, hashtags: SEL[p.id].hashtags }; }) };
+      promos: ps.map(function (p) { var o = snapOf(p); o.caption = SEL[p.id].caption; o.hashtags = SEL[p.id].hashtags; return o; }) };
     M.queue("SMADD: " + JSON.stringify(rec).replace(/\|/g, "/"));
-    var l = locals(); l.push(rec); M.jset(LKEY, l);
-    SEL = {}; showSelected(); showGrid(); lists();
-    say((approve ? "Schedule saved and approved. " : "Schedule saved. Tap Approve in the list when you are happy. ") + "The box picks it up at its next update (about every 30 minutes). Posts stop when each offer ends.");
+    var l = M.jget(LKEY, []); l.push(rec); M.jset(LKEY, l);
+    SEL = {}; showSelected(); showGrid(); refresh();
+    say((approve ? "Schedule saved and approved. " : "Schedule saved. Tap Approve in the list when you are happy. ") + "A Post now card shows at the top of this tab at each time. Posts stop when each offer ends.");
   }
-  function act(id, action) {
-    M.queue("SMACT: " + id + " | " + action + " | " + M.clean(M.staff()) + " | " + new Date().toISOString());
-    var a = M.jget(LKEY + "-acts", []); a.push({ id: id, action: action, at: new Date().toISOString() }); M.jset(LKEY + "-acts", a);
-    lists(); say(action === "approve" ? "Approved. It posts at its times once a social account is connected." : "Cancelled. No more posts for this schedule.");
+  function act(adId, action, postId) {
+    var at = new Date().toISOString();
+    M.queue("SMACT: " + adId + " | " + action + " | " + M.clean(M.staff()) + " | " + at + (postId ? " | " + postId : ""));
+    var a = M.jget(AKEY, []), rec = { id: adId, action: action, at: at, post: postId || "" };
+    if (action === "approve") { var ad = adsAll().filter(function (x) { return x.id === adId; })[0];
+      rec.snap = ad ? ad.promos.map(function (q) { return FEED_BY[q.id] ? snapOf(FEED_BY[q.id]) : { id: q.id, deal: q.deal, price: q.price, end_iso: q.end_iso }; }) : []; }
+    a.push(rec); M.jset(AKEY, a);
+    refresh();
   }
 
-  /* ---- Scheduled / Published / Failed ---- */
-  var LABEL = { needs_approval: ["Needs approval", "p-dev"], waiting_connection: ["Waiting for connection", "p-dev"], scheduled: ["Scheduled", "p-live"],
-    sent_to_bulkpublish: ["Sent to BulkPublish", "p-live"], published: ["Published", "p-live"], failed: ["Failed", "p-bad"], stopped: ["Stopped, offer ended", "p-bad"],
-    cancelled: ["Cancelled", "p-bad"], price_changed: ["Offer changed, needs approval", "p-bad"], manual: ["Ready, auto post OFF", "p-dev"], pending_box: ["Waiting for the box", "p-dev"] };
-  function pill(st) { var l = LABEL[st] || [st, "p-dev"]; return '<span class="pill ' + l[1] + '">' + esc(l[0]) + '</span>'; }
-  function lists() {
-    var box = (BOX && BOX.ads) || [], acts = M.jget(LKEY + "-acts", []), have = {};
+  /* ---- adverts: phone copy + box copy, with actions applied ---- */
+  function adsAll() {
+    var box = ((BOX && BOX.ads) || []).map(function (a) { return JSON.parse(JSON.stringify(a)); }), have = {};
     box.forEach(function (a) { have[a.id] = 1; });
-    var loc = locals().filter(function (a) { return !have[a.id]; }).map(function (a) {
-      var ap = a.approved || acts.some(function (x) { return x.id === a.id && x.action === "approve"; });
-      var cx = acts.some(function (x) { return x.id === a.id && x.action === "cancel"; });
-      return { id: a.id, created_at: a.created_at, by: a.by, platforms: a.platforms, schedule: a.schedule, approved: ap, status: cx ? "cancelled" : "pending_box",
-        promos: a.promos.map(function (x) { var p = FEED_BY[x.id] || {}; return { id: x.id, headline: p.headline || p.title || x.id, deal: x.deal, end: p.end || "" }; }), posts: [] };
+    var all = M.jget(LKEY, []).filter(function (a) { return !have[a.id]; }).map(function (a) { var b = JSON.parse(JSON.stringify(a)); b.cancelled = false; return b; }).concat(box);
+    var acts = M.jget(AKEY, []);
+    all.forEach(function (a) {
+      acts.forEach(function (x) {
+        if (x.id !== a.id) return;
+        if (x.action === "cancel") a.cancelled = true;
+        if (x.action === "approve" && !a.cancelled) { a.approved = true;
+          (x.snap || []).forEach(function (sn) { a.promos.forEach(function (q) { if (q.id === sn.id) { q.deal = sn.deal; q.price = sn.price; q.changed = false; } }); }); }
+      });
     });
-    var all = loc.concat(box), tab = document.querySelector(".sm-lt.active").getAttribute("data-lt");
-    var posts = [];
-    all.forEach(function (a) { (a.posts || []).forEach(function (p) { posts.push({ ad: a, p: p }); }); });
-    var html = "";
+    return all;
+  }
+  function marks() {
+    var m = {}; var r = (BOX && BOX.results) || {};
+    Object.keys(r).forEach(function (k) { m[k] = r[k].status; });
+    M.jget(AKEY, []).forEach(function (x) { if (x.post && (x.action === "posted" || x.action === "skip")) m[x.post] = x.action === "posted" ? "posted" : "skipped"; });
+    return m;
+  }
+  /* Every post with its status: scheduled, due, posted, stopped, skipped, needs_approval, price_changed. */
+  function postsOf(a, mk) {
+    var out = [], now = NOW();
+    a.promos.forEach(function (q) {
+      var p = FEED_BY[q.id], end = endOf(p), snapEnd = q.end_iso ? new Date(q.end_iso) : null;
+      var gone = !p || ended(p) || blocked(p);
+      var changed = !!p && (String(p.deal) !== String(q.deal) || String(p.price) !== String(q.price));
+      var stopAt = end || snapEnd, limit = (end && snapEnd) ? (end > snapEnd ? end : snapEnd) : stopAt;
+      var ts = allTimes(a.schedule, limit); if (!limit && gone) ts = ts.slice(0, 7);
+      var past = ts.filter(function (t) { return t <= now; }), lastPast = past.length ? past[past.length - 1].getTime() : null;
+      ts.forEach(function (t) {
+        a.platforms.forEach(function (plat) {
+          if (plat === "tiktok" && p && p.dept_key === "alcohol") return;
+          var id = a.id + "-" + q.id + "-" + plat + "-" + stamp(t), st, note = "";
+          if (mk[id]) st = mk[id];
+          else if (a.cancelled) { st = "skipped"; note = "Schedule cancelled."; }
+          else if (gone || (stopAt && t >= stopAt)) { st = "stopped"; note = "Offer ended or removed on the till."; }
+          else if (changed) { st = "price_changed"; note = "Till offer changed to " + (p.deal || "") + ". Approve again before posting."; }
+          else if (!a.approved) st = "needs_approval";
+          else if (t > now) st = "scheduled";
+          else if (t.getTime() !== lastPast) { st = "skipped"; note = "Missed. A newer post time came."; }
+          else st = "due";
+          out.push({ id: id, ad: a, promo: q, p: p, platform: plat, at: t.toISOString(), status: st, note: note });
+        });
+      });
+    });
+    return out;
+  }
+  var LABEL = { needs_approval: ["Needs approval", "p-dev"], scheduled: ["Scheduled", "p-live"], due: ["Due now", "p-due"], posted: ["Posted", "p-live"],
+    stopped: ["Stopped, offer ended", "p-bad"], skipped: ["Skipped", "p-dev"], price_changed: ["Offer changed, approve again", "p-bad"], cancelled: ["Cancelled", "p-bad"], pending_box: ["Saved on this phone", "p-dev"] };
+  function pill(st) { var l = LABEL[st] || [st, "p-dev"]; return '<span class="pill ' + l[1] + '">' + esc(l[0]) + '</span>'; }
+  function rep(s) { if (!s) return ""; var t = s.repeat === "once" ? "Once" : s.repeat === "daily" ? "Daily" : "Weekly on " + s.days.join(", "); return t + " from " + s.date + " at " + s.time + " UK"; }
+
+  function refresh() {
+    var ads = adsAll(), mk = marks(), posts = [];
+    ads.forEach(function (a) { a._posts = postsOf(a, mk); posts = posts.concat(a._posts); });
+    dueCards(posts.filter(function (x) { return x.status === "due"; }));
+    lists(ads, posts);
+  }
+
+  /* ---- Post now cards ---- */
+  function pngFor(p) {
+    if (!PNG[p.id]) PNG[p.id] = lib().then(function (L) { return L.png(p); }).then(function (blob) { return { blob: blob, url: URL.createObjectURL(blob), name: window.BirkhillPoster.fileName(p) }; });
+    PNG[p.id].catch(function () { delete PNG[p.id]; });
+    return PNG[p.id];
+  }
+  function fullCaption(q) { return (q.caption || "") + "\n\n" + (q.hashtags || ""); }
+  function copyText(t) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+    return new Promise(function (res, rej) { var ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select();
+      var ok = false; try { ok = document.execCommand("copy"); } catch (e) {} ta.remove(); ok ? res() : rej(new Error("copy")); });
+  }
+  function dueCards(due) {
+    var groups = {}, order = [];
+    due.forEach(function (x) { var k = x.ad.id + "|" + x.promo.id + "|" + x.at; if (!groups[k]) { groups[k] = { ad: x.ad, promo: x.promo, p: x.p, at: x.at, posts: [] }; order.push(k); } groups[k].posts.push(x); });
+    var n = due.length;
+    $("smDueN").textContent = n ? "Due now: " + n + " post" + (n > 1 ? "s" : "") : "Due now: 0";
+    $("smDueN").className = "sm-due-n" + (n ? " on" : "");
+    $("tabSocial").textContent = n ? "Social media (" + n + " due)" : "Social media";
+    $("smDueHelp").textContent = n ? "Tap Share and pick the app, or download the picture. Paste the caption, post, then tap Mark as posted." : "Nothing to post right now. Cards show here at your scheduled times.";
+    $("smDue").innerHTML = order.map(function (k, i) {
+      var g = groups[k];
+      return '<div class="sm-post" data-gi="' + i + '">' +
+        '<div class="t">' + esc(g.p.headline || g.p.title) + ' ' + pill("due") + '</div>' +
+        '<div class="muted">' + esc(g.p.deal) + '. Due ' + esc(uk(g.at)) + '. Offer ends ' + esc(g.p.end || "") + '.</div>' +
+        '<div class="sm-img"><img alt="Poster" data-img="' + i + '"><div class="muted" data-imgmsg="' + i + '">Making the poster picture...</div></div>' +
+        '<textarea readonly rows="4" class="sm-cpt">' + esc(fullCaption(g.promo)) + '</textarea>' +
+        '<div class="sm-acts">' +
+          '<button type="button" class="btn o" data-share="' + i + '">Share</button>' +
+          '<button type="button" class="btn" data-copy="' + i + '">Copy caption + hashtags</button>' +
+          '<button type="button" class="btn line" data-dl="' + i + '">Download image</button>' +
+        '</div>' +
+        '<div class="sm-plats">' + g.posts.map(function (x) {
+          return '<div class="sm-prow"><b>' + PNAME[x.platform] + '</b><a class="btn line" href="' + OPEN[x.platform] + '" target="_blank" rel="noopener">Open ' + PNAME[x.platform] + '</a>' +
+            '<button type="button" class="btn" data-posted="' + esc(x.id) + '" data-ad="' + esc(x.ad.id) + '">Mark as posted</button></div>';
+        }).join("") + '</div>' +
+        '<button type="button" class="btn grey sm-skip" data-skip="' + i + '">Skip this time</button>' +
+        '<div class="msg" data-gmsg="' + i + '"></div></div>';
+    }).join("");
+    function gm(i, t, cls) { var m = document.querySelector('[data-gmsg="' + i + '"]'); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); m.style.display = "block"; }
+    order.forEach(function (k, i) {
+      var g = groups[k];
+      pngFor(g.p).then(function (r) { var im = document.querySelector('[data-img="' + i + '"]'); if (im) { im.src = r.url; document.querySelector('[data-imgmsg="' + i + '"]').textContent = ""; } })
+        .catch(function () { var m = document.querySelector('[data-imgmsg="' + i + '"]'); if (m) m.textContent = "The picture could not be made. Reload and try again."; });
+    });
+    function each(attr, fn) { Array.prototype.forEach.call(document.querySelectorAll("[" + attr + "]"), function (b) { b.addEventListener("click", function () { fn(b, groups[order[+b.getAttribute(attr)]], +b.getAttribute(attr)); }); }); }
+    function download(r) { var a = document.createElement("a"); a.href = r.url; a.download = r.name; document.body.appendChild(a); a.click(); a.remove(); }
+    each("data-copy", function (b, g, i) { copyText(fullCaption(g.promo)).then(function () { gm(i, "Caption and hashtags copied. Paste them in the app."); }, function () { gm(i, "Could not copy. Press and hold the caption box to copy it.", "warn"); }); });
+    each("data-dl", function (b, g, i) { pngFor(g.p).then(function (r) { download(r); gm(i, "Picture downloaded. It is in your phone Downloads or Photos."); }, function () { gm(i, "The picture could not be made.", "err"); }); });
+    each("data-share", function (b, g, i) {
+      var txt = fullCaption(g.promo);
+      copyText(txt).catch(function () {});
+      pngFor(g.p).then(function (r) {
+        var file = null; try { file = new File([r.blob], r.name, { type: "image/png" }); } catch (e) {}
+        if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+          return navigator.share({ files: [file], text: txt, title: g.p.headline || "Birkhill Stores offer" })
+            .then(function () { gm(i, "Shared. The caption is also copied, paste it if the app did not add it. Then tap Mark as posted."); },
+                  function (e) { if (!e || e.name !== "AbortError") gm(i, "Sharing did not work. Use Download image and Open the app.", "warn"); });
+        }
+        download(r);
+        gm(i, "Sharing is not available here, so the picture was downloaded and the caption copied. Use the Open buttons below.", "warn");
+      }, function () { gm(i, "The picture could not be made.", "err"); });
+    });
+    each("data-skip", function (b, g) { g.posts.forEach(function (x) { act(x.ad.id, "skip", x.id); }); sayTop("Skipped. The next time shows when it is due."); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-posted]"), function (b) { b.addEventListener("click", function () {
+      act(b.getAttribute("data-ad"), "posted", b.getAttribute("data-posted")); sayTop("Marked as posted. Well done."); }); });
+  }
+
+  /* ---- Scheduled / Posted / Stopped and skipped ---- */
+  function lists(ads, posts) {
+    var tab = document.querySelector(".sm-lt.active").getAttribute("data-lt"), html = "", box = {};
+    ((BOX && BOX.ads) || []).forEach(function (a) { box[a.id] = 1; });
     if (tab === "scheduled") {
-      var live = all.filter(function (a) { return ["cancelled", "stopped", "done"].indexOf(a.status) < 0; });
+      var live = ads.filter(function (a) { return !a.cancelled && a._posts.some(function (x) { return ["scheduled", "due", "needs_approval", "price_changed"].indexOf(x.status) >= 0; }); });
       html = live.length ? live.map(function (a) {
-        var next = (a.posts || []).filter(function (p) { return ["published", "failed", "stopped", "cancelled"].indexOf(p.status) < 0; });
-        var st = a.status === "pending_box" ? "pending_box" : (!a.approved ? "needs_approval" : (next[0] ? next[0].status : a.status));
-        return '<div class="rep"><div class="t">' + esc(a.promos.map(function (x) { return x.headline + " (" + x.deal + ")"; }).join(", ")) + ' ' + pill(st) + '</div>' +
-          '<div class="muted">' + esc(a.platforms.map(function (x) { return ({ facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" })[x] || x; }).join(", ")) + '. ' + esc(rep(a.schedule)) + '. Auto post ' + (a.schedule.auto ? "ON" : "OFF") + '. Made ' + esc(uk(a.created_at)) + ' by ' + esc(a.by || "") + '.</div>' +
-          (next.length ? '<div>Next: ' + esc(uk(next[0].at)) + '. ' + next.length + ' post(s) left before the offers end.</div>' : a.status === "pending_box" ? '<div class="muted">Saved on this phone. The box adds it at its next update.</div>' : '') +
-          '<div class="b">' + (a.approved ? "" : '<button type="button" data-ap="' + esc(a.id) + '">Approve</button>') + '<button type="button" data-cx="' + esc(a.id) + '">Cancel</button></div></div>';
+        var left = a._posts.filter(function (x) { return ["scheduled", "due", "needs_approval", "price_changed"].indexOf(x.status) >= 0; });
+        var st = !a.approved ? "needs_approval" : left.some(function (x) { return x.status === "price_changed"; }) ? "price_changed" : left.some(function (x) { return x.status === "due"; }) ? "due" : "scheduled";
+        var nx = left.filter(function (x) { return x.status !== "due"; })[0];
+        return '<div class="rep"><div class="t">' + esc(a.promos.map(function (q) { var p = FEED_BY[q.id]; return (p ? p.headline || p.title : q.id) + " (" + q.deal + ")"; }).join(", ")) + ' ' + pill(st) + '</div>' +
+          '<div class="muted">' + esc(a.platforms.map(function (x) { return PNAME[x] || x; }).join(", ")) + '. ' + esc(rep(a.schedule)) + '. Made ' + esc(uk(a.created_at)) + ' by ' + esc(a.by || "") + '.' + (box[a.id] ? "" : " Saved on this phone.") + '</div>' +
+          (nx ? '<div>Next: ' + esc(uk(nx.at)) + '. ' + left.length + ' post(s) left before the offers end.</div>' : '') +
+          (st === "price_changed" ? '<div class="sm-red">' + esc(left.filter(function (x) { return x.status === "price_changed"; })[0].note) + '</div>' : '') +
+          '<div class="b">' + (!a.approved || st === "price_changed" ? '<button type="button" data-ap="' + esc(a.id) + '">Approve</button>' : "") + '<button type="button" data-cx="' + esc(a.id) + '">Cancel</button></div></div>';
       }).join("") : '<div class="muted">No scheduled adverts.</div>';
     } else {
-      var want = tab === "published" ? ["published", "sent_to_bulkpublish"] : ["failed", "stopped", "cancelled", "price_changed"];
-      var rows = posts.filter(function (x) { return want.indexOf(x.p.status) >= 0; }).sort(function (a, b) { var fa = a.p.status === "failed" ? 0 : 1, fb = b.p.status === "failed" ? 0 : 1; return fa !== fb ? fa - fb : (a.p.at < b.p.at ? 1 : -1); }).slice(0, 100);
+      var want = tab === "posted" ? ["posted"] : ["stopped", "skipped"];
+      var rows = posts.filter(function (x) { return want.indexOf(x.status) >= 0; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; }).slice(0, 100);
       html = rows.length ? '<table><tr><th>When</th><th>Poster</th><th>Where</th><th>Status</th></tr>' + rows.map(function (x) {
-        var pr = (x.ad.promos || []).filter(function (q) { return q.id === x.p.promo; })[0] || {};
-        return '<tr><td>' + esc(uk(x.p.at)) + '</td><td>' + esc(pr.headline || x.p.promo) + '</td><td>' + esc(({ facebook: "Facebook", instagram: "Instagram", tiktok: "TikTok" })[x.p.platform] || x.p.platform) + '</td><td>' + pill(x.p.status) +
-          (x.p.note ? '<div class="muted">' + esc(x.p.note) + '</div>' : '') + (x.p.url ? '<div><a href="' + esc(x.p.url) + '">Open post</a></div>' : '') + '</td></tr>';
-      }).join("") + '</table>' : '<div class="muted">' + (tab === "published" ? "Nothing published yet." : "No failed or stopped adverts.") + '</div>';
+        return '<tr><td>' + esc(uk(x.at)) + '</td><td>' + esc(x.p ? x.p.headline || x.p.title : x.promo.id) + '</td><td>' + esc(PNAME[x.platform]) + '</td><td>' + pill(x.status) +
+          (x.note ? '<div class="muted">' + esc(x.note) + '</div>' : '') + '</td></tr>';
+      }).join("") + '</table>' : '<div class="muted">' + (tab === "posted" ? "Nothing marked as posted yet." : "Nothing stopped or skipped.") + '</div>';
     }
     $("smList").innerHTML = html;
-    Array.prototype.forEach.call(document.querySelectorAll("[data-ap]"), function (b) { b.addEventListener("click", function () { act(b.getAttribute("data-ap"), "approve"); }); });
-    Array.prototype.forEach.call(document.querySelectorAll("[data-cx]"), function (b) { b.addEventListener("click", function () { if (confirm("Cancel this schedule? Posts already made stay online.")) act(b.getAttribute("data-cx"), "cancel"); }); });
-    var c = (BOX && BOX.connection) || {};
-    $("smConn").innerHTML = PLAT.map(function (x) { var ok = c[x[0]] && c[x[0]].connected; return '<span class="pill ' + (ok ? "p-live" : "p-bad") + '">' + x[1] + ": " + (ok ? "connected" : "not connected") + '</span>'; }).join(" ") +
-      '<div class="muted">' + esc(c.note || "Posting uses BulkPublish. Until an account is connected, approved posts wait as Waiting for connection.") + '</div>' +
-      (BOX && BOX.updated_at ? '<div class="muted">Box queue updated ' + esc(uk(BOX.updated_at)) + '.</div>' : '');
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ap]"), function (b) { b.addEventListener("click", function () { act(b.getAttribute("data-ap"), "approve"); say("Approved with the current till price. Post now cards show at each time."); }); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-cx]"), function (b) { b.addEventListener("click", function () { if (confirm("Cancel this schedule? Posts already made stay online.")) { act(b.getAttribute("data-cx"), "cancel"); say("Cancelled. No more Post now cards for this schedule."); } }); });
   }
-  function rep(s) { if (!s) return ""; var t = s.repeat === "once" ? "Once" : s.repeat === "daily" ? "Daily" : "Weekly on " + s.days.join(", "); return t + " from " + s.date + " at " + s.time + " UK"; }
 
   /* ---- start ---- */
   function init() {
@@ -256,17 +373,17 @@
     $("smSave").addEventListener("click", function () { create(false); });
     $("smSaveAp").addEventListener("click", function () { create(true); });
     Array.prototype.forEach.call(document.querySelectorAll(".sm-lt"), function (b) { b.addEventListener("click", function () {
-      Array.prototype.forEach.call(document.querySelectorAll(".sm-lt"), function (x) { x.classList.remove("active"); }); b.classList.add("active"); lists(); }); });
+      Array.prototype.forEach.call(document.querySelectorAll(".sm-lt"), function (x) { x.classList.remove("active"); }); b.classList.add("active"); refresh(); }); });
     fetch("rewards/promotions.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (f) {
-      FEED = f; ALL = (f.promotions || []).filter(function (p) { return !blocked(p); });
-      // Ended offers still in an old copy of the feed are shown greyed out and cannot be ticked.
+      ALL = (f.promotions || []).filter(function (p) { return !blocked(p); });
       FEED_BY = {}; (f.promotions || []).forEach(function (p) { FEED_BY[p.id] = p; });
       var deps = {}; ALL.forEach(function (p) { if (p.department) deps[p.department] = 1; });
       $("smDept").innerHTML = '<option value="">All departments</option>' + Object.keys(deps).sort().map(function (x) { return '<option>' + esc(x) + '</option>'; }).join("");
       $("smFeed").textContent = ALL.length + " live till promotion posters. Feed updated " + (f.updated || "") + ". Same posters as the staff Promotions page.";
-      showSelected(); lists();
+      showSelected(); refresh();
+      M.getJSON("social.json").then(function (b) { BOX = b; refresh(); }).catch(function () {});
+      setInterval(refresh, 60000);
     }).catch(function () { $("smFeed").textContent = "Could not load the promotion posters. Check the signal and reload."; });
-    M.getJSON("social.json").then(function (b) { BOX = b; lists(); }).catch(function () { lists(); });
   }
-  window.BirkhillSocial = { init: init, caption: caption, hashtags: hashtags, times: times, londonToDate: londonToDate };
+  window.BirkhillSocial = { init: init, caption: caption, hashtags: hashtags, times: times, londonToDate: londonToDate, stamp: stamp };
 })();
