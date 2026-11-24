@@ -123,6 +123,7 @@
   function platforms() { return PLAT.filter(function (x) { return $("smP_" + x[0]).checked; }).map(function (x) { return x[0]; }); }
   function showSelected() {
     var ps = selected();
+    if ($("smPostAs")) $("smPostAs").innerHTML = platforms().map(function (k) { return '<div class="sm-fas"><b>' + PNAME[k] + '</b> ' + postAsHtml(k, "", 'data-formas="' + k + '"') + '</div>'; }).join("");
     $("smSelN").textContent = ps.length ? ps.length + " poster(s) selected" : "No posters selected yet. Tap Select Existing Posters.";
     $("smSel").innerHTML = ps.map(function (p) {
       var d = detail(p), tk = p.dept_key === "alcohol" && platforms().indexOf("tiktok") >= 0;
@@ -176,20 +177,22 @@
     var s = sched(), pl = platforms(), ps = selected(), pr = problems(s, pl, ps);
     if (pr.length) { say(pr.join(" "), "err"); return; }
     var id = "SM" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
-    var rec = { id: id, created_at: new Date().toISOString(), by: M.clean(M.staff()), platforms: pl, schedule: s, approved: !!approve,
+    var postAs = {}; pl.forEach(function (k) { var el = document.querySelector('[data-formas="' + k + '"]'); var v = el ? (el.tagName === "SELECT" ? el.value : el.getAttribute("data-name")) : ""; if (v) postAs[k] = cleanName(v); });
+    var rec = { id: id, created_at: new Date().toISOString(), by: M.clean(M.staff()), platforms: pl, postAs: postAs, schedule: s, approved: !!approve,
       promos: ps.map(function (p) { var o = snapOf(p); o.caption = SEL[p.id].caption; o.hashtags = SEL[p.id].hashtags; return o; }) };
     M.queue("SMADD: " + JSON.stringify(rec).replace(/\|/g, "/"));
     var l = M.jget(LKEY, []); l.push(rec); M.jset(LKEY, l);
     SEL = {}; showSelected(); showGrid(); refresh();
     say((approve ? "Schedule saved and approved. " : "Schedule saved. Tap Approve in the list when you are happy. ") + "A Post now card shows at the top of this tab at each time. Posts stop when each offer ends.");
   }
-  function act(adId, action, postId) {
+  function act(adId, action, postId, account) {
     var at = new Date().toISOString();
     var a = M.jget(AKEY, []), rec = { id: adId, action: action, at: at, post: postId || "" };
+    if (action === "posted") rec.account = cleanName(account || "");
     if (action === "approve") { var ad = adsAll().filter(function (x) { return x.id === adId; })[0];
       rec.snap = ad ? ad.promos.map(function (q) { var p = FEED_BY[q.id]; if (!p) return { id: q.id, deal: q.deal, price: q.price, end_iso: q.end_iso };
         var sn = snapOf(p); sn.caption = caption(p); sn.hashtags = hashtags(p); return sn; }) : []; }
-    M.queue("SMACT: " + adId + " | " + action + " | " + M.clean(M.staff()) + " | " + at + " | " + (postId || "") + (rec.snap ? " | " + JSON.stringify(rec.snap).replace(/\|/g, "/") : ""));
+    M.queue("SMACT: " + adId + " | " + action + " | " + M.clean(M.staff()) + " | " + at + " | " + (postId || "") + (rec.snap ? " | " + JSON.stringify(rec.snap).replace(/\|/g, "/") : action === "posted" ? " | " + JSON.stringify({ account: rec.account }).replace(/\|/g, "/") : ""));
     a.push(rec); M.jset(AKEY, a);
     refresh();
   }
@@ -210,10 +213,11 @@
     });
     return all;
   }
+  var POSTED_AS = {};
   function marks() {
-    var m = {}; var r = (BOX && BOX.results) || {};
-    Object.keys(r).forEach(function (k) { m[k] = r[k].status; });
-    M.jget(AKEY, []).forEach(function (x) { if (x.post && (x.action === "posted" || x.action === "skip")) m[x.post] = x.action === "posted" ? "posted" : "skipped"; });
+    var m = {}; var r = (BOX && BOX.results) || {}; POSTED_AS = {};
+    Object.keys(r).forEach(function (k) { m[k] = r[k].status; if (r[k].account) POSTED_AS[k] = r[k].account; });
+    M.jget(AKEY, []).forEach(function (x) { if (x.post && (x.action === "posted" || x.action === "skip")) { m[x.post] = x.action === "posted" ? "posted" : "skipped"; if (x.account) POSTED_AS[x.post] = x.account; } });
     return m;
   }
   /* Every post with its status: scheduled, due, posted, stopped, skipped, needs_approval, price_changed. */
@@ -289,9 +293,11 @@
           '<button type="button" class="btn" data-copy="' + i + '">Copy caption + hashtags</button>' +
           '<button type="button" class="btn line" data-dl="' + i + '">Download image</button>' +
         '</div>' +
+        '<div class="sm-remind">Check the post says Birkhill Stores before you press Post.</div>' +
         '<div class="sm-plats">' + g.posts.map(function (x) {
           return '<div class="sm-prow"><b>' + PNAME[x.platform] + '</b><a class="btn line" href="' + OPEN[x.platform] + '" target="_blank" rel="noopener">Open ' + PNAME[x.platform] + '</a>' +
-            '<button type="button" class="btn" data-posted="' + esc(x.id) + '" data-ad="' + esc(x.ad.id) + '">Mark as posted</button></div>';
+            '<button type="button" class="btn" data-posted="' + esc(x.id) + '" data-ad="' + esc(x.ad.id) + '" data-pplat="' + x.platform + '">Mark as posted</button>' +
+            '<div class="sm-pas">' + postAsHtml(x.platform, ((x.ad.postAs || {})[x.platform]) || "", 'data-cardas="' + esc(x.id) + '"') + '</div></div>';
         }).join("") + '</div>' +
         '<button type="button" class="btn grey sm-skip" data-skip="' + i + '">Skip this time</button>' +
         '<div class="msg" data-gmsg="' + i + '"></div></div>';
@@ -330,7 +336,9 @@
     });
     each("data-skip", function (b, g) { g.posts.forEach(function (x) { act(x.ad.id, "skip", x.id); }); sayTop("Skipped. The next time shows when it is due."); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-posted]"), function (b) { b.addEventListener("click", function () {
-      act(b.getAttribute("data-ad"), "posted", b.getAttribute("data-posted")); sayTop("Marked as posted. Well done."); }); });
+      var pid = b.getAttribute("data-posted"), sel = document.querySelector('[data-cardas="' + pid + '"]');
+      var acc = sel ? (sel.tagName === "SELECT" ? sel.value : sel.getAttribute("data-name")) : "";
+      act(b.getAttribute("data-ad"), "posted", pid, acc); sayTop("Marked as posted" + (acc ? " as " + acc : "") + ". Well done."); }); });
   }
 
   /* ---- Scheduled / Posted / Stopped and skipped ---- */
@@ -353,7 +361,7 @@
       var want = tab === "posted" ? ["posted"] : ["stopped", "skipped"];
       var rows = posts.filter(function (x) { return want.indexOf(x.status) >= 0; }).sort(function (a, b) { return a.at < b.at ? 1 : -1; }).slice(0, 100);
       html = rows.length ? '<table><tr><th>When</th><th>Poster</th><th>Where</th><th>Status</th></tr>' + rows.map(function (x) {
-        return '<tr><td>' + esc(uk(x.at)) + '</td><td>' + esc(x.p ? x.p.headline || x.p.title : x.promo.id) + '</td><td>' + esc(PNAME[x.platform]) + '</td><td>' + pill(x.status) +
+        return '<tr><td>' + esc(uk(x.at)) + '</td><td>' + esc(x.p ? x.p.headline || x.p.title : x.promo.id) + '</td><td>' + esc(PNAME[x.platform]) + (POSTED_AS[x.id] ? '<div class="muted">as ' + esc(POSTED_AS[x.id]) + '</div>' : '') + '</td><td>' + pill(x.status) +
           (x.note ? '<div class="muted">' + esc(x.note) + '</div>' : '') + '</td></tr>';
       }).join("") + '</table>' : '<div class="muted">' + (tab === "posted" ? "Nothing marked as posted yet." : "Nothing stopped or skipped.") + '</div>';
     }
@@ -362,35 +370,100 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-cx]"), function (b) { b.addEventListener("click", function () { if (confirm("Cancel this schedule? Posts already made stay online.")) { act(b.getAttribute("data-cx"), "cancel"); say("Cancelled. No more Post now cards for this schedule."); } }); });
   }
 
-  /* ---- Your accounts: log in buttons (no passwords or tokens are stored, only a "logged in" tick on this phone) ---- */
-  var LOGKEY = "birkhill-social-loggedin-v1";
+  /* ---- Your accounts: several accounts per platform (e.g. Birkhill Stores, Personal). No passwords or tokens, ever.
+     Saved on this phone and as 'SMACC: {json}' rows (same Google Sheet route as schedules). Other phones get them from the box copy
+     (social.json) after the box job and a deploy run; the newest saved list wins. "Logged in" ticks stay on this phone only. ---- */
+  var ACCKEY = "birkhill-social-accounts-v1", LOGKEY = "birkhill-social-loggedin-v2";
   var IOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   var LOGIN = { facebook: { app: "fb://", web: "https://www.facebook.com/login" },
     instagram: { app: "instagram://", web: "https://www.instagram.com/accounts/login/" },
     tiktok: { app: IOS ? "tiktok://" : "snssdk1233://", web: "https://www.tiktok.com/login" } };
+  var HOST = { facebook: /^https:\/\/([a-z0-9-]+\.)?(facebook\.com|fb\.com|fb\.me)\//i, instagram: /^https:\/\/([a-z0-9-]+\.)?instagram\.com\//i, tiktok: /^https:\/\/([a-z0-9-]+\.)?tiktok\.com\//i };
   function loginPlan(plat) { return { app: MOBILE ? LOGIN[plat].app : "", web: LOGIN[plat].web, mobile: MOBILE }; }
+  function cleanName(v) { return String(v || "").replace(/[|<>"\n\r]/g, " ").replace(/[\u2013\u2014]/g, "-").replace(/\s+/g, " ").trim().slice(0, 40); }
+  function pageUrl(plat, v) {
+    v = String(v || "").trim(); if (!v) return "";
+    if (/^https?:\/\//i.test(v)) { v = v.replace(/^http:/i, "https:"); return HOST[plat].test(v) ? v.slice(0, 200) : null; }
+    var h = v.replace(/^@/, ""); if (!/^[A-Za-z0-9._-]{1,60}$/.test(h)) return null;
+    return plat === "facebook" ? "https://www.facebook.com/" + h : plat === "instagram" ? "https://www.instagram.com/" + h + "/" : "https://www.tiktok.com/@" + h;
+  }
+  function accState() {
+    var loc = M.jget(ACCKEY, null), box = BOX && BOX.accounts;
+    if (box && (!loc || (box.saved_at || "") > (loc.saved_at || ""))) return box;
+    return loc || { saved_at: "", accounts: [] };
+  }
+  function accList(plat) { return (accState().accounts || []).filter(function (a) { return a.platform === plat; }); }
+  function defAcc(plat) { var l = accList(plat); return l.filter(function (a) { return a.default; })[0] || l[0] || null; }
+  function saveAccounts(list) {
+    var rec = { saved_at: new Date().toISOString(), by: M.clean(M.staff()), accounts: list };
+    M.jset(ACCKEY, rec);
+    M.queue("SMACC: " + JSON.stringify(rec).replace(/\|/g, "/"));
+    accounts(); showSelected(); refresh();
+  }
+  function postAsHtml(plat, pick, attr) {
+    var l = accList(plat), d = defAcc(plat), cur = pick && l.some(function (a) { return a.name === pick; }) ? pick : (d ? d.name : pick);
+    if (!l.length) return '<span class="muted" ' + attr + ' data-name="' + esc(pick || "") + '">Post as: ' + (pick ? esc(pick) : 'no account added yet (add one in Your accounts)') + '</span>';
+    if (l.length === 1) return '<span ' + attr + ' data-name="' + esc(l[0].name) + '">Post as: <b>' + esc(l[0].name) + '</b></span>';
+    return '<label>Post as: <select ' + attr + '>' + l.map(function (a) { return '<option' + (a.name === cur ? " selected" : "") + '>' + esc(a.name) + '</option>'; }).join("") + '</select></label>';
+  }
+  function openLogin(plat, e) {
+    var plan = loginPlan(plat);
+    if (!plan.mobile) return; // computer: the link opens the web login page in a new tab
+    e.preventDefault();
+    var left = false, done = function () { left = true; };
+    document.addEventListener("visibilitychange", function h() { if (document.hidden) { done(); document.removeEventListener("visibilitychange", h); } });
+    window.addEventListener("pagehide", done, { once: true });
+    location.href = plan.app; // try the app first
+    setTimeout(function () { if (!left && !document.hidden) location.href = plan.web; }, 1500); // no app: web login page
+  }
   function accounts() {
-    var st = M.jget(LOGKEY, {});
+    var logged = M.jget(LOGKEY, {});
     $("smAccList").innerHTML = PLAT.map(function (x) {
-      var k = x[0], on = !!st[k];
-      return '<div class="sm-acc" data-acc="' + k + '"><b>' + x[1] + '</b><a class="btn line" href="' + LOGIN[k].web + '" target="_blank" rel="noopener" data-login="' + k + '">Log in to ' + x[1] + '</a>' +
-        '<div class="sm-acc-st">' + (on ? '<span class="sm-acc-ok">Logged in on this phone</span><a href="#" data-undo="' + k + '">Undo</a>'
-          : '<label><input type="checkbox" data-mark="' + k + '"> Mark as logged in</label>') + '</div></div>';
+      var k = x[0], l = accList(k);
+      return '<div class="sm-accp" data-accp="' + k + '"><div class="sm-acch"><b>' + x[1] + '</b><button type="button" class="btn line sm-add" data-add="' + k + '">+ Add account</button></div>' +
+        (k === "facebook" ? '<div class="muted sm-tip">In the Facebook app use Menu &gt; your name &gt; Add account, or Switch profile for a Page.</div>' : '') +
+        (l.length ? l.map(function (a) {
+          return '<div class="sm-accr" data-accid="' + esc(a.id) + '"><div class="sm-accn"><b>' + esc(a.name) + '</b>' + (a.default ? ' <span class="pill p-live">Default</span>' : '') +
+            (a.url ? '<div class="muted">' + esc(a.url.replace(/^https:\/\/(www\.)?/, "")) + '</div>' : '') + '</div>' +
+            '<div class="sm-accb"><a class="btn line" href="' + LOGIN[k].web + '" target="_blank" rel="noopener" data-login="' + k + '">Log in</a>' +
+            (a.url ? '<a class="btn line" href="' + esc(a.url) + '" target="_blank" rel="noopener" data-open="' + esc(a.id) + '">Open page</a>' : '') +
+            (a.default ? '' : '<button type="button" class="btn line" data-def="' + esc(a.id) + '">Set as default</button>') +
+            '<button type="button" class="btn line sm-rmacc" data-rmacc="' + esc(a.id) + '">Remove</button></div>' +
+            '<div class="sm-acc-st">' + (logged[a.id] ? '<span class="sm-acc-ok">Logged in on this phone</span><a href="#" data-undo="' + esc(a.id) + '">Undo</a>'
+              : '<label><input type="checkbox" data-mark="' + esc(a.id) + '"> Mark as logged in</label>') + '</div></div>';
+        }).join("") : '<div class="muted">No ' + x[1] + ' account added yet.</div>') +
+        '<div class="sm-accf hidden" data-form="' + k + '">' +
+          '<label class="muted" for="smAN_' + k + '">Account name</label><input type="text" id="smAN_' + k + '" maxlength="40" value="' + (l.length ? "" : "Birkhill Stores") + '" placeholder="e.g. Birkhill Stores or Personal">' +
+          '<label class="muted" for="smAU_' + k + '">Handle or page link (optional)</label><input type="text" id="smAU_' + k + '" maxlength="200" placeholder="' + (k === "facebook" ? "e.g. https://www.facebook.com/birkhillstores" : "e.g. @birkhillstores") + '" autocomplete="off" autocapitalize="off">' +
+          '<label class="ck"><input type="checkbox" id="smAD_' + k + '"' + (l.length ? "" : " checked") + '> Use this account for posting (default)</label>' +
+          '<div class="muted">No passwords here. You log in inside the ' + x[1] + ' app or website.</div>' +
+          '<div class="btns"><button type="button" class="btn" data-accsave="' + k + '">Save account</button><button type="button" class="btn grey" data-acccancel="' + k + '">Cancel</button></div>' +
+          '<div class="msg" data-accmsg="' + k + '"></div></div></div>';
     }).join("");
-    Array.prototype.forEach.call(document.querySelectorAll("[data-login]"), function (a) { a.addEventListener("click", function (e) {
-      var plan = loginPlan(a.getAttribute("data-login"));
-      if (!plan.mobile) return; // computer: opens the web login page in a new tab
-      e.preventDefault();
-      var left = false, done = function () { left = true; };
-      document.addEventListener("visibilitychange", function h() { if (document.hidden) { done(); document.removeEventListener("visibilitychange", h); } });
-      window.addEventListener("pagehide", done, { once: true });
-      location.href = plan.app; // try the app first
-      setTimeout(function () { if (!left && !document.hidden) location.href = plan.web; }, 1500); // no app: web login page
-    }); });
-    Array.prototype.forEach.call(document.querySelectorAll("[data-mark]"), function (c) { c.addEventListener("change", function () {
-      var s2 = M.jget(LOGKEY, {}); if (c.checked) s2[c.getAttribute("data-mark")] = new Date().toISOString(); M.jset(LOGKEY, s2); accounts(); }); });
-    Array.prototype.forEach.call(document.querySelectorAll("[data-undo]"), function (u) { u.addEventListener("click", function (e) {
-      e.preventDefault(); var s2 = M.jget(LOGKEY, {}); delete s2[u.getAttribute("data-undo")]; M.jset(LOGKEY, s2); accounts(); }); });
+    function on(sel, fn) { Array.prototype.forEach.call(document.querySelectorAll("#smAccList " + sel), function (el) { el.addEventListener(el.type === "checkbox" ? "change" : "click", function (e) { fn(el, e); }); }); }
+    function all() { return JSON.parse(JSON.stringify(accState().accounts || [])); }
+    on("[data-login]", function (el, e) { openLogin(el.getAttribute("data-login"), e); });
+    on("[data-add]", function (el) { var f = document.querySelector('[data-form="' + el.getAttribute("data-add") + '"]'); f.classList.toggle("hidden"); if (!f.classList.contains("hidden")) f.querySelector("input").focus(); });
+    on("[data-acccancel]", function (el) { document.querySelector('[data-form="' + el.getAttribute("data-acccancel") + '"]').classList.add("hidden"); });
+    on("[data-accsave]", function (el) {
+      var k = el.getAttribute("data-accsave"), name = cleanName($("smAN_" + k).value), url = pageUrl(k, $("smAU_" + k).value), msg = document.querySelector('[data-accmsg="' + k + '"]');
+      var bad = !name ? "Type an account name." : url === null ? "That does not look like a " + PNAME[k] + " handle or page link." : accList(k).some(function (a) { return a.name.toLowerCase() === name.toLowerCase(); }) ? "You already have an account with that name." : "";
+      if (bad) { msg.textContent = bad; msg.className = "msg err"; msg.style.display = "block"; return; }
+      var list = all(), mine = list.filter(function (a) { return a.platform === k; });
+      var def = $("smAD_" + k).checked || !mine.length;
+      if (def) list.forEach(function (a) { if (a.platform === k) a.default = false; });
+      list.push({ id: "A" + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase(), platform: k, name: name, url: url || "", default: def });
+      saveAccounts(list); say(PNAME[k] + " account " + name + " saved.");
+    });
+    on("[data-def]", function (el) { var id = el.getAttribute("data-def"), list = all(), k = (list.filter(function (a) { return a.id === id; })[0] || {}).platform;
+      list.forEach(function (a) { if (a.platform === k) a.default = a.id === id; }); saveAccounts(list); });
+    on("[data-rmacc]", function (el) { var id = el.getAttribute("data-rmacc"), list = all(), gone = list.filter(function (a) { return a.id === id; })[0]; if (!gone) return;
+      if (!confirm("Remove " + gone.name + " from this list? This does not log out or change the " + PNAME[gone.platform] + " account.")) return;
+      list = list.filter(function (a) { return a.id !== id; });
+      if (gone.default) { var nx = list.filter(function (a) { return a.platform === gone.platform; })[0]; if (nx) nx.default = true; }
+      var lg = M.jget(LOGKEY, {}); delete lg[id]; M.jset(LOGKEY, lg); saveAccounts(list); });
+    on("[data-mark]", function (el) { var lg = M.jget(LOGKEY, {}); if (el.checked) lg[el.getAttribute("data-mark")] = new Date().toISOString(); M.jset(LOGKEY, lg); accounts(); });
+    on("[data-undo]", function (el, e) { e.preventDefault(); var lg = M.jget(LOGKEY, {}); delete lg[el.getAttribute("data-undo")]; M.jset(LOGKEY, lg); accounts(); });
   }
 
   /* ---- start ---- */
@@ -436,7 +509,7 @@
         refresh();
       });
     }
-    getFeed().then(function () { M.getJSON("social.json").then(function (b) { BOX = b; refresh(); }).catch(function () {}); });
+    getFeed().then(function () { M.getJSON("social.json").then(function (b) { BOX = b; accounts(); showSelected(); refresh(); }).catch(function () {}); });
     setInterval(getFeed, 60000);
     document.addEventListener("visibilitychange", function () { if (!document.hidden) getFeed(); });
   }

@@ -82,6 +82,19 @@
     .sm-prow { display:grid; grid-template-columns:84px 1fr 1fr; gap:8px; align-items:center; margin:6px 0; }
     .sm-prow a.btn { display:flex; align-items:center; justify-content:center; text-align:center; text-decoration:none; font-size:.92rem; }
     .sm-prow .btn { font-size:.92rem; }
+    .sm-accp { border-bottom:1px solid #eef0f4; padding:8px 0 10px; }
+    .sm-acch { display:flex; justify-content:space-between; align-items:center; gap:8px; } .sm-acch b { font-size:1.05rem; }
+    .sm-add { min-height:40px; padding:0 14px; font-size:.92rem; }
+    .sm-tip { margin:4px 0; }
+    .sm-accr { border:1px solid var(--line); border-radius:12px; padding:8px; margin:6px 0; }
+    .sm-accb { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+    .sm-accb .btn { flex:1 1 30%; min-height:40px; font-size:.88rem; padding:0 8px; display:flex; align-items:center; justify-content:center; text-decoration:none; }
+    .sm-accf { border:2px dashed var(--g); border-radius:12px; padding:8px; margin:8px 0; background:#f6fbf8; }
+    .sm-accf label.muted { display:block; margin-top:6px; } .sm-accf input[type=text] { width:100%; }
+    .sm-remind { margin:8px 0; padding:8px 10px; border-radius:10px; background:#fef3c7; color:var(--amber); font-weight:800; }
+    .sm-pas { grid-column:1 / -1; font-size:.92rem; } .sm-pas select, .sm-fas select { min-height:40px; font-size:15px; }
+    .sm-fas { margin:6px 0; }
+    .sm-acc-st { margin-top:6px; }
     .sm-acc { display:grid; grid-template-columns:84px 1fr; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid #eef0f4; }
     .sm-acc a.btn { display:flex; align-items:center; justify-content:center; text-decoration:none; min-height:44px; font-size:.95rem; }
     .sm-acc-st { grid-column:2; font-size:.92rem; }
@@ -197,6 +210,7 @@
       <div class="card">
         <h2>2. Where to post</h2>
         <div id="smPlats"></div>
+        <div id="smPostAs"></div>
       </div>
       <div class="card">
         <h2>3. When to post</h2>
