@@ -70,6 +70,7 @@
     if (/country\s+choice/.test(t)) return "SUP-004";
     if (/parfett/.test(t)) return "SUP-001";
     if (/booker\s+wholesale|\bbooker\b/.test(t)) return "SUP-006";
+    if (/tns\s+wholesale|tns\s+retail|tnsretailttd/.test(t)) return "SUP-008";
     return "";
   }
 
