@@ -1,6 +1,6 @@
 {
- "updated": "24 November 2026, 11:25am",
- "updated_iso": "2026-11-24T11:25:02+00:00",
+ "updated": "24 November 2026, 12:12pm",
+ "updated_iso": "2026-11-24T12:12:53+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
   {
@@ -17116,82 +17116,6 @@
     1.0,
     0.993,
     1.042
-   ],
-   "photo_source": "Parfetts"
-  },
-  {
-   "id": "till-6964",
-   "source": "till",
-   "title": "Cadbury Creme Egg and 2 more",
-   "deal": "Buy 1 get 1 free",
-   "normal": "\u00a30.95 each",
-   "end": null,
-   "end_iso": null,
-   "start_iso": "2026-04-05T00:00:00+01:00",
-   "department": "Snacks",
-   "dept_key": "snacks",
-   "picture": "pimg/50201600.jpg",
-   "note": "Mix and match, 3 products",
-   "pack": "SGL",
-   "barcode": "50201600",
-   "barcodes": [
-    "50201600",
-    "57030951",
-    "57038988"
-   ],
-   "items": [
-    "Cadbury Creme Egg",
-    "Cad White Creme Egg Std",
-    "Cadbury Sgl Biscoff Egg 32G"
-   ],
-   "item_barcodes": [
-    "50201600",
-    "57030951",
-    "57038988"
-   ],
-   "headline": "Cadbury Range",
-   "promo_name": "Buy 1 Get 1 Free",
-   "kind": "free",
-   "qty": 1,
-   "free_qty": 1,
-   "price": "0.95",
-   "normal_price": "0.95",
-   "save": "",
-   "lines": [
-    {
-     "name": "Cadbury Creme Egg",
-     "barcode": "50201600",
-     "price": "0.95",
-     "size": "SGL",
-     "picture": "img/50201600.jpg",
-     "photo": "pimg/50201600.jpg"
-    },
-    {
-     "name": "Cad White Creme Egg Std",
-     "barcode": "57030951",
-     "price": "0.95",
-     "size": "40G",
-     "picture": "img/57030951.jpg",
-     "photo": "pimg/57030951.jpg"
-    },
-    {
-     "name": "Cadbury Sgl Biscoff Egg 32G",
-     "barcode": "57038988",
-     "price": "0.95",
-     "size": "1",
-     "picture": "img/57038988.jpg",
-     "photo": "pimg/57038988.jpg"
-    }
-   ],
-   "pictures": [
-    "pimg/50201600.jpg",
-    "pimg/57030951.jpg",
-    "pimg/57038988.jpg"
-   ],
-   "picture_ratios": [
-    1.261,
-    2.596,
-    1.349
    ],
    "photo_source": "Parfetts"
   },
