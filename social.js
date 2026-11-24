@@ -17,7 +17,9 @@
   var LKEY = "birkhill-social-local-v1", AKEY = "birkhill-social-local-v1-acts";
   var M = null, esc = null, uk = null; // helpers shared by master.html, set in init()
   var $ = function (id) { return document.getElementById(id); };
-  var ALL = [], SEL = {}, BOX = null, LIB = null, FEED_BY = {}, PNG = {};
+  var ALL = [], SEL = {}, BOX = null, LIB = null, FEED_BY = {}, PNG = {}, FEED_OK = false, FEED_AT = 0;
+  var FRESH_MS = 120000;
+  function signature(p) { return JSON.stringify([p.deal, p.price, p.normal, p.normal_price, p.save, p.lines, p.end_iso, p.pictures, p.note]); }
   function NOW() { return new Date(); }
 
   function load(src) { return new Promise(function (res, rej) { var s = document.createElement("script"); s.src = src; s.async = false; s.onload = res; s.onerror = function () { rej(new Error("load " + src)); }; document.body.appendChild(s); }); }
@@ -169,7 +171,7 @@
   }
   function say(t, cls) { var m = $("smMsg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); m.style.display = "block"; }
   function sayTop(t, cls) { var m = $("smDueMsg"); m.textContent = t; m.className = "msg" + (cls ? " " + cls : ""); m.style.display = "block"; }
-  function snapOf(p) { var d = detail(p); return { id: p.id, deal: d.deal, price: d.price, end_iso: d.end_iso }; }
+  function snapOf(p) { var d = detail(p); return { id: p.id, deal: d.deal, price: d.price, end_iso: d.end_iso, signature: signature(p) }; }
   function create(approve) {
     var s = sched(), pl = platforms(), ps = selected(), pr = problems(s, pl, ps);
     if (pr.length) { say(pr.join(" "), "err"); return; }
@@ -183,10 +185,11 @@
   }
   function act(adId, action, postId) {
     var at = new Date().toISOString();
-    M.queue("SMACT: " + adId + " | " + action + " | " + M.clean(M.staff()) + " | " + at + (postId ? " | " + postId : ""));
     var a = M.jget(AKEY, []), rec = { id: adId, action: action, at: at, post: postId || "" };
     if (action === "approve") { var ad = adsAll().filter(function (x) { return x.id === adId; })[0];
-      rec.snap = ad ? ad.promos.map(function (q) { return FEED_BY[q.id] ? snapOf(FEED_BY[q.id]) : { id: q.id, deal: q.deal, price: q.price, end_iso: q.end_iso }; }) : []; }
+      rec.snap = ad ? ad.promos.map(function (q) { var p = FEED_BY[q.id]; if (!p) return { id: q.id, deal: q.deal, price: q.price, end_iso: q.end_iso };
+        var sn = snapOf(p); sn.caption = caption(p); sn.hashtags = hashtags(p); return sn; }) : []; }
+    M.queue("SMACT: " + adId + " | " + action + " | " + M.clean(M.staff()) + " | " + at + " | " + (postId || "") + (rec.snap ? " | " + JSON.stringify(rec.snap).replace(/\|/g, "/") : ""));
     a.push(rec); M.jset(AKEY, a);
     refresh();
   }
@@ -202,7 +205,7 @@
         if (x.id !== a.id) return;
         if (x.action === "cancel") a.cancelled = true;
         if (x.action === "approve" && !a.cancelled) { a.approved = true;
-          (x.snap || []).forEach(function (sn) { a.promos.forEach(function (q) { if (q.id === sn.id) { q.deal = sn.deal; q.price = sn.price; q.changed = false; } }); }); }
+          (x.snap || []).forEach(function (sn) { a.promos.forEach(function (q) { if (q.id === sn.id) { q.deal = sn.deal; q.price = sn.price; q.signature = sn.signature; q.caption = sn.caption || q.caption; q.hashtags = sn.hashtags || q.hashtags; q.changed = false; } }); }); }
       });
     });
     return all;
@@ -219,7 +222,7 @@
     a.promos.forEach(function (q) {
       var p = FEED_BY[q.id], end = endOf(p), snapEnd = q.end_iso ? new Date(q.end_iso) : null;
       var gone = !p || ended(p) || blocked(p);
-      var changed = !!p && (String(p.deal) !== String(q.deal) || String(p.price) !== String(q.price));
+      var changed = !!p && (String(p.deal) !== String(q.deal) || String(p.price) !== String(q.price) || (q.signature && q.signature !== signature(p)));
       var stopAt = end || snapEnd, limit = (end && snapEnd) ? (end > snapEnd ? end : snapEnd) : stopAt;
       var ts = allTimes(a.schedule, limit); if (!limit && gone) ts = ts.slice(0, 7);
       var past = ts.filter(function (t) { return t <= now; }), lastPast = past.length ? past[past.length - 1].getTime() : null;
@@ -234,7 +237,7 @@
           else if (!a.approved) st = "needs_approval";
           else if (t > now) st = "scheduled";
           else if (t.getTime() !== lastPast) { st = "skipped"; note = "Missed. A newer post time came."; }
-          else st = "due";
+          else st = FEED_OK && NOW().getTime() - FEED_AT < FRESH_MS ? "due" : "scheduled";
           out.push({ id: id, ad: a, promo: q, p: p, platform: plat, at: t.toISOString(), status: st, note: note });
         });
       });
@@ -255,9 +258,10 @@
 
   /* ---- Post now cards ---- */
   function pngFor(p) {
-    if (!PNG[p.id]) PNG[p.id] = lib().then(function (L) { return L.png(p); }).then(function (blob) { return { blob: blob, url: URL.createObjectURL(blob), name: window.BirkhillPoster.fileName(p) }; });
-    PNG[p.id].catch(function () { delete PNG[p.id]; });
-    return PNG[p.id];
+    var key = p.id + signature(p);
+    if (!PNG[key]) PNG[key] = lib().then(function (L) { return L.png(p); }).then(function (blob) { return { blob: blob, url: URL.createObjectURL(blob), name: window.BirkhillPoster.fileName(p) }; });
+    PNG[key].catch(function () { delete PNG[key]; });
+    return PNG[key];
   }
   function fullCaption(q) { return (q.caption || "") + "\n\n" + (q.hashtags || ""); }
   function copyText(t) {
@@ -299,13 +303,21 @@
         .catch(function () { var m = document.querySelector('[data-imgmsg="' + i + '"]'); if (m) m.textContent = "The picture could not be made. Reload and try again."; });
     });
     function each(attr, fn) { Array.prototype.forEach.call(document.querySelectorAll("[" + attr + "]"), function (b) { b.addEventListener("click", function () { fn(b, groups[order[+b.getAttribute(attr)]], +b.getAttribute(attr)); }); }); }
+    function safe(g, i) {
+      var a = adsAll().filter(function (x) { return x.id === g.ad.id; })[0];
+      var live = a && postsOf(a, marks()).some(function (x) { return x.status === "due" && x.promo.id === g.promo.id && x.at === g.at; });
+      if (!live) { refresh(); sayTop("This offer is no longer ready to post. Check the Scheduled or Stopped list.", "warn"); return false; }
+      return true;
+    }
     function download(r) { var a = document.createElement("a"); a.href = r.url; a.download = r.name; document.body.appendChild(a); a.click(); a.remove(); }
-    each("data-copy", function (b, g, i) { copyText(fullCaption(g.promo)).then(function () { gm(i, "Caption and hashtags copied. Paste them in the app."); }, function () { gm(i, "Could not copy. Press and hold the caption box to copy it.", "warn"); }); });
-    each("data-dl", function (b, g, i) { pngFor(g.p).then(function (r) { download(r); gm(i, "Picture downloaded. It is in your phone Downloads or Photos."); }, function () { gm(i, "The picture could not be made.", "err"); }); });
+    each("data-copy", function (b, g, i) { if (!safe(g, i)) return; copyText(fullCaption(g.promo)).then(function () { gm(i, "Caption and hashtags copied. Paste them in the app."); }, function () { gm(i, "Could not copy. Press and hold the caption box to copy it.", "warn"); }); });
+    each("data-dl", function (b, g, i) { if (!safe(g, i)) return; pngFor(g.p).then(function (r) { if (!safe(g, i)) return; download(r); gm(i, "Picture downloaded. It is in your phone Downloads or Photos."); }, function () { gm(i, "The picture could not be made.", "err"); }); });
     each("data-share", function (b, g, i) {
+      if (!safe(g, i)) return;
       var txt = fullCaption(g.promo);
       copyText(txt).catch(function () {});
       pngFor(g.p).then(function (r) {
+        if (!safe(g, i)) return;
         var file = null; try { file = new File([r.blob], r.name, { type: "image/png" }); } catch (e) {}
         if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
           return navigator.share({ files: [file], text: txt, title: g.p.headline || "Birkhill Stores offer" })
@@ -374,16 +386,27 @@
     $("smSaveAp").addEventListener("click", function () { create(true); });
     Array.prototype.forEach.call(document.querySelectorAll(".sm-lt"), function (b) { b.addEventListener("click", function () {
       Array.prototype.forEach.call(document.querySelectorAll(".sm-lt"), function (x) { x.classList.remove("active"); }); b.classList.add("active"); refresh(); }); });
-    fetch("rewards/promotions.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (f) {
-      ALL = (f.promotions || []).filter(function (p) { return !blocked(p); });
-      FEED_BY = {}; (f.promotions || []).forEach(function (p) { FEED_BY[p.id] = p; });
-      var deps = {}; ALL.forEach(function (p) { if (p.department) deps[p.department] = 1; });
-      $("smDept").innerHTML = '<option value="">All departments</option>' + Object.keys(deps).sort().map(function (x) { return '<option>' + esc(x) + '</option>'; }).join("");
-      $("smFeed").textContent = ALL.length + " live till promotion posters. Feed updated " + (f.updated || "") + ". Same posters as the staff Promotions page.";
-      showSelected(); refresh();
-      M.getJSON("social.json").then(function (b) { BOX = b; refresh(); }).catch(function () {});
-      setInterval(refresh, 60000);
-    }).catch(function () { $("smFeed").textContent = "Could not load the promotion posters. Check the signal and reload."; });
+    function getFeed() {
+      return fetch("rewards/promotions.json", { cache: "no-cache" }).then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function (f) {
+        if (!Array.isArray(f.promotions)) throw new Error("bad feed");
+        ALL = f.promotions.filter(function (p) { return !blocked(p); });
+        FEED_BY = {}; f.promotions.forEach(function (p) { FEED_BY[p.id] = p; });
+        FEED_OK = true; FEED_AT = NOW().getTime();
+        var deps = {}; ALL.forEach(function (p) { if (p.department) deps[p.department] = 1; });
+        var selectedDept = $("smDept").value;
+        $("smDept").innerHTML = '<option value="">All departments</option>' + Object.keys(deps).sort().map(function (x) { return '<option>' + esc(x) + '</option>'; }).join("");
+        $("smDept").value = selectedDept;
+        $("smFeed").textContent = ALL.length + " live till promotion posters. Feed updated " + (f.updated || "") + ". Same posters as the staff Promotions page.";
+        showSelected(); refresh();
+      }).catch(function () {
+        FEED_OK = false;
+        $("smFeed").textContent = "Could not check the latest promotion prices. Connect to the internet and reload before posting.";
+        refresh();
+      });
+    }
+    getFeed().then(function () { M.getJSON("social.json").then(function (b) { BOX = b; refresh(); }).catch(function () {}); });
+    setInterval(getFeed, 60000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden) getFeed(); });
   }
   window.BirkhillSocial = { init: init, caption: caption, hashtags: hashtags, times: times, londonToDate: londonToDate, stamp: stamp };
 })();
