@@ -52,6 +52,25 @@
     .hidden { display:none !important; }
     .deps { max-height:260px; overflow:auto; border:1px solid var(--line); border-radius:12px; padding:0 8px; }
     .status-line { font-weight:700; }
+    /* Social Media Advertising */
+    .tabs { flex-wrap:wrap; } .tab { min-width:30%; }
+    input[type=date], textarea, input[type=search] { font-size:16px; min-height:46px; border:1px solid var(--line); border-radius:12px; padding:6px 10px; background:#fff; width:100%; font-family:inherit; }
+    .sm-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; max-height:70vh; overflow:auto; padding:2px; }
+    @media (min-width:600px) { .sm-grid { grid-template-columns:repeat(3,1fr); } }
+    .sm-card { position:relative; display:block; border:2px solid var(--line); border-radius:14px; background:#fff; padding:6px; cursor:pointer; }
+    .sm-card:has(input:checked) { border-color:var(--o); box-shadow:0 0 0 3px #fde3d4; }
+    .sm-card.sm-off { opacity:.55; cursor:not-allowed; }
+    .sm-ck { position:absolute; top:10px; left:10px; width:28px; height:28px; z-index:3; accent-color:var(--o); }
+    .sm-thumb .bhp-wrap { width:100%; aspect-ratio:1080/1528; overflow:hidden; border-radius:8px; background:#f6f6f6; }
+    .sm-cap { font-size:.85rem; margin-top:4px; line-height:1.25; }
+    .sm-red { color:var(--red); }
+    .sm-sel { border:1px solid var(--line); border-radius:14px; padding:10px; margin:8px 0; }
+    .sm-sel-top { display:flex; gap:10px; align-items:flex-start; } .sm-sel-top img, .sm-noimg { width:86px; height:86px; object-fit:contain; border-radius:10px; background:#fff; border:1px solid var(--line); flex:none; }
+    .sm-noimg { display:flex; align-items:center; justify-content:center; font-size:.8rem; color:var(--muted); }
+    .sm-sel th { width:105px; color:var(--muted); font-weight:700; } .sm-sel td, .sm-sel th { padding:3px 4px; }
+    .sm-sel .btn { min-height:40px; margin-top:6px; width:100%; }
+    .sm-sel label.muted { display:block; margin-top:8px; } .sm-sel input[type=text] { width:100%; }
+    .sm-lt.active { background:var(--g); color:#fff; }
   </style>
 </head>
 <body>
@@ -59,12 +78,13 @@
     <a href="./">&larr; Home</a>
     <div style="margin-top:8px"><img class="logo" src="logo.png" alt="Birkhill Stores"></div>
     <h1>Master Dashboard</h1>
-    <div class="muted" style="color:#e6f2ea">Apps, checks and wholesale price compare</div>
+    <div class="muted" style="color:#e6f2ea">Apps, checks, wholesale price compare and social media adverts</div>
   </header>
   <main>
     <div class="tabs">
       <button class="tab active" id="tabWholesale" type="button">Wholesale compare</button>
       <button class="tab" id="tabApps" type="button">App status</button>
+      <button class="tab" id="tabSocial" type="button">Social media</button>
     </div>
 
     <section id="secWholesale">
@@ -128,10 +148,60 @@
       </div>
     </section>
 
+    <section id="secSocial" class="hidden">
+      <div class="card">
+        <h2>Social Media Advertising</h2>
+        <div class="muted" id="smFeed">Loading promotion posters...</div>
+        <div class="row"><button class="btn o" id="smPick" type="button" style="flex:1">Select Existing Posters</button></div>
+        <div class="muted">Uses the posters already on the staff Promotions page. No upload needed. Ended offers, tobacco and vapes can never be picked.</div>
+      </div>
+      <div class="card hidden" id="smPicker">
+        <h2>Pick posters</h2>
+        <div class="row"><input type="search" id="smSearch" placeholder="Search product, brand or barcode" style="flex:2"><select id="smDept" style="flex:1"></select></div>
+        <div class="muted" id="smCount"></div>
+        <div class="sm-grid" id="smGrid"></div>
+        <div class="row"><button class="btn" id="smDone" type="button" style="flex:1">Use selected posters</button></div>
+      </div>
+      <div class="card" id="smSelCard">
+        <h2>1. Selected posters</h2>
+        <div class="status-line" id="smSelN"></div>
+        <div id="smSel"></div>
+      </div>
+      <div class="card">
+        <h2>2. Where to post</h2>
+        <div id="smPlats"></div>
+      </div>
+      <div class="card">
+        <h2>3. When to post</h2>
+        <div class="row"><label for="smDate">Start date</label><input type="date" id="smDate" style="width:auto"></div>
+        <div class="row"><label for="smTime">Time</label><input type="time" id="smTime" step="300"></div>
+        <div class="row"><label for="smRepeat">Repeat</label><select id="smRepeat"><option value="once">Once</option><option value="daily">Daily</option><option value="weekly">Weekly (ticked days)</option></select></div>
+        <div class="days" id="smDays"></div>
+        <label class="ck"><input type="checkbox" id="smAuto" checked> Post automatically at these times (after approval)</label>
+        <div class="muted">UK time. Posting always stops when the offer ends on the till. Expired prices are never posted.</div>
+      </div>
+      <div class="card">
+        <h2>4. Save</h2>
+        <div class="btns">
+          <button class="btn" id="smSave" type="button">Save schedule</button>
+          <button class="btn o" id="smSaveAp" type="button">Save and approve</button>
+        </div>
+        <div class="msg" id="smMsg"></div>
+      </div>
+      <div class="card">
+        <h2>Adverts</h2>
+        <div class="tabs"><button class="tab sm-lt active" data-lt="scheduled" type="button">Scheduled</button><button class="tab sm-lt" data-lt="published" type="button">Published</button><button class="tab sm-lt" data-lt="failed" type="button">Failed</button></div>
+        <div id="smList" class="muted">Loading...</div>
+        <h2 style="margin-top:14px">Connections</h2>
+        <div id="smConn"></div>
+      </div>
+    </section>
+
     <section id="secApps" class="hidden">
       <div class="card"><h2>App status</h2><div class="muted" id="hcAt">Loading...</div><div id="hcList"></div></div>
     </section>
   </main>
+  <script src="social.js"></script>
   <script>
   (function () {
     var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
@@ -315,9 +385,16 @@
       queue("WCRUN: " + id + " | " + clean(staff()) + " | " + at); reqs.push({ id: id, at: at }); jset(RKEY, reqs);
       say("Run Now asked for. The box makes the report at its next update (about every 30 minutes). It uses the saved settings."); reports();
     });
-    $("tabWholesale").addEventListener("click", function () { $("secWholesale").classList.remove("hidden"); $("secApps").classList.add("hidden"); this.classList.add("active"); $("tabApps").classList.remove("active"); });
-    $("tabApps").addEventListener("click", function () { $("secApps").classList.remove("hidden"); $("secWholesale").classList.add("hidden"); this.classList.add("active"); $("tabWholesale").classList.remove("active"); health(); });
+    var TABS = [["tabWholesale", "secWholesale"], ["tabApps", "secApps"], ["tabSocial", "secSocial"]], smStarted = false;
+    TABS.forEach(function (t) { $(t[0]).addEventListener("click", function () {
+      TABS.forEach(function (x) { $(x[1]).classList.toggle("hidden", x[0] !== t[0]); $(x[0]).classList.toggle("active", x[0] === t[0]); });
+      if (t[0] === "tabApps") health();
+      if (t[0] === "tabSocial" && !smStarted && window.BirkhillSocial) { smStarted = true; window.BirkhillSocial.init(); }
+    }); });
+    // Shared helpers for the Social Media Advertising section (social.js).
+    window.BirkhillMaster = { esc: esc, uk: uk, jget: jget, jset: jset, clean: clean, staff: staff, queue: queue, getJSON: getJSON };
     if (location.hash === "#apps") $("tabApps").click();
+    if (location.hash === "#social") $("tabSocial").click();
 
     build(); depList();
     var loc = jget(LKEY, null); if (loc && loc.settings) CUR = loc.settings; fill(CUR); state();
