@@ -1,6 +1,6 @@
 {
- "updated": "25 November 2026, 11:15am",
- "updated_iso": "2026-11-25T11:15:52+00:00",
+ "updated": "25 November 2026, 11:59am",
+ "updated_iso": "2026-11-25T11:59:13+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
   {
@@ -19474,5 +19474,11 @@
    "photo_source": "Parfetts, Bestway"
   }
  ],
- "discontinued_barcodes": []
+ "discontinued_barcodes": [
+  "5000378998195",
+  "5020379178624",
+  "5900852925061",
+  "5900852925276",
+  "7622202239915"
+ ]
 }
