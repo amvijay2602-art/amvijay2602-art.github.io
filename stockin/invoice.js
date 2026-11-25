@@ -301,10 +301,152 @@
     return res;
   }
 
+
+  // ---------- Booker invoice or account summary
+  function bookerMoneyTok(tok) {
+    if (tok == null) return null;
+    var t = String(tok).replace(/[£$€\u00a3�]/g, "").replace(/,/g, "").trim();
+    var m = money(t);
+    if (typeof m === "number") return m;
+    t = fixNum(t);
+    if (/^\d+\.\d{2}$/.test(t)) return parseFloat(t);
+    return null;
+  }
+  function looksLikeBookerSummary(text) {
+    var t = String(text || "");
+    if (/detailed\s+invoice\s+summary|invoice\s+summary/i.test(t) && /total\s*items/i.test(t)) return true;
+    if (/total\s*items/i.test(t) && /total\s*goods/i.test(t) && /invoice\s*total/i.test(t) && !/\b\d{5,6}\s+[A-Za-z]{3,}/.test(t)) return true;
+    return false;
+  }
+  function parseBooker(text) {
+    var res = { supplier: "Booker", inv_no: "", date: "", lines: [], warnings: [], totals: {}, pages: {}, vat_box: {}, items: null, branch: "", customer: "", time: "", summary_only: false };
+    var m = /invoice\s*(?:no\.?|number|#)?\s*[:.]?\s*([0-9OoIl]{6,8})/i.exec(text);
+    if (!m) m = /\binvoice\s+([0-9OoIl]{6,8})\b/i.exec(text);
+    if (m) {
+      var inv = fixNum(m[1]);
+      if (inv.length < 7) inv = ("0000000" + inv).slice(-7);
+      res.inv_no = inv;
+    }
+    m = /date\s*[:.]?\s*(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/i.exec(text);
+    if (!m) m = /\b(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})\b/.exec(text);
+    if (m) res.date = isoDate(m[1], m[2], m[3]);
+    m = /time\s*[:.]?\s*(\d{1,2}[:.]\d{2})/i.exec(text);
+    if (m) res.time = m[1].replace(".", ":");
+    m = /total\s*items\s*[:.]?\s*([0-9OoIl]{1,4})/i.exec(text);
+    if (m) res.items = parseInt(fixNum(m[1]), 10);
+    m = /customer\s+(\d{6,12})/i.exec(text);
+    if (m) res.customer = m[1];
+    m = /branch\s+(\d{2,4})\s+([A-Za-z]+)/i.exec(text);
+    if (m) res.branch = m[1] + " " + m[2];
+    m = /(?:^|[^\d])0\s*%\s*[£\u00a3]?\s*([\dOoIl.,]+)\s*[£\u00a3]?\s*([\dOoIl.,]+)/im.exec(text);
+    if (m) { res.vat_box["0"] = bookerMoneyTok(m[1]); res.totals.goods_0 = res.vat_box["0"]; }
+    m = /(?:^|[^\d])20\s*%\s*[£\u00a3]?\s*([\dOoIl.,]+)\s*[£\u00a3]?\s*([\dOoIl.,]+)/im.exec(text);
+    if (m) { res.vat_box["20"] = bookerMoneyTok(m[1]); res.totals.goods_20 = res.vat_box["20"]; res.totals.vat = bookerMoneyTok(m[2]); }
+    m = /total\s*goods\s*[:.]?\s*[£\u00a3]?\s*([\dOoIl.,]+)/i.exec(text);
+    if (m) res.totals.goods = bookerMoneyTok(m[1]);
+    m = /total\s*vat\s*[:.]?\s*[£\u00a3]?\s*([\dOoIl.,]+)/i.exec(text);
+    if (m) res.totals.vat = bookerMoneyTok(m[1]);
+    m = /invoice\s*total\s*[:.]?\s*[£\u00a3]?\s*([\dOoIl.,]+)/i.exec(text);
+    if (!m) m = /(?:amount\s*due|paid\s*by\s+card)\s*[:.]?\s*[£\u00a3]?\s*([\dOoIl.,]+)/i.exec(text);
+    if (m) res.totals.total = bookerMoneyTok(m[1]);
+    if (res.items != null) res.totals.items = res.items;
+
+    String(text).split(/\r?\n/).forEach(function (ln) {
+      var raw = ln.trim();
+      if (!raw) return;
+      if (isHeaderLine(raw) || isHeaderLine(raw.replace(/^\d{5,6}\s+/, ""))) return;
+      if (/total\s*(items|goods|vat)|invoice\s*(no|total)|goods\s*ex\s*vat|purchase\s*order/i.test(raw)) return;
+      var toks = raw.split(/\s+/), ci = -1, code = "";
+      toks.forEach(function (t, i) {
+        var f = fixNum(t);
+        if (/^\d{5,6}$/.test(f) && ci < 0) { code = f; ci = i; }
+      });
+      if (ci < 0) return;
+      var end = toks.length, vatCode = "", vat = "";
+      var vl = vatLetter(toks[end - 1]);
+      if (vl && vl.c) { vatCode = vl.c; vat = vatCode === "Z" ? "0" : (vatCode === "A" ? "20" : (vatCode === "B" ? "5" : "")); end--; }
+      var after = toks.slice(ci + 1, end), nums = [], words = [];
+      after.forEach(function (t) {
+        var mv = bookerMoneyTok(t), iv = intTok(t);
+        if (mv != null && /\d+\.\d{2}/.test(fixNum(t).replace(/[£\u00a3]/g, ""))) nums.push({ kind: "money", v: mv });
+        else if (iv != null && iv > 0 && iv <= HARD_MAX_QTY) nums.push({ kind: "int", v: iv, raw: t });
+        else if (!/^(z|a|b|%|vat)$/i.test(t)) words.push(t);
+      });
+      var mon = nums.filter(function (n) { return n.kind === "money"; }).map(function (n) { return n.v; });
+      var ints = nums.filter(function (n) { return n.kind === "int"; }).map(function (n) { return n.v; });
+      var qty = ints.length ? ints[0] : null;
+      var price = mon.length ? mon[0] : null;
+      var value = mon.length > 1 ? mon[mon.length - 1] : null;
+      var desc = words.join(" ").trim();
+      if (!desc || isHeaderLine(desc)) return;
+      if (qty == null || qty < 1) return;
+      if (price == null && value == null) return;
+      var flags = [];
+      if (price != null && qty != null && value != null && !near(price * qty, value, 0.02)) { flags.push("Qty x price does not equal the line value, check"); }
+      if (price == null) flags.push("Cost not read");
+      if (!vat) flags.push("VAT not read");
+      var upc = ints.length > 1 ? ints[1] : null;
+      res.lines.push({ code: code, bc: "", desc: desc, size: "", upc: upc, qty: qty, case_cost: price, value: value, vat: vat, vat_code: vatCode, flags: flags });
+    });
+
+    if (!res.lines.length && looksLikeBookerSummary(text) && res.inv_no && (res.totals.total != null || res.totals.goods != null)) {
+      res.summary_only = true;
+    }
+    if (!res.totals.goods && res.vat_box["0"] != null && res.vat_box["20"] != null) res.totals.goods = r2(res.vat_box["0"] + res.vat_box["20"]);
+    return res;
+  }
+
+  function bookerCodeFix(s) {
+    return String(s || "").toUpperCase().replace(/[Oo]/g, "0").replace(/[Il|]/g, "1").replace(/[Ss]/g, "5").replace(/B/g, "8").replace(/\D/g, "");
+  }
+  function correctBookerLines(lines, purchases) {
+    if (!purchases || !purchases.length || !lines) return lines;
+    function packQty(p) {
+      if (p.pack_qty) return parseInt(p.pack_qty, 10) || null;
+      var m = /^(\d+)\s*[xX]/.exec(p.pack_size || "");
+      return m ? parseInt(m[1], 10) : null;
+    }
+    function findP(l) {
+      var code = String(l.code || l.inv_code || "").replace(/\D/g, ""), ocr = bookerCodeFix(l.code || l.inv_code || "");
+      var hit = null, how = "";
+      purchases.forEach(function (p) {
+        var pc = String(p.booker_code || p.code || "").replace(/\D/g, "");
+        if (!pc) return;
+        if (code && pc === code) { hit = p; how = "code"; }
+        else if (!hit && ocr && pc === ocr) { hit = p; how = "code_ocr"; }
+      });
+      if (hit) return { p: hit, how: how };
+      var best = null, bestS = 0, second = 0, name = l.desc || l.inv_name || l.name || "";
+      purchases.forEach(function (p) {
+        var s = sim(name, p.description || p.name || "", "");
+        if (s > bestS) { second = bestS; bestS = s; best = p; }
+        else if (s > second) second = s;
+      });
+      if (best && bestS >= 0.72 && bestS >= second + 0.08) return { p: best, how: "name" };
+      return null;
+    }
+    lines.forEach(function (l) {
+      var f = findP(l);
+      if (!f) return;
+      var p = f.p, flags = l.flags || (l.flags = []);
+      var pc = String(p.booker_code || p.code || "").replace(/\D/g, "");
+      if (pc && pc !== String(l.code || "").replace(/\D/g, "")) { l.code = pc; flags.push("Booker code from Recent Purchases"); }
+      if (p.description && (!l.desc || l.desc.length < 8)) { l.desc = p.description; flags.push("Description from Recent Purchases"); }
+      var pq = packQty(p);
+      if (pq && (l.upc == null || l.upc === "")) { l.upc = pq; flags.push("Pack size from Recent Purchases"); }
+      var price = p.price != null ? Number(p.price) : null;
+      if (price != null && (l.case_cost == null || l.case_cost === "")) { l.case_cost = price; flags.push("Price taken from Recent Purchases, check"); }
+      else if (price != null && l.case_cost != null && Math.abs(Number(l.case_cost) - price) > 0.011 && Math.abs(Number(l.case_cost) - price) <= 0.10) { l.case_cost = price; flags.push("Price from Recent Purchases (was " + Number(l.case_cost) + ")"); }
+      if (p.barcode && !l.bc) { l.bc = String(p.barcode).replace(/\D/g, ""); flags.push("Barcode from Recent Purchases"); }
+      l.booker_recent = f.how;
+    });
+    return lines;
+  }
+
   function splitInvoices(text) {   // [{inv_no, text}] in file order; one entry when the file holds one invoice
     var pages = String(text).split("\f"), groups = [], cur = null;
     pages.forEach(function (pg) {
-      var m = /INVOICE[:;\s]*([0-9OoIl]{5,7})/i.exec(pg), no = m ? fixNum(m[1]) : "";
+      var m = /invoice\s*(?:no\.?|number|#)?\s*[:.]?\s*([0-9OoIl]{5,8})/i.exec(pg), no = m ? fixNum(m[1]) : "";
       if (!pg.trim()) return;
       if (no && (!cur || cur.inv_no !== no)) { cur = { inv_no: no, text: "" }; groups.push(cur); }
       if (!cur) { cur = { inv_no: "", text: "" }; groups.push(cur); }
@@ -316,12 +458,15 @@
     var sid = sidHint || detectSupplier(text), r;
     if (sid === "SUP-002") r = parseDhamecha(text);
     else if (sid === "SUP-005") r = parseEden(text);
+    else if (sid === "SUP-006") r = parseBooker(text);
     else r = parseGeneric(text);
     r.sid = sid; r.detected = detectSupplier(text);
     // totals and page checks
     var sum = 0, missing = 0; r.lines.forEach(function (l) { if (l.value != null) sum += l.value; else missing++; });
     r.sum = r2(sum);
-    if (r.totals.goods != null) {
+    if (r.summary_only) {
+      r.totals_match = r.totals.total != null || r.totals.goods != null;
+    } else if (r.totals.goods != null) {
       r.totals_match = near(r.sum, r.totals.goods, 0.05) && !missing;
       if (!r.totals_match) r.warnings.push("Lines add up to £" + r.sum.toFixed(2) + " but the invoice goods total is £" + r.totals.goods.toFixed(2) + (missing ? " (" + missing + " line values not read)" : "") + ". A line may be missing or misread.");
     } else r.warnings.push("Goods total not found on the invoice, so lines could not be cross-checked");
@@ -329,9 +474,15 @@
     if (!r.inv_no) r.warnings.push("Invoice number not read, type it in");
     if (!r.date) r.warnings.push("Invoice date not read, type it in");
     if (!r.lines.length) {
-      r.unreadable = true;
-      if (r.warnings.indexOf("Could not read this invoice, please retake the photo") < 0)
-        r.warnings.unshift("Could not read this invoice, please retake the photo");
+      if (r.summary_only && r.inv_no && (r.totals.total != null || r.totals.goods != null)) {
+        r.unreadable = false;
+        var sumNote = "This is a Booker invoice summary with totals only (no product lines). To make a stock draft, photograph the till receipt. These totals can still be used to check a draft with this invoice number.";
+        if (r.warnings.indexOf(sumNote) < 0) r.warnings.unshift(sumNote);
+      } else {
+        r.unreadable = true;
+        if (r.warnings.indexOf("Could not read this invoice, please retake the photo") < 0)
+          r.warnings.unshift("Could not read this invoice, please retake the photo");
+      }
     } else r.unreadable = false;
     return r;
   }
@@ -392,5 +543,5 @@
     return { pid: null, match: "none", score: 0, alts: cands.slice(0, 3).map(function (c) { return c.pid; }) };
   }
 
-  return { layoutPage: layoutPage, parse: parse, splitInvoices: splitInvoices, detectSupplier: detectSupplier, parseDhamecha: parseDhamecha, parseEden: parseEden, parseGeneric: parseGeneric, matchLine: matchLine, sim: sim, fixNum: fixNum, isHeaderLine: isHeaderLine, lineLooksJunk: lineLooksJunk };
+  return { layoutPage: layoutPage, parse: parse, splitInvoices: splitInvoices, detectSupplier: detectSupplier, parseDhamecha: parseDhamecha, parseEden: parseEden, parseGeneric: parseGeneric, parseBooker: parseBooker, correctBookerLines: correctBookerLines, matchLine: matchLine, sim: sim, fixNum: fixNum, isHeaderLine: isHeaderLine, lineLooksJunk: lineLooksJunk, looksLikeBookerSummary: looksLikeBookerSummary };
 });

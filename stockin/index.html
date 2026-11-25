@@ -103,7 +103,7 @@
 </main>
 <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
-  <script src="invoice.js?v=20261125b"></script>
+  <script src="invoice.js?v=20261125c"></script>
 <script>
 (function () {
   "use strict";
@@ -343,7 +343,7 @@
     { k: "parfetts", sid: "SUP-001", name: "Parfetts", st: "ok", tag: "Invoice check + till sync", how: "Load the Parfetts invoice file (EDN / Invoice Data CSV). The app compares every line with the till Stock In draft. Grok Bot fixes the till draft (draft only) at the next update." },
     { k: "eden", sid: "SUP-005", name: "Eden Farm", st: "ok", tag: "Delivery check + scanner", how: "Eden EDN delivery check: expected against received, problems, expiry dates with batches, Confirm Item and Confirm Full Delivery, then a delivery report. The Invoice Scanner still makes the till draft. Nothing is posted to the till." },
     { k: "dhamecha", sid: "SUP-002", name: "Dhamecha", st: "part", tag: "Invoice Scanner works", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking." },
-    { k: "booker", sid: "SUP-006", name: "Booker", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
+    { k: "booker", sid: "SUP-006", name: "Booker", st: "ok", tag: "Invoice Scanner + Booker account check", how: "Photo or PDF of the invoice. The scanner reads the invoice number, date and total (you can edit them). The box then checks those figures against your Booker account summary: item count, goods at 0% and 20%, VAT and total. The draft shows a Matches Booker tick, or the exact differences, so you can fix the lines before approving. Recent Purchases is used to correct misread codes, names, pack sizes and prices. Stock is never posted and selling prices are never changed. Typing the lines by hand still works." },
     { k: "tns", sid: "SUP-008", name: "TNS Wholesale", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
     { k: "cc", sid: "SUP-004", name: "Country Choice", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
     { k: "galaxy", sid: "", name: "Galaxy", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. A supplier the app does not know yet is added as 'waiting for approval' for a manager." },
@@ -587,6 +587,44 @@
     if (d.scan && !d.delivered_checked) iss.push("Tick 'Delivered quantities checked' after checking what actually arrived");
     return iss;
   }
+  function bookerCard(d) {
+    var b = d.booker_check, scan = d.scan || {}, inv = (b && b.invoice) || scan.inv_no || "";
+    var isBooker = d.sid === "SUP-006" || (d.ref && /booker/i.test(d.ref)) || (d.source && /booker/i.test(d.source));
+    if (!isBooker && !b) return "";
+    var h = "<div class='card' style='margin-top:8px'><h2>Booker account check</h2>";
+    if (!b || b.pending) {
+      h += "<div class='msg warn'>" + esc((b && b.waiting) || ("Waiting for the Booker account summary. Invoice " + (inv || "?") + " is in the check queue.")) + "</div>";
+      h += "<div class='m'>The box will tick Matches Booker, or list any differences, once the Booker PDF and Excel summary have been downloaded.</div></div>";
+      return h;
+    }
+    if (b.ok) {
+      h += "<div class='msg ok' id='bkMatch'><b>Matches Booker</b> invoice " + esc(b.invoice || inv) + "</div>";
+    } else {
+      h += "<div class='msg err' id='bkDiff'><b>Does not match Booker</b> invoice " + esc(b.invoice || inv) + ". Fix the lines before approving.</div>";
+      h += "<ul style='margin:8px 0 0 1.1em;padding:0'>" + (b.diffs || []).map(function (x) {
+        function fig(field, v) { if (v == null || v === "") return "?"; return field === "items" ? String(v) : money(v); }
+        return "<li>" + esc(x.label || x.field) + ": draft " + fig(x.field, x.draft) + ", Booker " + fig(x.field, x.booker) + (x.note ? " (" + esc(x.note) + ")" : "") + "</li>";
+      }).join("") + "</ul>";
+    }
+    var bk = b.booker || {}, dr = b.draft || {};
+    h += "<div class='m' style='margin-top:8px'>Item count " + esc(String(dr.items != null ? dr.items : "?")) + " (Booker " + esc(String(bk.items != null ? bk.items : "?")) + ")" +
+      " &middot; 0% goods " + money(dr.goods_0) + " (Booker " + money(bk.goods_0) + ")" +
+      " &middot; 20% goods " + money(dr.goods_20) + " (Booker " + money(bk.goods_20) + ")" +
+      " &middot; VAT " + money(dr.vat) + " (Booker " + money(bk.vat) + ")" +
+      " &middot; total " + money(dr.total) + " (Booker " + money(bk.total) + ")</div>";
+    (b.notes || []).forEach(function (n) { h += "<div class='note'>" + esc(n) + "</div>"; });
+    var cor = [];
+    (b.corrections || []).forEach(function (c) { (c.changes || []).forEach(function (ch) { cor.push((c.name || c.code || "") + ": " + (ch.note || ch.field)); }); });
+    if (cor.length) {
+      h += "<h3 style='margin:10px 0 4px'>Recent Purchases corrections</h3><div class='m'>" + cor.map(esc).join("<br>") + "</div>";
+    }
+    var ms = (b.matches || []).filter(function (x) { return x.note; });
+    if (ms.length) {
+      h += "<h3 style='margin:10px 0 4px'>Till match to check</h3><div class='m'>" + ms.map(function (x) { return esc((x.line || x.code || "") + ": " + (x.note || "")); }).join("<br>") + "</div>";
+    }
+    if (b.source) h += "<div class='m'>Checked against " + esc(b.source) + (b.checked_at ? " at " + esc(String(b.checked_at).replace("T", " ").slice(0, 16)) + " UK time" : "") + "</div>";
+    return h + "</div>";
+  }
   function univCard(d) {
     var u = d.universal || {}, v = u.validation || {}, h = "<div class='card' style='margin-top:8px'><h2>Invoice check (any-supplier pipeline)</h2><div class='m'>Read by " + esc(u.reader || "") + " &middot; supplier " + esc(u.supplier_how || "") + "</div>";
     if (d.hold && d.hold.length) h += "<div class='msg warn'>Held, not sent to the till: " + d.hold.map(esc).join("; ") + "</div>";
@@ -627,6 +665,7 @@
         "<div class='row'><div><label class='f'>Staff name</label><input id='dStaff' type='text' value='" + esc(d.staff || staff()) + "'></div><div><label class='f'>Supplier</label><select id='dSup'>" + (SI.suppliers || []).map(function (x) { return "<option value='" + x.id + "'" + (x.id === d.sid ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</select></div></div>";
     } else h += "<div class='m'>Ref " + esc(d.ref) + " &middot; " + ukDate(d.date) + " &middot; staff " + esc(d.staff || "") + (d.approval ? " &middot; approved by " + esc(d.approval.by) : "") + "</div>";
     if (d.universal) h += univCard(d);
+    if (d.sid === "SUP-006" || d.booker_check || (d.ref && /booker/i.test(d.ref))) h += bookerCard(d);
     if (unread) {
       h += "<div class='msg err' id='dUnread' style='margin-top:10px'><b>Could not read this invoice, please retake the photo.</b> The upload was not read as product lines (header, address or branch text, or a photo that was too hard to read). No junk lines were kept. Retake a flatter, brighter photo of the whole page, or upload the PDF. The till has not been changed.</div>" +
         (ed ? "<button class='btn' id='dRetake' style='margin-top:10px'>Retake in Invoice Scanner</button>" : "");
@@ -1082,7 +1121,21 @@
     if ($("scRetake")) $("scRetake").onclick = function () { SCAN.parsed = null; if (SCAN.pages.length) SCAN.pages.pop(); renderScan(); };
     if ($("scSupGo")) $("scSupGo").onclick = function () { go("suppliers"); };
     if ($("scUd")) $("scUd").onclick = function () { go("ud"); };
-    ["scInv", "scDate"].forEach(function (id) { if ($(id)) $(id).onchange = function () { SCAN.parsed.inv_no = $("scInv").value.trim(); SCAN.parsed.date = $("scDate").value; dupCheck(SCAN.parsed); renderScan(); }; });
+    ["scInv", "scDate", "scTotal", "scItems"].forEach(function (id) { if ($(id)) $(id).onchange = function () {
+      SCAN.parsed.inv_no = $("scInv") ? $("scInv").value.trim() : SCAN.parsed.inv_no;
+      SCAN.parsed.date = $("scDate") ? $("scDate").value : SCAN.parsed.date;
+      SCAN.parsed.totals = SCAN.parsed.totals || {};
+      if ($("scTotal")) {
+        var tv = parseFloat(String($("scTotal").value).replace(/[^0-9.]/g, ""));
+        SCAN.parsed.totals.total = isNaN(tv) ? null : tv;
+      }
+      if ($("scItems")) {
+        var iv = parseInt($("scItems").value, 10);
+        SCAN.parsed.items = isNaN(iv) ? null : iv;
+        SCAN.parsed.totals.items = SCAN.parsed.items;
+      }
+      dupCheck(SCAN.parsed); renderScan();
+    }; });
   }
   function prog(t) { if ($("scProg")) $("scProg").textContent = t; }
   function readInvoice() {
@@ -1136,6 +1189,7 @@
       var ctx0 = scanCtx(""), m = r.lines.map(function (l) { return BHInvoice.matchLine(l, ctx0).pid; }).filter(Boolean);
       if (m.length && m.filter(function (p) { return udp[p]; }).length >= m.length / 2) { r.sid = "SUP-003"; r.warnings.push("Mostly milk and bread, so Unique Dairies (North) Ltd was picked as the supplier. Change it above if wrong."); }
     }
+    if (r.sid === "SUP-006" && BHInvoice.correctBookerLines && (SI.booker_recent || []).length) BHInvoice.correctBookerLines(r.lines, SI.booker_recent);
     var ctx = scanCtx(r.sid);
     r.lines.forEach(function (l) { var m = BHInvoice.matchLine(l, ctx); l.pid = m.pid; l.match = m.match; l.alts = m.alts; l.score = m.score; });
     dupCheck(r);
@@ -1155,20 +1209,43 @@
       if (hs.length) r.dupWarn = "The till already has " + hs.map(function (h) { return supName(r.sid) + " stock-in '" + h.ref + "' on " + ukDate(h.date) + " for " + money(h.ex); }).join(", ") + " (this invoice " + money(r.sum) + "). Check this is not the same delivery.";
     }
   }
+  function bookerHeaderFields(r) {
+    var tot = (r.totals && r.totals.total != null) ? r.totals.total : "";
+    var h = "<div class='row'><div><label class='f'>Invoice number</label><input id='scInv' type='text' value='" + esc(r.inv_no) + "'></div><div><label class='f'>Invoice date</label><input id='scDate' type='date' value='" + esc(r.date) + "'></div></div>";
+    h += "<div class='row' style='margin-top:8px'><div><label class='f'>Invoice total</label><input id='scTotal' type='text' inputmode='decimal' value='" + esc(tot === "" ? "" : Number(tot).toFixed(2)) + "'></div>";
+    h += "<div><label class='f'>Item count</label><input id='scItems' type='number' inputmode='numeric' value='" + esc(r.items != null ? r.items : "") + "'></div></div>";
+    if (r.sid === "SUP-006" || r.detected === "SUP-006") {
+      var bits = [];
+      if (r.vat_box && r.vat_box["0"] != null) bits.push("0% goods " + money(r.vat_box["0"]));
+      if (r.vat_box && r.vat_box["20"] != null) bits.push("20% goods " + money(r.vat_box["20"]));
+      if (r.totals && r.totals.vat != null) bits.push("VAT " + money(r.totals.vat));
+      if (r.totals && r.totals.goods != null) bits.push("goods " + money(r.totals.goods));
+      if (bits.length) h += "<div class='m' style='margin-top:6px'>" + bits.join(" &middot; ") + "</div>";
+      h += "<div class='note'>Booker invoice: the box will check this invoice number against your Booker account summary and show Matches Booker, or the exact differences, on the draft.</div>";
+    }
+    return h;
+  }
   function scanResultHtml() {
     var r = SCAN.parsed, flagged = r.lines.filter(function (l) { return l.flags.length; }).length, matched = r.lines.filter(function (l) { return l.pid; }).length;
     var h = "<div class='card'><h2>What the app read</h2><div class='m'>Read with " + esc(r.method || "?") + ". Supplier: <b>" + esc(r.sid ? supName(r.sid) : "not recognised") + "</b>" + (r.detected && r.detected !== r.sid ? " (invoice looks like " + esc(supName(r.detected)) + ")" : "") + "</div>";
     if (!r.sid) h += "<div class='flag'>Supplier not recognised on the phone. Just create the draft: the box reads the supplier from the invoice. A supplier the app does not know yet is added as 'waiting for approval' for a manager. <button class='btn small sec' id='scSupGo'>Suppliers</button></div>";
     if (r.sid === "SUP-003") h += "<div class='note'>Unique Dairies milk and bread can also be checked on the quick screen. <button class='btn small sec' id='scUd'>Milk and bread</button></div>";
-    if (r.unreadable || !r.lines.length) {
+    if (r.unreadable || (!r.lines.length && !r.summary_only)) {
       h += "<div class='msg err' id='scUnread' style='margin-top:10px'><b>Could not read this invoice, please retake the photo.</b> The app could not find product lines with a quantity and a price. Header, address and branch text are ignored, so they are not added as products. Take a flatter, brighter photo of the whole page, or upload the PDF.</div>";
+      h += bookerHeaderFields(r);
       h += "<button class='btn' id='scRetake' style='margin-top:12px'>Retake photo</button>";
       h += "<button class='btn sec' id='scMake' style='margin-top:12px'" + (r.dup ? " disabled" : "") + ">Save the picture only (no product lines)</button>";
       h += "<div class='m' style='margin-top:6px'>Saving the picture keeps it for the box to try again. It does not add product lines or change the till.</div></div>";
       return h;
     }
-    h += "<div class='row'><div><label class='f'>Invoice number</label><input id='scInv' type='text' value='" + esc(r.inv_no) + "'></div><div><label class='f'>Invoice date</label><input id='scDate' type='date' value='" + esc(r.date) + "'></div></div>" +
-      "<div class='m' style='margin-top:6px'>" + r.lines.length + " lines &middot; lines add up to " + money(r.sum) + (r.totals.goods != null ? " &middot; invoice goods total " + money(r.totals.goods) + (r.totals_match ? " &#9989; agrees" : " &#9888;&#65039; does not agree") : "") + " &middot; " + matched + " matched to till products &middot; " + flagged + " line(s) to check</div>";
+    h += bookerHeaderFields(r);
+    if (r.summary_only && !r.lines.length) {
+      h += "<div class='msg warn' style='margin-top:10px'>This is a Booker invoice summary with totals only (no product lines). To make a stock draft, photograph the till receipt. These totals can still be used to check a draft with this invoice number.</div>";
+      if (r.dup) h += "<div class='msg err'>" + esc(r.dup) + "</div>";
+      h += "<button class='btn sec' id='scMake' style='margin-top:12px'" + (r.dup ? " disabled" : "") + ">Save the picture and Booker totals (no product lines)</button></div>";
+      return h;
+    }
+    h += "<div class='m' style='margin-top:6px'>" + r.lines.length + " lines &middot; lines add up to " + money(r.sum) + (r.totals.goods != null ? " &middot; invoice goods total " + money(r.totals.goods) + (r.totals_match ? " &#9989; agrees" : " &#9888;&#65039; does not agree") : "") + " &middot; " + matched + " matched to till products &middot; " + flagged + " line(s) to check</div>";
     r.warnings.forEach(function (w) { h += "<div class='note'>" + esc(w) + "</div>"; });
     if (r.dup) h += "<div class='msg err'>" + esc(r.dup) + "</div>";
     if (r.dupWarn) h += "<div class='msg warn'>" + esc(r.dupWarn) + "</div>";
@@ -1197,10 +1274,10 @@
       if (x.match === "code") l.confirmed = true;
       return l;
     });
-    var unread = !!r.unreadable || !lines.length;
+    var unread = !!r.unreadable || (!lines.length && !r.summary_only);
     var doc = { id: newId("S"), kind: "delivery", sid: r.sid || "", ref: ((r.sid ? supName(r.sid).split(" (")[0] : "New supplier") + " " + (r.inv_no || "")).trim(), date: r.date || londonISO(), staff: who, lines: lines, rev: 0,
       source: "Invoice scan", localStatus: "local", unsent: true,
-      scan: { inv_no: r.inv_no || "", method: r.method, lines: lines.length, sum: r.sum, totals: r.totals, totals_match: !!r.totals_match, warnings: r.warnings, pages: SCAN.pages.length, read_at: londonAt(), date_read: !!r.date, unreadable: unread } };
+      scan: { inv_no: r.inv_no || "", method: r.method, lines: lines.length, sum: r.sum, totals: r.totals || {}, totals_match: !!r.totals_match, items: r.items != null ? r.items : null, vat_box: r.vat_box || {}, branch: r.branch || "", time: r.time || "", warnings: r.warnings, pages: SCAN.pages.length, read_at: londonAt(), date_read: !!r.date, unreadable: unread, summary_only: !!r.summary_only, booker_queue: r.sid === "SUP-006" && !!(r.inv_no) } };
     if (unread) { doc.warnings = ["Could not read this invoice, please retake the photo"]; doc.scan.unreadable = true; }
     saveLocal(doc);
     uploadPages(doc.id, SCAN.pages.slice());
