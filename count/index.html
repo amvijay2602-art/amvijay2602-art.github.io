@@ -632,8 +632,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   function item() { return S.items[S.idx]; }
   function firstPending(from) { for (var i = from; i < S.items.length; i++) if (!S.res[S.items[i].id]) return i; return -1; }
   function nextIndex() { var i = firstPending(S.idx + 1); if (i < 0) i = firstPending(0); return i; }
-  // Daily date-check departments (chiller list + bread, cakes, bakery, fruit & veg). Used if a snapshot has no dc flag.
-  var DATECHECK_DEPTS = { 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 15: 1, 16: 1, 19: 1, 41: 1, 62: 1, 74: 1, 77: 1, 88: 1, 89: 1 };
+  // Daily date-check departments (chiller list + bread, cakes, fruit & veg). Bakery (74) is excluded. Used if a snapshot has no dc flag.
+  var DATECHECK_DEPTS = { 7: 1, 8: 1, 9: 1, 10: 1, 11: 1, 15: 1, 16: 1, 19: 1, 41: 1, 62: 1, 77: 1, 88: 1, 89: 1 };
   function needsDateCheck(it) {
     it = it || (S ? item() : null);
     if (it && (it.dc === true || it.dc === 1)) return true;
