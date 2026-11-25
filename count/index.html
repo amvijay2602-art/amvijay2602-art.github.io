@@ -119,6 +119,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       <div class="muted" id="snapInfo"></div>
       <button class="btn o" id="startBtn">Start a count</button>
       <button class="btn ghost" id="prevBtn">Previous reports</button>
+      <a class="btn ghost" id="discPageBtn" href="discontinued.html" style="display:block;text-align:center;text-decoration:none">Discontinued Items</a>
     </div>
     <div class="card"><h3>Settings</h3>
       <label class="f" for="soonDays">Warn "Due soon" when a date is within (days)</label>
@@ -144,6 +145,8 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
           <div class="unit" id="cUnit"></div>
           <div class="muted" id="cInfo" style="font-weight:700;margin-top:4px"></div>
           <div class="till" id="cTill"></div>
+          <div id="cStatus"></div>
+          <button class="btn ghost" id="discBtn" style="margin-top:8px;min-height:44px;color:#c62828;border-color:#c62828">Discontinue Item</button>
         </div>
       </div>
       <div class="steps"><span id="st1">1 Scan</span><span id="st2">2 Count</span><span id="st3">3 Date</span></div>
@@ -244,6 +247,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
 <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
   <script src="../datecount.js?v=20261123sk"></script>
+<script src="../discontinue.js?v=20261125dc"></script>
 <script>
 (function () {
   "use strict";
@@ -302,12 +306,17 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   window.addEventListener("online", flush); window.addEventListener("offline", pill); setInterval(flush, 30000);
   function row(kind, fields, qty, date, photo, pref) { var o = { name: kind + ": " + fields.map(clean).join(" | "), photo: photo || "", lines: [{ date: date || londonISO(), qty: String(qty == null ? 0 : qty) }] }; if (pref) o.pref = pref; queue(o); }
 
+  // Discontinued Items (25 Nov 2026): discontinued products leave routine counts; pending ones are still counted.
+  function pstat(it) { return window.BirkhillDiscontinue ? BirkhillDiscontinue.statusOf(it) : (it.st === "D" ? "discontinued" : it.st === "P" ? "pending" : "active"); }
+  function activeItems(d) { return d.items.filter(function (it) { return pstat(it) !== "discontinued"; }); }
   function dept(key) { if (!DATA) return null; for (var i = 0; i < DATA.departments.length; i++) if (DATA.departments[i].key === key) return DATA.departments[i]; return null; }
   Promise.all([
     fetch("stockcount.json").then(function (r) { if (!r.ok) throw new Error("locked"); return r.json(); }),
-    fetch("sessions.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+    fetch("sessions.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+    fetch("discontinued.json").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
   ]).then(function (res) {
     DATA = res[0]; if (res[1]) SYNC = res[1];
+    if (res[2] && window.BirkhillDiscontinue) BirkhillDiscontinue.setServer(res[2].records);
     DATA.departments.forEach(function (d) { d.items.forEach(function (it) { if (!it.t) it.t = d.key === "WINE-RECOUNT" ? "Wine" : d.name; it.b.forEach(function (b) { if (!BC[b]) BC[b] = it.n; }); }); });
     S = jget(K.sess, null);
     var v1 = jget("birkhill-count-session", null);
@@ -319,7 +328,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
             items: v1.items.map(function (x) { var n = d1 && d1.items.filter(function (y) { return String(y.id) === String(x.id); })[0]; if (n) { x.i = n.i; x.isrc = n.isrc; x.br = n.br; x.t = n.t; } return x; }), idx: v1.idx || 0, res: res, hist: [], finished: false };
       jset(K.sess, S); ls("birkhill-count-session", null);
     }
-    if (S && !S.finished) { var dd = dept(S.key); if (dd) { var mp = {}; dd.items.forEach(function (x) { mp[x.id] = x; }); S.items.forEach(function (x) { var n = mp[x.id]; if (n && n.i) { x.i = n.i; x.isrc = n.isrc; } if (n && n.br) x.br = n.br; }); } }
+    if (S && !S.finished) { var dd = dept(S.key); if (dd) { var mp = {}; dd.items.forEach(function (x) { mp[x.id] = x; }); S.items.forEach(function (x) { var n = mp[x.id]; if (n && n.i) { x.i = n.i; x.isrc = n.isrc; } if (n && n.br) x.br = n.br; if (n) { x.ls = n.ls; x.st = n.st; x.sd = n.sd; x.did = n.did; } }); } }
     if (S && S.finished) { var sy = (SYNC.finished || []).filter(function (f) { return f.id === S.id; })[0]; if (sy) { ls(K.sess, null); S = null; } }
     go("home");
     loadLive(); setInterval(loadLive, 15 * 60000);
@@ -370,6 +379,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   function tobaccoItem(it) { var m = SM && SM.m ? SM.m[String(it.id)] : null; if (m && m[0] === "X") return true; return !!(TOBACCO_DEPTS[it.did] || TOBACCO_RE.test(it.n || "") || /TOBACCO|VAP/i.test(it.t || "")); }
   function basketLocalUpdate(it, r) {
     var loc = jget(K.bloc, {}), key = String(it.id);
+    if (pstat(it) !== "active") { if (loc[key]) { delete loc[key]; jset(K.bloc, loc); } return null; }   // pending or discontinued: never reordered
     if (!(r.status === "counted" && r.count === 0)) { if (loc[key] && loc[key].session === S.id) { delete loc[key]; jset(K.bloc, loc); } return null; }
     var m = SM && SM.m ? SM.m[key] : null, code = m ? m[0] : "U";
     var sup = tobaccoItem(it) ? "excluded" : code === "P" ? "parfetts" : code === "E" ? "eden" : code === "O" ? "other" : "unknown";
@@ -561,7 +571,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     $("staffChips").innerHTML = staffList().map(function (n) { return "<button class='chip" + (n === cs ? " on" : "") + "' data-n='" + esc(n) + "'>" + esc(n) + "</button>"; }).join("");
     each($("staffChips").querySelectorAll(".chip"), function (b) { b.onclick = function () { ls(K.staff, b.getAttribute("data-n")); renderHome(); }; });
     $("staffNow").textContent = cs ? "Counting as " + cs + "." : "Tap your name. A name is needed to count.";
-    $("snapInfo").textContent = "Till stock as of " + DATA.taken_display + ". " + DATA.departments.filter(function (d) { return d.items.length; }).length + " departments.";
+    $("snapInfo").textContent = "Till stock as of " + DATA.taken_display + ". " + DATA.departments.filter(function (d) { return activeItems(d).length; }).length + " departments.";
     var box = "";
     if (S && !S.finished) box += "<div class='card' style='border:2px solid var(--o)'><h2>Resume " + esc(S.name) + " (" + counted(S) + " of " + S.items.length + ")</h2><div class='muted'>Last saved " + esc(S.lastText || "") + " by " + esc(S.staff) + " on this phone.</div><button class='btn o' id='resumeBtn'>Resume</button></div>";
     (SYNC.open || []).forEach(function (o, i) {
@@ -581,13 +591,13 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   // departments
   function renderDepts() {
     var q = $("deptSearch").value.trim().toUpperCase();
-    $("deptList").innerHTML = DATA.departments.filter(function (d) { return d.items.length && (!q || d.name.toUpperCase().indexOf(q) >= 0); }).map(function (d) {
+    $("deptList").innerHTML = DATA.departments.filter(function (d) { return activeItems(d).length && (!q || d.name.toUpperCase().indexOf(q) >= 0); }).map(function (d) {
       var o = openSync(d.key), loc = S && !S.finished && S.key === d.key, st;
       if (loc) st = "<span class='st prog'>In progress, " + counted(S) + " of " + S.items.length + "</span>";
       else if (o) st = "<span class='st prog'>Not finished, " + o.counted + " of " + o.total + " (" + esc(o.staff) + ")</span>";
       else if (lastCounted(d)) st = "<span class='st done'>Last counted " + esc(dmy(lastCounted(d))) + "</span>";
       else st = "<span class='st new'>Not counted yet</span>";
-      return "<button class='dcard' data-k='" + esc(d.key) + "'><div><b>" + esc(d.name) + "</b>" + st + "</div><div style='text-align:right'><b>" + d.items.length + "</b><span class='muted'>products</span></div></button>";
+      return "<button class='dcard' data-k='" + esc(d.key) + "'><div><b>" + esc(d.name) + "</b>" + st + "</div><div style='text-align:right'><b>" + activeItems(d).length + "</b><span class='muted'>products</span></div></button>";
     }).join("");
     each($("deptList").querySelectorAll(".dcard"), function (b) { b.onclick = function () { askStart(dept(b.getAttribute("data-k"))); }; });
   }
@@ -596,7 +606,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     var o = openSync(d.key);
     if (o) { takeoverSync(o); return; }
     if (S && !S.finished && S.key === d.key) { go("count"); return; }
-    pop("<h2>&#128226; Count this department now</h2><div class='big'>" + esc(d.name) + "</div><div class='muted'>" + d.items.length + " products in name order, including ones the till shows at 0. Till stock as of " + esc(DATA.taken_display) + ".</div><div style='margin-top:6px'>Counting as <b>" + esc(staff()) + "</b></div><button class='btn o' id='goD'>Start counting</button><button class='btn sec' id='noD'>Back</button>");
+    pop("<h2>&#128226; Count this department now</h2><div class='big'>" + esc(d.name) + "</div><div class='muted'>" + activeItems(d).length + " products in name order, including ones the till shows at 0. Till stock as of " + esc(DATA.taken_display) + ".</div><div style='margin-top:6px'>Counting as <b>" + esc(staff()) + "</b></div><button class='btn o' id='goD'>Start counting</button><button class='btn sec' id='noD'>Back</button>");
     $("goD").onclick = function () { closePop(); begin(d); }; $("noD").onclick = closePop;
   }
 
@@ -606,7 +616,7 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
   function newId() { var t = new Date(); return "SC" + londonISO(t).replace(/-/g, "") + ("0" + t.getHours()).slice(-2) + ("0" + t.getMinutes()).slice(-2) + Math.random().toString(36).slice(2, 5).toUpperCase(); }
   function begin(d) {
     S = { id: newId(), key: d.key, name: d.name, staff: staff(), staffAll: [staff()], started: new Date().toISOString(), startedText: londonTime(),
-          snap: DATA.taken_display, snapIso: DATA.taken_at_iso, items: JSON.parse(JSON.stringify(d.items)), idx: 0, res: {}, hist: [], finished: false,
+          snap: DATA.taken_display, snapIso: DATA.taken_at_iso, items: JSON.parse(JSON.stringify(activeItems(d))), idx: 0, res: {}, hist: [], finished: false,
           datecheck: !!d.datecheck, deptId: d.id };
     save(); row("COUNTSTART", [S.id, S.key, S.name, "total " + S.items.length, S.staff, "snap " + S.snapIso, "v2"], S.items.length);
     go("count");
@@ -737,7 +747,10 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
       (it.i ? "" : "<span class='tag o'>Photo missing, flagged for manager</span>");
     $("cUnit").textContent = "Count each single item" + (it.s ? " (" + it.s + ")" : "") + " as 1";
     $("cInfo").textContent = "Barcode " + (it.b[0] || "none") + "  \u00b7  Department " + (it.t || S.name);
-    $("cTill").innerHTML = "Till stock <b>" + esc(it.q) + "</b>, as of " + esc(S.snap);
+    $("cTill").innerHTML = "Till stock <b>" + esc(it.q) + "</b>, as of " + esc(S.snap) + (it.ls ? "  \u00b7  Last sold " + esc(dmy(it.ls)) : "");
+    var pst = pstat(it);
+    $("cStatus").innerHTML = pst === "active" ? "" : "<div class='msg warn' style='margin-top:6px'><b>" + esc(BirkhillDiscontinue.label(pst)) + "</b>. " + (pst === "pending" ? "Still count it. It is never reordered. It becomes Discontinued when till stock reaches 0." : "Not counted any more. A manager can reactivate it on the Discontinued Items page.") + "</div>";
+    $("discBtn").classList.toggle("hidden", pst !== "active" || !window.BirkhillDiscontinue);
     $("scanMsg").innerHTML = r ? "<div class='msg info'>Already saved: " + (r.status === "skip" ? "skipped (" + esc(r.note || "") + ")" : "counted " + r.count) + ". You can change it.</div>" : "";
     $("manualBox").classList.add("hidden"); $("manualCode").value = ""; $("manualWhy").value = "";
     $("countIn").value = r && r.status === "counted" ? r.count : ""; $("heldIn").value = r && r.held ? r.held : ""; $("noteIn").value = r && r.status === "counted" ? (r.note || "") : "";
@@ -751,6 +764,14 @@ nav.bn .ic { font-size:1.3rem; } nav.bn .on { color:var(--g); }
     var n = firstPending(S.idx + 1); if (n >= 0 && S.items[n].i) { var pre = new Image(); pre.src = "img/" + S.items[n].i; }
     renderScannedSession();
   }
+  $("discBtn").onclick = function () {
+    if (!S || S.finished || !window.BirkhillDiscontinue || busy) return;
+    var it = item();
+    BirkhillDiscontinue.discontinue(it, { app: "count", dept: it.t || S.name, onDone: function (st) {
+      if (st === "discontinued" && item() === it && !S.res[it.id]) { cur.scan = cur.scan || "skip"; commit({ status: "skip", count: null, held: 0, note: "Discontinued" }); }
+      else renderCount();
+    } });
+  };
   function countMainLabel() {
     var c = countedQty();
     if (c === 0) return "Save as Out of Stock";

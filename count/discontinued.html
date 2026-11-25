@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#17643F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Discontinued Items - Birkhill Stores</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+:root { --g:#17643F; --o:#E86B2A; --bg:#F4F7F4; --ink:#18342A; --muted:#5a6d64; --line:#dde6e0; --amber:#9a5b00; --amberbg:#fff4dc; --red:#b42318; --redbg:#fdecea; --okbg:#e6f4ec; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding-bottom:40px; }
+header { position:sticky; top:0; z-index:50; background:#fff; border-bottom:3px solid var(--o); padding:calc(6px + env(safe-area-inset-top)) 12px 6px; display:flex; align-items:center; gap:10px; }
+header img { height:34px; } header .ttl { font-weight:800; font-size:1.1rem; color:var(--g); flex:1; }
+header a { color:var(--g); font-weight:700; text-decoration:none; border:2px solid var(--g); border-radius:20px; padding:6px 12px; font-size:.9rem; }
+main { padding:10px; max-width:640px; margin:0 auto; }
+.card { background:#fff; border-radius:16px; padding:14px; margin-bottom:10px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+h2 { margin:0 0 8px; font-size:1.15rem; } h3 { margin:0 0 6px; font-size:1rem; }
+.muted { color:var(--muted); font-size:.9rem; }
+.tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
+.tabs button { flex:1 1 auto; min-height:44px; border:2px solid var(--g); background:#fff; color:var(--g); border-radius:22px; padding:6px 10px; font-weight:700; font-size:.9rem; }
+.tabs button.on { background:var(--g); color:#fff; }
+input[type=search], select { width:100%; min-height:48px; font-size:16px; padding:10px; border:1px solid #bbb; border-radius:12px; background:#fff; margin-top:6px; }
+.f2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.item { display:flex; gap:12px; border-top:1px solid var(--line); padding:12px 0; }
+.item:first-child { border-top:0; }
+.pic { width:84px; height:84px; flex:0 0 84px; border-radius:10px; background:#f2f4f2; display:flex; align-items:center; justify-content:center; overflow:hidden; font-size:30px; }
+.pic img { max-width:100%; max-height:100%; }
+.nm { font-weight:800; font-size:1.02rem; }
+.kv { font-size:.92rem; margin:1px 0; } .kv b { font-weight:700; }
+.st { display:inline-block; font-size:.8rem; font-weight:800; border-radius:12px; padding:3px 9px; margin:3px 0; }
+.st.discontinued { background:var(--redbg); color:var(--red); } .st.pending { background:var(--amberbg); color:var(--amber); } .st.active { background:var(--okbg); color:var(--g); }
+.btn { display:block; width:100%; min-height:46px; border:0; border-radius:12px; padding:10px; font-size:1rem; font-weight:700; margin-top:8px; background:var(--g); color:#fff; cursor:pointer; }
+.btn.red { background:#fff; color:#c62828; border:2px solid #c62828; }
+.msg { padding:10px; border-radius:10px; margin-top:6px; font-size:.95rem; }
+.msg.warn { background:var(--amberbg); color:var(--amber); } .msg.err { background:var(--redbg); color:var(--red); } .msg.ok { background:var(--okbg); color:var(--g); }
+.alert { border-left:5px solid var(--red); background:var(--redbg); padding:8px 10px; border-radius:8px; margin-top:6px; font-size:.92rem; }
+.hidden { display:none !important; }
+.res { display:flex; gap:10px; align-items:center; border-top:1px solid var(--line); padding:8px 0; cursor:pointer; }
+.res .pic { width:56px; height:56px; flex-basis:56px; font-size:22px; }
+</style>
+<script src="../secure-data.js"></script>
+</head>
+<body>
+<header><img src="logo.png" alt="Birkhill Stores"><div class="ttl">Discontinued Items</div><a href="./">Stock Count</a></header>
+<main>
+  <div class="card msg err hidden" id="lockMsg">List locked. Open the Stock Count app once from the full link Vijay sent (it ends in #k=...).</div>
+  <div class="card">
+    <div class="muted" id="upd"></div>
+    <div class="tabs" id="tabs"></div>
+    <input type="search" id="q" placeholder="Search name or barcode" autocomplete="off">
+    <div class="f2"><select id="dep" aria-label="Department"></select><select id="sub" aria-label="Sub-department"></select></div>
+  </div>
+  <div class="card hidden" id="alertsCard"><h2>Needs management review</h2><div id="alerts"></div></div>
+  <div class="card"><div id="list"></div></div>
+  <div class="card">
+    <h2>Discontinue a product</h2>
+    <div class="muted">Search any product. Pending Discontinuation if till stock is above 0, Discontinued when it reaches 0.</div>
+    <input type="search" id="pq" placeholder="Type a name or barcode" autocomplete="off">
+    <div id="pres"></div>
+  </div>
+  <div class="card muted">Discontinued products are left out of stock counts, date checks, order baskets and supplier orders, out of stock and low stock lists, wholesale price compare lists, active sales lists and new Rewards promotions. Pending products are still counted and date checked, but never reordered. Past sales, invoices, accounts and profit reports are kept. Nothing is deleted and the till is not changed by this page.</div>
+</main>
+<script src="../discontinue.js?v=20261125dc"></script>
+<script>
+(function () {
+  "use strict";
+  var D = window.BirkhillDiscontinue, esc = D.esc, uk = D.ukDate;
+  var $ = function (id) { return document.getElementById(id); };
+  var DATA = { records: [], alerts: [] }, TAB = "discontinued", SC = null, SCP = null;
+  function deptOf(r) { return r.dn || r.dept || "No department"; }
+  function merged() {
+    var by = {}, loc = D.local();
+    DATA.records.forEach(function (r) { by[String(r.pid)] = Object.assign({}, r); });
+    Object.keys(loc).forEach(function (pid) {
+      var l = loc[pid], r = by[pid], st = D.statusOf({ id: pid, st: r ? (r.status === "discontinued" ? "D" : r.status === "pending" ? "P" : "") : "" });
+      if (!r) { if (l.st === "active") return; r = by[pid] = { pid: +pid, n: l.n, b: l.bc ? [l.bc] : [], q: l.q, i: l.i, last_sold: l.ls, dn: l.dept, requested_at: l.requested_at, discontinued_at: l.discontinued_at, reason: l.reason, note: l.note, staff: l.staff, local: true }; }
+      if (st !== r.status) { r.status = st; r.local = true; if (st === "active") { r.reactivated_at = l.at; r.reactivated_by = l.by; } }
+    });
+    return Object.keys(by).map(function (k) { var r = by[k]; r.status = r.status || "active"; return r; });
+  }
+  function counts(all) { var c = { discontinued: 0, pending: 0, active: 0 }; all.forEach(function (r) { c[r.status] = (c[r.status] || 0) + 1; }); return c; }
+  function fillFilters(all) {
+    var dv = $("dep").value, sv = $("sub").value, ds = {}, ss = {};
+    all.forEach(function (r) { ds[deptOf(r)] = 1; if (!dv || deptOf(r) === dv) ss[r.sdn || "No sub-department"] = 1; });
+    $("dep").innerHTML = "<option value=''>All departments</option>" + Object.keys(ds).sort().map(function (d) { return "<option" + (d === dv ? " selected" : "") + ">" + esc(d) + "</option>"; }).join("");
+    $("sub").innerHTML = "<option value=''>All sub-departments</option>" + Object.keys(ss).sort().map(function (d) { return "<option" + (d === sv ? " selected" : "") + ">" + esc(d) + "</option>"; }).join("");
+  }
+  function card(r) {
+    var b = (r.b || [])[0] || "No barcode";
+    var acts = r.status === "active" ? "" : "<button class='btn' data-re='" + r.pid + "'>Reactivate (manager)</button>";
+    return "<div class='item'><div class='pic'>" + (r.i ? "<img alt='' loading='lazy' src='img/" + esc(r.i) + "' onerror=\"this.parentNode.innerHTML='&#128247;'\">" : "&#128247;") + "</div><div style='flex:1;min-width:0'>" +
+      "<div class='nm'>" + esc(r.n) + (r.s ? " <span class='muted'>" + esc(r.s) + "</span>" : "") + "</div>" +
+      "<span class='st " + esc(r.status) + "'>" + esc(D.label(r.status)) + "</span>" + (r.local ? " <span class='muted'>Saved on this phone</span>" : "") +
+      "<div class='kv'>Barcode <b>" + esc(b) + "</b></div>" +
+      "<div class='kv'>" + esc(deptOf(r)) + (r.sdn ? " / " + esc(r.sdn) : "") + "</div>" +
+      "<div class='kv'>Till stock now <b>" + esc(r.q == null ? "Not known" : r.q) + "</b></div>" +
+      "<div class='kv'>Last purchase <b>" + esc(r.last_purchase ? uk(r.last_purchase) : "Not known") + "</b></div>" +
+      "<div class='kv'>Last sale <b>" + esc(r.last_sold ? uk(r.last_sold) : "No sales on record") + "</b></div>" +
+      "<div class='kv'>Discontinued <b>" + esc(r.discontinued_at ? uk(r.discontinued_at) : (r.status === "pending" ? "Not yet, waiting for stock to reach 0" : "-")) + "</b></div>" +
+      "<div class='kv'>Requested <b>" + esc(uk(r.requested_at)) + "</b></div>" +
+      "<div class='kv'>Reason <b>" + esc(r.reason || "-") + (r.note ? " (" + esc(r.note) + ")" : "") + "</b></div>" +
+      "<div class='kv'>Staff member <b>" + esc(r.staff || "-") + "</b></div>" +
+      (r.status === "active" && r.reactivated_at ? "<div class='kv'>Reactivated <b>" + esc(uk(r.reactivated_at)) + "</b> by <b>" + esc(r.reactivated_by || "") + "</b></div>" : "") +
+      acts + "</div></div>";
+  }
+  function render() {
+    var all = merged(), c = counts(all);
+    var tabs = [["discontinued", "Discontinued"], ["pending", "Pending"], ["active", "Reactivated"], ["all", "All"]];
+    $("tabs").innerHTML = tabs.map(function (t) { return "<button data-t='" + t[0] + "' class='" + (TAB === t[0] ? "on" : "") + "'>" + t[1] + " (" + (t[0] === "all" ? all.length : c[t[0]] || 0) + ")</button>"; }).join("");
+    Array.prototype.forEach.call($("tabs").querySelectorAll("button"), function (b) { b.onclick = function () { TAB = b.getAttribute("data-t"); render(); }; });
+    fillFilters(all);
+    var q = $("q").value.trim().toUpperCase(), dv = $("dep").value, sv = $("sub").value;
+    var rows = all.filter(function (r) {
+      if (TAB !== "all" && r.status !== TAB) return false;
+      if (dv && deptOf(r) !== dv) return false;
+      if (sv && (r.sdn || "No sub-department") !== sv) return false;
+      if (q && String(r.n || "").toUpperCase().indexOf(q) < 0 && !(r.b || []).some(function (x) { return String(x).indexOf(q) >= 0; })) return false;
+      return true;
+    }).sort(function (a, b) { return String(b.discontinued_at || b.requested_at || "").localeCompare(String(a.discontinued_at || a.requested_at || "")); });
+    $("list").innerHTML = rows.length ? rows.map(card).join("") : "<div class='muted'>No products here.</div>";
+    Array.prototype.forEach.call($("list").querySelectorAll("[data-re]"), function (b) {
+      b.onclick = function () { var r = all.filter(function (x) { return String(x.pid) === b.getAttribute("data-re"); })[0]; D.reactivate(r, { app: "discontinued", dept: deptOf(r), onDone: render }); };
+    });
+    var al = (DATA.alerts || []).filter(function (a) { return !a.test || localStorage.getItem("birkhill-test-mode") === "1"; }).slice(0, 20);
+    $("alertsCard").classList.toggle("hidden", !al.length);
+    $("alerts").innerHTML = al.map(function (a) { return "<div class='alert'><b>" + esc(a.kind === "delivery" ? "Delivery" : "Till sale") + "</b> " + esc(uk(a.at)) + "<br>" + esc(a.text) + "</div>"; }).join("");
+  }
+  ["q", "dep", "sub"].forEach(function (id) { $(id).addEventListener(id === "q" ? "input" : "change", render); });
+  // search any product to discontinue (Stock Count product list)
+  function loadSC() {
+    if (!SCP) SCP = fetch("stockcount.json").then(function (r) { if (!r.ok) throw new Error("locked"); return r.json(); }).then(function (j) {
+      SC = []; j.departments.forEach(function (d) { d.items.forEach(function (it) { if (typeof it.id === "number") { it.t = d.name; SC.push(it); } }); }); return SC;
+    });
+    return SCP;
+  }
+  var pt = null;
+  $("pq").addEventListener("input", function () {
+    clearTimeout(pt); var v = this.value.trim().toUpperCase();
+    pt = setTimeout(function () {
+      if (v.length < 2) { $("pres").innerHTML = ""; return; }
+      $("pres").innerHTML = "<div class='muted'>Searching...</div>";
+      loadSC().then(function (L) {
+        var seen = {}, hit = L.filter(function (it) { if (seen[it.id]) return false; var ok = it.n.toUpperCase().indexOf(v) >= 0 || it.b.some(function (b) { return b.indexOf(v) >= 0; }); if (ok) seen[it.id] = 1; return ok; }).slice(0, 25);
+        $("pres").innerHTML = hit.length ? hit.map(function (it) { var st = D.statusOf(it);
+          return "<div class='res' data-id='" + it.id + "'><div class='pic'>" + (it.i ? "<img alt='' loading='lazy' src='img/" + esc(it.i) + "' onerror=\"this.parentNode.innerHTML='&#128247;'\">" : "&#128247;") + "</div><div style='flex:1'><div class='nm' style='font-size:.95rem'>" + esc(it.n) + "</div><div class='muted'>" + esc(it.b[0] || "No barcode") + ", stock " + esc(it.q) + "</div>" + (st !== "active" ? "<span class='st " + st + "'>" + esc(D.label(st)) + "</span>" : "") + "</div></div>"; }).join("") : "<div class='muted'>No product found.</div>";
+        Array.prototype.forEach.call($("pres").querySelectorAll(".res"), function (el) {
+          el.onclick = function () { var it = hit.filter(function (x) { return String(x.id) === el.getAttribute("data-id"); })[0]; D.discontinue(it, { app: "discontinued", dept: it.t, onDone: function () { $("pres").innerHTML = ""; $("pq").value = ""; render(); } }); };
+        });
+      }).catch(function () { $("pres").innerHTML = "<div class='msg err'>Product list locked on this phone.</div>"; });
+    }, 250);
+  });
+  fetch("discontinued.json").then(function (r) { if (!r.ok) throw new Error("locked"); return r.json(); }).then(function (j) {
+    DATA = j; D.setServer(j.records); $("upd").textContent = "Updated " + (j.at_display || "") + ". Box checks the till every hour.";
+    render();
+  }).catch(function () { $("lockMsg").classList.remove("hidden"); render(); });
+})();
+</script>
+<script src="../add-to-home.js"></script>
+</body>
+</html>
