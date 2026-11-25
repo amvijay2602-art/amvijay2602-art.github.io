@@ -1012,7 +1012,7 @@
     SCAN.parsed = null; renderScan();
   }
   VIEWS.scan = function () { renderScan(); };
-  function aiNote() { var a = SI.ai || {}; return a.key_present ? "Grok AI reading is on: photos and PDFs from any supplier are read on the box." : "Grok AI reading is waiting for its key on the box. PDFs with text are still read exactly; photos keep the phone reading until the key is added."; }
+  function aiNote() { var a = SI.ai || {}; if (!a.key_present) return "Grok AI reading is waiting for its key on the box. PDFs with text are still read exactly; photos keep the phone reading until the key is added."; if (a.working === false && a.last) return "Grok AI reading is NOT working: " + esc(a.note || "") + ". PDFs with text are still read exactly; photos keep the phone reading."; return "Grok AI reading is on: photos and PDFs from any supplier are read on the box."; }
   function scanSupOpts(sel) { return "<option value=''>Work it out from the invoice</option>" + (SI.suppliers || []).filter(function (s) { return s.active !== false; }).map(function (s) { return "<option value='" + s.id + "'" + (s.id === sel ? " selected" : "") + ">" + esc(s.name) + "</option>"; }).join(""); }
   function renderScan() {
     var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Any supplier. Take a photo of each page of the invoice, or upload photos or the PDF. The box reads it with Grok, works out the supplier, checks the sums, matches barcodes and verified supplier codes and saves a Stock In draft. Stock is never posted and selling prices are never changed.</div><div class='note'>" + aiNote() + "</div>" +
