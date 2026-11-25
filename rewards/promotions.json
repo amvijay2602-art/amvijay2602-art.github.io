@@ -1,6 +1,6 @@
 {
- "updated": "25 November 2026, 8:14pm",
- "updated_iso": "2026-11-25T20:14:33+00:00",
+ "updated": "25 November 2026, 8:57pm",
+ "updated_iso": "2026-11-25T20:57:36+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
   {
@@ -16297,7 +16297,7 @@
   {
    "id": "till-15159",
    "source": "till",
-   "title": "Takis Smokin BBQ PM125",
+   "title": "Jacob M/c Chpl&lime 1.25 and 1 more",
    "deal": "2 for \u00a31.00",
    "normal": "\u00a31.25 each",
    "end": "20 December 2026",
@@ -16305,16 +16305,23 @@
    "start_iso": "2026-11-25T00:00:00+00:00",
    "department": "Snacks",
    "dept_key": "snacks",
-   "picture": "pimg/5018297013462.jpg",
-   "note": "",
-   "pack": "",
-   "barcode": "5018297013462",
+   "picture": "pimg/5000168012773.jpg",
+   "note": "Mix and match, 2 products",
+   "pack": "90G",
+   "barcode": "5000168012773",
    "barcodes": [
+    "5000168012773",
     "5018297013462"
    ],
-   "items": [],
-   "item_barcodes": [],
-   "headline": "Takis Smokin BBQ",
+   "items": [
+    "Jacob M/c Chpl&lime 1.25",
+    "Takis Smokin BBQ PM125"
+   ],
+   "item_barcodes": [
+    "5000168012773",
+    "5018297013462"
+   ],
+   "headline": "Jacob And Takis 90G",
    "promo_name": "Only 2 For \u00a31 O/d",
    "kind": "multi",
    "qty": 2,
@@ -16323,6 +16330,14 @@
    "normal_price": "1.25",
    "save": "1.50",
    "lines": [
+    {
+     "name": "Jacob M/c Chpl&lime 1.25",
+     "barcode": "5000168012773",
+     "price": "1.25",
+     "size": "90G",
+     "picture": "img/5000168012773.jpg",
+     "photo": "pimg/5000168012773.jpg"
+    },
     {
      "name": "Takis Smokin BBQ PM125",
      "barcode": "5018297013462",
@@ -16333,9 +16348,11 @@
     }
    ],
    "pictures": [
+    "pimg/5000168012773.jpg",
     "pimg/5018297013462.jpg"
    ],
    "picture_ratios": [
+    0.747,
     0.98
    ],
    "photo_source": "Parfetts"
