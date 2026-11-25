@@ -1,6 +1,6 @@
 {
- "updated": "25 November 2026, 7:13pm",
- "updated_iso": "2026-11-25T19:13:29+00:00",
+ "updated": "25 November 2026, 8:14pm",
+ "updated_iso": "2026-11-25T20:14:33+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
   {
@@ -16295,6 +16295,52 @@
    "photo_source": "Parfetts"
   },
   {
+   "id": "till-15159",
+   "source": "till",
+   "title": "Takis Smokin BBQ PM125",
+   "deal": "2 for \u00a31.00",
+   "normal": "\u00a31.25 each",
+   "end": "20 December 2026",
+   "end_iso": "2026-12-20T23:59:59+00:00",
+   "start_iso": "2026-11-25T00:00:00+00:00",
+   "department": "Snacks",
+   "dept_key": "snacks",
+   "picture": "pimg/5018297013462.jpg",
+   "note": "",
+   "pack": "",
+   "barcode": "5018297013462",
+   "barcodes": [
+    "5018297013462"
+   ],
+   "items": [],
+   "item_barcodes": [],
+   "headline": "Takis Smokin BBQ",
+   "promo_name": "Only 2 For \u00a31 O/d",
+   "kind": "multi",
+   "qty": 2,
+   "free_qty": 0,
+   "price": "1.00",
+   "normal_price": "1.25",
+   "save": "1.50",
+   "lines": [
+    {
+     "name": "Takis Smokin BBQ PM125",
+     "barcode": "5018297013462",
+     "price": "1.25",
+     "size": "",
+     "picture": "img/5018297013462.jpg",
+     "photo": "pimg/5018297013462.jpg"
+    }
+   ],
+   "pictures": [
+    "pimg/5018297013462.jpg"
+   ],
+   "picture_ratios": [
+    0.98
+   ],
+   "photo_source": "Parfetts"
+  },
+  {
    "id": "till-15143",
    "source": "till",
    "title": "P/noodle B/bad Boy 1.49 and 1 more",
@@ -16356,6 +16402,52 @@
     1.277
    ],
    "photo_source": "Appy Shop, Parfetts"
+  },
+  {
+   "id": "till-15158",
+   "source": "till",
+   "title": "Wotsits Crun Meaty \u00a31.35",
+   "deal": "2 for \u00a31.00",
+   "normal": "\u00a31.35 each",
+   "end": "30 December 2026",
+   "end_iso": "2026-12-30T23:59:59+00:00",
+   "start_iso": "2026-11-25T00:00:00+00:00",
+   "department": "Snacks",
+   "dept_key": "snacks",
+   "picture": "pimg/5000328043890.jpg",
+   "note": "",
+   "pack": "48G",
+   "barcode": "5000328043890",
+   "barcodes": [
+    "5000328043890"
+   ],
+   "items": [],
+   "item_barcodes": [],
+   "headline": "Wotsits Crun Meaty 48G",
+   "promo_name": "2 For \u00a31",
+   "kind": "multi",
+   "qty": 2,
+   "free_qty": 0,
+   "price": "1.00",
+   "normal_price": "1.35",
+   "save": "1.70",
+   "lines": [
+    {
+     "name": "Wotsits Crun Meaty \u00a31.35",
+     "barcode": "5000328043890",
+     "price": "1.35",
+     "size": "48G",
+     "picture": "img/5000328043890.jpg",
+     "photo": "pimg/5000328043890.jpg"
+    }
+   ],
+   "pictures": [
+    "pimg/5000328043890.jpg"
+   ],
+   "picture_ratios": [
+    0.741
+   ],
+   "photo_source": "Parfetts"
   },
   {
    "id": "till-14362",
