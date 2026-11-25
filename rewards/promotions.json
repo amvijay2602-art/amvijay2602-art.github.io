@@ -1,84 +1,8 @@
 {
- "updated": "24 November 2026, 9:30pm",
- "updated_iso": "2026-11-24T21:30:00+00:00",
+ "updated": "25 November 2026, 7:30am",
+ "updated_iso": "2026-11-25T07:30:16+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
-  {
-   "id": "till-14463",
-   "source": "till",
-   "title": "Yazoo Banana \u00a31.39 and 2 more",
-   "deal": "2 for \u00a32.00",
-   "normal": "\u00a31.39 each",
-   "end": "25 November 2026",
-   "end_iso": "2026-11-25T00:00:00+00:00",
-   "start_iso": "2026-10-17T00:00:00+01:00",
-   "department": "Soft drinks",
-   "dept_key": "soft_drinks",
-   "picture": "pimg/5410438047952.jpg",
-   "note": "Mix and match, 3 products",
-   "pack": "400ML",
-   "barcode": "5410438047952",
-   "barcodes": [
-    "5410438047952",
-    "5410438047938",
-    "5410438047914"
-   ],
-   "items": [
-    "Yazoo Banana \u00a31.39",
-    "Yazoo Chocolate PM139",
-    "Yazoo Strawberry PM139"
-   ],
-   "item_barcodes": [
-    "5410438047952",
-    "5410438047938",
-    "5410438047914"
-   ],
-   "headline": "Yazoo 400ML",
-   "promo_name": "Now 2 For \u00a32.00",
-   "kind": "multi",
-   "qty": 2,
-   "free_qty": 0,
-   "price": "2.00",
-   "normal_price": "1.39",
-   "save": "0.78",
-   "lines": [
-    {
-     "name": "Yazoo Banana \u00a31.39",
-     "barcode": "5410438047952",
-     "price": "1.39",
-     "size": "400ML",
-     "picture": "img/5410438047952.jpg",
-     "photo": "pimg/5410438047952.jpg"
-    },
-    {
-     "name": "Yazoo Chocolate PM139",
-     "barcode": "5410438047938",
-     "price": "1.39",
-     "size": "",
-     "picture": "img/5410438047938.jpg",
-     "photo": "pimg/5410438047938.jpg"
-    },
-    {
-     "name": "Yazoo Strawberry PM139",
-     "barcode": "5410438047914",
-     "price": "1.39",
-     "size": "",
-     "picture": "img/5410438047914.jpg",
-     "photo": "pimg/5410438047914.jpg"
-    }
-   ],
-   "pictures": [
-    "pimg/5410438047952.jpg",
-    "pimg/5410438047938.jpg",
-    "pimg/5410438047914.jpg"
-   ],
-   "picture_ratios": [
-    0.367,
-    0.364,
-    0.364
-   ],
-   "photo_source": "Parfetts"
-  },
   {
    "id": "till-14448",
    "source": "till",
