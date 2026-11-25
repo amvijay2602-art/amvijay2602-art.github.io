@@ -103,7 +103,7 @@
 </main>
 <script src="../secure-data.js"></script>
   <script src="../scanned-list.js"></script>
-  <script src="invoice.js"></script>
+  <script src="invoice.js?v=20261125b"></script>
 <script>
 (function () {
   "use strict";
@@ -599,8 +599,27 @@
     if (u.ai_error) h += "<div class='m'>Grok: " + esc(u.ai_error) + "</div>";
     return h + "</div>";
   }
+  function lineIsJunk(l) { return BHInvoice.lineLooksJunk ? BHInvoice.lineLooksJunk(l) : false; }
+  function cleanJunkDoc(d) {
+    if (!d || !editable(d) || d.kind === "return" || d.kind === "ud") return false;
+    var lines = d.lines || [], keep = lines.filter(function (l) { return !lineIsJunk(l); });
+    if (keep.length === lines.length) return false;
+    d.lines = keep;
+    if (!keep.length) {
+      d.scan = d.scan || {};
+      d.scan.unreadable = true;
+      d.scan.lines = 0;
+      var msg = "Could not read this invoice, please retake the photo";
+      d.warnings = (d.warnings || []).filter(function (w) { return w !== msg; }).concat([msg]);
+    }
+    d.localStatus = "local"; d.unsent = true; d.updated = londonAt();
+    var loc = jget(K.docs, {}); loc[d.id] = d; jset(K.docs, loc);
+    return true;
+  }
   function renderDoc() {
-    var d = cur.doc, s = status(d), ed = editable(d), tt = lineTotals(d), sup = (SI.suppliers || []).filter(function (x) { return x.id === d.sid; })[0];
+    var d = cur.doc; cleanJunkDoc(d);
+    var s = status(d), ed = editable(d), tt = lineTotals(d), sup = (SI.suppliers || []).filter(function (x) { return x.id === d.sid; })[0];
+    var unread = (d.scan && d.scan.unreadable) || (!(d.lines || []).length && d.source === "Invoice scan");
     var h = "<div class='card'><div class='row' style='align-items:center'><div><b>" + esc(supName(d.sid)) + "</b> <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span></div><div style='flex:0 0 auto'><button class='btn small sec' id='dBack'>Back</button></div></div>" +
       "<div class='m'>" + esc(d.id) + (d.source ? " &middot; " + esc(d.source) : "") + (sup && !sup.till_id ? " &middot; not a till supplier yet, posts under the name" : sup ? " &middot; till supplier " + sup.till_id : "") + "</div>";
     if (ed) {
@@ -608,6 +627,10 @@
         "<div class='row'><div><label class='f'>Staff name</label><input id='dStaff' type='text' value='" + esc(d.staff || staff()) + "'></div><div><label class='f'>Supplier</label><select id='dSup'>" + (SI.suppliers || []).map(function (x) { return "<option value='" + x.id + "'" + (x.id === d.sid ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</select></div></div>";
     } else h += "<div class='m'>Ref " + esc(d.ref) + " &middot; " + ukDate(d.date) + " &middot; staff " + esc(d.staff || "") + (d.approval ? " &middot; approved by " + esc(d.approval.by) : "") + "</div>";
     if (d.universal) h += univCard(d);
+    if (unread) {
+      h += "<div class='msg err' id='dUnread' style='margin-top:10px'><b>Could not read this invoice, please retake the photo.</b> The upload was not read as product lines (header, address or branch text, or a photo that was too hard to read). No junk lines were kept. Retake a flatter, brighter photo of the whole page, or upload the PDF. The till has not been changed.</div>" +
+        (ed ? "<button class='btn' id='dRetake' style='margin-top:10px'>Retake in Invoice Scanner</button>" : "");
+    }
     if (d.scan) {
       var sc = d.scan, nfl = (d.lines || []).filter(function (l) { return (l.flags || []).length && !l.checked && !l.leave_out; }).length;
       h += "<div class='note' style='margin-top:6px'><b>Invoice scan</b> " + esc(sc.inv_no || "") + " &middot; " + esc(sc.method || "") + " &middot; " + (sc.pages || 0) + " page(s) &middot; " + (sc.lines || 0) + " lines &middot; invoice lines total " + money(sc.sum) +
@@ -652,6 +675,7 @@
     if ((d.history || []).length) h += "<div class='card'><h2>History</h2>" + d.history.slice().reverse().map(function (x) { return "<div class='m'>" + esc(String(x.at).replace("T", " ").slice(0, 16)) + " &middot; " + esc(x.what) + (x.by ? " &middot; " + esc(x.by) : "") + "</div>"; }).join("") + "</div>";
     $("view").innerHTML = h;
     $("dBack").onclick = function () { go(s === "posted" ? "posted" : (s === "pending_approval" || s === "approved" || s === "till_draft") ? "approval" : (s === "error" || s === "needs_fix") ? "errors" : "drafts"); };
+    if ($("dRetake")) $("dRetake").onclick = function () { go("scan"); };
     if (ed) {
       ["dRef", "dDate", "dStaff", "dSup"].forEach(function (id) { $(id).onchange = function () { d.ref = $("dRef").value.trim(); d.date = $("dDate").value; d.staff = $("dStaff").value.trim(); d.sid = $("dSup").value; touch(); }; });
       $("dFind").onclick = function () { findProduct($("dCode").value); };
@@ -736,8 +760,9 @@
   function renderActs() {
     var d = cur.doc, s = status(d), m = mgr(), h = "";
     if (editable(d)) {
+      var unread = (d.scan && d.scan.unreadable) || (!(d.lines || []).length && d.source === "Invoice scan");
       h += "<button class='btn sec' id='aSave'>Save draft (does not change the till)</button>";
-      h += "<button class='btn' id='aSend' style='margin-top:8px'>Check products and save to the till as a draft</button>";
+      if (!unread) h += "<button class='btn' id='aSend' style='margin-top:8px'>Check products and save to the till as a draft</button>";
       if (["draft", "local", "needs_fix"].indexOf(s) >= 0) h += "<button class='btn small sec' id='aDiscard' style='margin-top:8px'>Discard draft</button>";
     }
     if (s === "recorded" && d.kind === "return") h += "<div class='m'>Tap when the driver has taken the returns. Change a quantity first if it is different.</div>" + d.lines.map(function (l, i) { return "<div class='row' style='align-items:center'><div>" + esc(l.name) + "</div><input data-ri='" + i + "' type='number' value='" + esc(l.ret) + "' style='flex:0 0 90px'></div>"; }).join("") + "<button class='btn o' id='aRconf' style='margin-top:8px'>Confirm return collected</button>";
@@ -777,19 +802,38 @@
   }
 
   // Unique Dairies daily milk and bread
+  function todayUdDoc() {
+    return allDocs().filter(function (d) {
+      return d.kind === "ud" && d.sid === "SUP-003" && d.date === londonISO() && ["discarded", "rejected"].indexOf(status(d)) < 0;
+    })[0];
+  }
+  function udAlreadySaved(d) {
+    if (!d) return false;
+    var st = status(d);
+    return st === "till_draft" || st === "approved" || st === "posted" || st === "pending_approval" || !!(d.till_draft);
+  }
   VIEWS.ud = function () {
     var items = SI.ud || [], key = "birkhill-si-ud-" + londonISO(), saved = jget(key, {});
-    var h = "<div class='card'><h2>Milk and bread: Unique Dairies (North) Ltd</h2><div class='m'>Default supplier for these lines. Check the delivery against the list, no scanning needed. Expected is the usual quantity from recent deliveries. Returns are kept separate and only take stock off when confirmed.</div>" +
-      "<div class='row'><div><label class='f'>Delivery note</label><input id='uRef' type='text' value='" + esc(saved.ref || "Milk " + ukDate(londonISO())) + "'></div><div><label class='f'>Staff</label><input id='uStaff' type='text' value='" + esc(saved.staff || staff()) + "'></div></div>" +
-      "<button class='btn sec' id='uAll' style='margin-top:10px'>Everything delivered as expected</button></div><div class='card'>" +
+    var todayUd = todayUdDoc(), already = udAlreadySaved(todayUd);
+    var h = "<div class='card'><h2>Milk and bread: Unique Dairies (North) Ltd</h2><div class='m'>Default supplier for these lines. Check the delivery against the list, no scanning needed. Expected is the usual quantity from recent deliveries. Received starts as the expected number: change a box only if the delivery differs. Returns are kept separate and only take stock off when confirmed.</div>";
+    if (already) {
+      var td = todayUd.till_draft || {};
+      h += "<div class='msg ok' id='uAlready'>Today's Unique Dairies delivery is already saved" + (td.review_id ? " as till draft " + td.review_id : "") + " (" + esc(todayUd.id) + (todayUd.ref ? ", " + esc(todayUd.ref) : "") + "). It is a draft only, not posted. This screen will not create another draft.</div>";
+    }
+    h += "<div class='row'><div><label class='f'>Delivery note</label><input id='uRef' type='text' value='" + esc(saved.ref || (todayUd && todayUd.ref) || ("Milk " + ukDate(londonISO()))) + "'" + (already ? " disabled" : "") + "></div><div><label class='f'>Staff</label><input id='uStaff' type='text' value='" + esc(saved.staff || (todayUd && todayUd.staff) || staff()) + "'" + (already ? " disabled" : "") + "></div></div>" +
+      (already ? "" : "<button class='btn sec' id='uAll' style='margin-top:10px'>Everything delivered as expected</button>") + "</div><div class='card'>" +
       "<div class='ud' style='font-size:.78rem;font-weight:800;color:#5b6573'><div style='flex:1'>Product</div><div style='width:150px;text-align:center'>Received</div><div style='width:62px;text-align:center'>Return</div></div>";
     items.forEach(function (it, i) {
-      var v = saved.rcv && saved.rcv[it.pid] != null ? saved.rcv[it.pid] : "", r = saved.ret && saved.ret[it.pid] != null ? saved.ret[it.pid] : "";
+      var tl = todayUd ? (todayUd.lines || []).filter(function (l) { return l.pid === it.pid; })[0] : null;
+      var v = saved.rcv && saved.rcv[it.pid] != null ? saved.rcv[it.pid] : (tl && tl.rcv != null ? tl.rcv : it.expected);
+      var rt = todayUd ? (todayUd.returns || []).filter(function (l) { return l.pid === it.pid; })[0] : null;
+      var r = saved.ret && saved.ret[it.pid] != null ? saved.ret[it.pid] : (rt ? rt.ret : "");
       h += "<div class='ud'><div class='pic' style='width:48px;height:48px;flex-basis:48px'>" + picHtml(it.pid) + "</div><div style='flex:1;min-width:0'><div class='ln' style='font-size:.92rem'>" + esc(it.name) + "</div><div class='exp'>" + esc(it.bc) + " &middot; expected " + it.expected + " &middot; " + money(it.unit_cost) + " each (" + esc(it.cost_src) + ")</div></div>" +
-        "<div class='q'><button type='button' data-m='" + i + "'>-</button><input data-r='" + i + "' type='number' inputmode='numeric' value='" + esc(v) + "' placeholder='" + it.expected + "'><button type='button' data-p='" + i + "'>+</button></div><div class='ret'><input data-t='" + i + "' type='number' inputmode='numeric' value='" + esc(r) + "' placeholder='0'></div></div>";
+        "<div class='q'><button type='button' data-m='" + i + "'" + (already ? " disabled" : "") + ">-</button><input data-r='" + i + "' type='number' inputmode='numeric' value='" + esc(v) + "'" + (already ? " disabled" : "") + "><button type='button' data-p='" + i + "'" + (already ? " disabled" : "") + ">+</button></div><div class='ret'><input data-t='" + i + "' type='number' inputmode='numeric' value='" + esc(r) + "' placeholder='0'" + (already ? " disabled" : "") + "></div></div>";
     });
     if (!items.length) h += "<div class='empty'>No milk or bread lines found in recent till stock-ins.</div>";
-    h += "<button class='btn' id='uSend' style='margin-top:12px'>Save and send to the till as a draft</button><div id='uMsg'></div></div>";
+    if (already) h += "<button class='btn' id='uOpen' style='margin-top:12px'>Open the saved draft</button><div id='uMsg'></div></div>";
+    else h += "<button class='btn' id='uSend' style='margin-top:12px'>Save and send to the till as a draft</button><div id='uMsg'></div></div>";
     var rets = allDocs().filter(function (d) { return d.kind === "return" && d.sid === "SUP-003" && ["recorded", "pending_approval", "approved"].indexOf(status(d)) >= 0; });
     h += "<div class='card'><h2>Returns waiting</h2>" + (rets.length ? "<div class='list'>" + rets.map(function (d) { return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(d.ref) + " <span class='st " + status(d) + "'>" + esc(STATUS[status(d)]) + "</span></div><div class='m'>" + d.lines.map(function (l) { return esc(l.name) + " " + l.ret; }).join(", ") + "</div></div>"; }).join("") + "</div>" : "<div class='empty'>None.</div>") + "</div>";
     var hist = SI.ud_history || [];
@@ -798,11 +842,11 @@
     function store() { var s = jget(key, {}); s.ref = $("uRef").value; s.staff = $("uStaff").value; s.rcv = {}; s.ret = {}; items.forEach(function (it, i) { var a = $("view").querySelector("[data-r='" + i + "']").value, b = $("view").querySelector("[data-t='" + i + "']").value; if (a !== "") s.rcv[it.pid] = num(a); if (b !== "") s.ret[it.pid] = num(b); }); jset(key, s); return s; }
     each("[data-r],[data-t],#uRef,#uStaff", function (el) { el.onchange = store; });
     each("[data-m],[data-p]", function (b) { b.onclick = function () { var i = b.getAttribute("data-m") || b.getAttribute("data-p"), inp = $("view").querySelector("[data-r='" + i + "']"); var v = inp.value === "" ? items[i].expected : num(inp.value); inp.value = Math.max(0, v + (b.hasAttribute("data-p") ? 1 : -1)); store(); }; });
-    $("uAll").onclick = function () { items.forEach(function (it, i) { $("view").querySelector("[data-r='" + i + "']").value = it.expected; }); store(); };
-    $("uSend").onclick = function () {
+    if ($("uAll")) $("uAll").onclick = function () { items.forEach(function (it, i) { $("view").querySelector("[data-r='" + i + "']").value = it.expected; }); store(); };
+    if ($("uOpen")) $("uOpen").onclick = function () { openDoc(todayUd.id); };
+    if ($("uSend")) $("uSend").onclick = function () {
+      if (udAlreadySaved(todayUdDoc())) { say("uMsg", "Today's Unique Dairies delivery is already saved. Another draft was not created.", "ok"); return; }
       var s = store(), who = (s.staff || "").trim(); if (!who) return say("uMsg", "Type your name.", "err");
-      var missing = items.filter(function (it) { return s.rcv[it.pid] == null; });
-      if (missing.length && !confirm(missing.length + " line(s) have no received number. Count them as expected?")) return;
       var lines = items.map(function (it) { var r = s.rcv[it.pid] != null ? s.rcv[it.pid] : it.expected; return { pid: it.pid, name: it.name, bc: it.bc, exp: it.expected, rcv: r, upc: 1, case_cost: it.unit_cost, vat: it.vat, damaged: 0, bb: "", match: "list", confirmed: true, cost_src: it.cost_src }; }).filter(function (l) { return l.rcv > 0; });
       var returns = items.filter(function (it) { return num(s.ret[it.pid]) > 0; }).map(function (it) { return { pid: it.pid, name: it.name, ret: num(s.ret[it.pid]), upc: 1, unit_cost: it.unit_cost, vat: it.vat, reason: "Unsold, returned to Unique Dairies" }; });
       var doc = { id: s.id || newId("U"), kind: "ud", sid: "SUP-003", ref: (s.ref || "").trim(), date: londonISO(), staff: who, lines: lines, returns: returns, source: "Milk and bread screen" };
@@ -1035,6 +1079,7 @@
     each("[data-up]", function (b) { b.onclick = function () { var i = +b.getAttribute("data-up"), t = SCAN.pages[i]; SCAN.pages[i] = SCAN.pages[i - 1]; SCAN.pages[i - 1] = t; SCAN.parsed = null; renderScan(); }; });
     if ($("scRead")) $("scRead").onclick = readInvoice;
     if ($("scMake")) $("scMake").onclick = makeDraftFromScan;
+    if ($("scRetake")) $("scRetake").onclick = function () { SCAN.parsed = null; if (SCAN.pages.length) SCAN.pages.pop(); renderScan(); };
     if ($("scSupGo")) $("scSupGo").onclick = function () { go("suppliers"); };
     if ($("scUd")) $("scUd").onclick = function () { go("ud"); };
     ["scInv", "scDate"].forEach(function (id) { if ($(id)) $(id).onchange = function () { SCAN.parsed.inv_no = $("scInv").value.trim(); SCAN.parsed.date = $("scDate").value; dupCheck(SCAN.parsed); renderScan(); }; });
@@ -1115,6 +1160,13 @@
     var h = "<div class='card'><h2>What the app read</h2><div class='m'>Read with " + esc(r.method || "?") + ". Supplier: <b>" + esc(r.sid ? supName(r.sid) : "not recognised") + "</b>" + (r.detected && r.detected !== r.sid ? " (invoice looks like " + esc(supName(r.detected)) + ")" : "") + "</div>";
     if (!r.sid) h += "<div class='flag'>Supplier not recognised on the phone. Just create the draft: the box reads the supplier from the invoice. A supplier the app does not know yet is added as 'waiting for approval' for a manager. <button class='btn small sec' id='scSupGo'>Suppliers</button></div>";
     if (r.sid === "SUP-003") h += "<div class='note'>Unique Dairies milk and bread can also be checked on the quick screen. <button class='btn small sec' id='scUd'>Milk and bread</button></div>";
+    if (r.unreadable || !r.lines.length) {
+      h += "<div class='msg err' id='scUnread' style='margin-top:10px'><b>Could not read this invoice, please retake the photo.</b> The app could not find product lines with a quantity and a price. Header, address and branch text are ignored, so they are not added as products. Take a flatter, brighter photo of the whole page, or upload the PDF.</div>";
+      h += "<button class='btn' id='scRetake' style='margin-top:12px'>Retake photo</button>";
+      h += "<button class='btn sec' id='scMake' style='margin-top:12px'" + (r.dup ? " disabled" : "") + ">Save the picture only (no product lines)</button>";
+      h += "<div class='m' style='margin-top:6px'>Saving the picture keeps it for the box to try again. It does not add product lines or change the till.</div></div>";
+      return h;
+    }
     h += "<div class='row'><div><label class='f'>Invoice number</label><input id='scInv' type='text' value='" + esc(r.inv_no) + "'></div><div><label class='f'>Invoice date</label><input id='scDate' type='date' value='" + esc(r.date) + "'></div></div>" +
       "<div class='m' style='margin-top:6px'>" + r.lines.length + " lines &middot; lines add up to " + money(r.sum) + (r.totals.goods != null ? " &middot; invoice goods total " + money(r.totals.goods) + (r.totals_match ? " &#9989; agrees" : " &#9888;&#65039; does not agree") : "") + " &middot; " + matched + " matched to till products &middot; " + flagged + " line(s) to check</div>";
     r.warnings.forEach(function (w) { h += "<div class='note'>" + esc(w) + "</div>"; });
@@ -1126,7 +1178,6 @@
         "<div class='lm'>" + (p ? (l.match === "suggested" ? "Suggested: " : "Till: ") + esc(p.n) : "Not matched to a till product") + "</div>" + (l.flags.length ? "<div class='lm' style='color:#b45309'>" + esc(l.flags.join("; ")) + "</div>" : "") + "</td>" +
         "<td class='n'>" + (l.qty == null ? "?" : l.qty) + "</td><td class='n'>" + (l.upc == null ? "?" : l.upc) + "</td><td class='n'>" + (l.case_cost == null ? "?" : money(l.case_cost)) + "</td><td>" + (l.vat === "" ? "?" : l.vat + "%") + "</td></tr>";
     }).join("") + "</table>";
-    if (!r.lines.length) h += "<div class='note'>The phone could not read the lines. Create the draft anyway: the pages go to the box and Grok reads them" + ((SI.ai || {}).key_present ? "." : " once its key is added.") + "</div>";
     h += "<button class='btn' id='scMake' style='margin-top:12px'" + (r.dup ? " disabled" : "") + ">Create Stock In draft</button>" +
       "<div class='m' style='margin-top:6px'>Question marks are left blank on purpose: costs, barcodes and VAT are never guessed. Fill them in from the invoice on the draft.</div></div>";
     return h;
@@ -1135,7 +1186,8 @@
     var r = SCAN.parsed, who = staff();
     if (r.dup) return;
     if (!who) { who = (prompt("Your name") || "").trim(); if (!who) return; try { localStorage.setItem("birkhill-staff-name", who); } catch (e) {} }
-    var lines = r.lines.map(function (x) {
+    var rawLines = (r.unreadable ? [] : r.lines).filter(function (x) { return !(BHInvoice.lineLooksJunk && BHInvoice.lineLooksJunk(x)); });
+    var lines = rawLines.map(function (x) {
       var p = BYID[x.pid];
       var l = mkLine(p, { bc: x.bc || "", inv_name: (x.desc + (x.size ? " " + x.size : "")).trim(), inv_code: x.code || "", exp: x.qty == null ? "" : x.qty, rcv: x.qty == null ? 0 : x.qty,
         upc: x.upc == null ? "" : x.upc, case_cost: x.case_cost == null ? "" : x.case_cost, vat: x.vat || "", match: x.match === "none" ? "none" : x.match, cost_src: x.case_cost == null ? "" : "invoice" });
@@ -1145,9 +1197,11 @@
       if (x.match === "code") l.confirmed = true;
       return l;
     });
+    var unread = !!r.unreadable || !lines.length;
     var doc = { id: newId("S"), kind: "delivery", sid: r.sid || "", ref: ((r.sid ? supName(r.sid).split(" (")[0] : "New supplier") + " " + (r.inv_no || "")).trim(), date: r.date || londonISO(), staff: who, lines: lines, rev: 0,
       source: "Invoice scan", localStatus: "local", unsent: true,
-      scan: { inv_no: r.inv_no || "", method: r.method, lines: r.lines.length, sum: r.sum, totals: r.totals, totals_match: !!r.totals_match, warnings: r.warnings, pages: SCAN.pages.length, read_at: londonAt(), date_read: !!r.date } };
+      scan: { inv_no: r.inv_no || "", method: r.method, lines: lines.length, sum: r.sum, totals: r.totals, totals_match: !!r.totals_match, warnings: r.warnings, pages: SCAN.pages.length, read_at: londonAt(), date_read: !!r.date, unreadable: unread } };
+    if (unread) { doc.warnings = ["Could not read this invoice, please retake the photo"]; doc.scan.unreadable = true; }
     saveLocal(doc);
     uploadPages(doc.id, SCAN.pages.slice());
     SCAN = { pages: [], parsed: null, sid: "", busy: false, method: "" };

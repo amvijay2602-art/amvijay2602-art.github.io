@@ -244,13 +244,37 @@
     return res;
   }
 
+  // Header, address, branch and footer text must never become product lines (phone OCR often reads these).
+  var HEADER_RX = /\b(branch|invoice\s*to|deliver(?:y|ed)?\s*to|account\s*(no|number|#)?|vat\s*reg|vat\s*analysis|sub[\s-]*total|goods\s*total|grand\s*total|invoice\s*total|amount\s*due|balance\s*due|page\s+\d|telephone|\btel\b|fax\b|registered\s*(office|no|number)|company\s*(no|number)|cashier|till\s*id|business\s*id|customer\s*(no|number|account)|payment\s*(type|method)|paid\s*by|date\s*\/\s*time|booker\s+wholesale|nottingham|fir\s*road|eckington|sheffield|birkhill\s+stores?)\b/i;
+  var MAX_QTY = 200, HARD_MAX_QTY = 500;
+  function isHeaderLine(desc) {
+    var t = String(desc || "").replace(/\s+/g, " ").trim();
+    if (!t) return true;
+    if (HEADER_RX.test(t)) return true;
+    if ((t.match(/[A-Za-z]/g) || []).length < 3) return true;
+    return false;
+  }
+  function lineLooksJunk(l) {
+    var desc = (l && (l.inv_name || l.desc || l.name)) || "";
+    var flags = (l && l.flags) || [];
+    var unknown = flags.some(function (f) { return /unknown layout/i.test(String(f)); });
+    var noId = l && !l.pid && !l.bc && !l.code && !l.inv_code;
+    var noCost = !l || l.case_cost === "" || l.case_cost == null;
+    if (isHeaderLine(desc)) return true;
+    if (unknown && noId && noCost) return true;
+    var q = l && (l.qty != null ? l.qty : l.exp);
+    if (q != null && Number(q) > MAX_QTY && noCost && noId) return true;
+    return false;
+  }
+
   // ---------- anything else (Unique Dairies, Country Choice, delivery notes): best effort, everything flagged
   function parseGeneric(text) {
     var res = { supplier: "", inv_no: "", date: "", lines: [], warnings: ["Unknown invoice layout: every line needs checking"], totals: {}, pages: {} };
     var m = /(?:invoice|delivery\s*note|inv)\s*(?:no\.?|number|#)?\s*[:.]?\s*([A-Z]{0,3}[0-9]{4,9})/i.exec(text); if (m) res.inv_no = m[1];
     m = /\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})\b/.exec(text); if (m) res.date = isoDate(m[1], m[2], m[3]);
     text.split(/\r?\n/).forEach(function (ln) {
-      var toks = ln.trim().split(/\s+/); if (toks.length < 3) return;
+      var raw = ln.trim(); if (!raw) return;
+      var toks = raw.split(/\s+/); if (toks.length < 3) return;
       var bc = "", nums = [], words = [];
       toks.forEach(function (t) {
         var f = fixNum(t);
@@ -258,14 +282,21 @@
         else if (/^\d+(\.\d{1,2})?$/.test(f) && /\d/.test(t)) nums.push(f);
         else words.push(t);
       });
-      if (!words.length || nums.length < 2) return;
+      var desc = words.join(" ");
+      if (!words.length) return;
+      if (isHeaderLine(desc) || isHeaderLine(raw)) return;
       var withDot = nums.filter(function (n) { return /\.\d{2}$/.test(n); });
       var ints = nums.filter(function (n) { return /^\d{1,3}$/.test(n); });
       var qty = ints.length ? parseInt(ints[0], 10) : null, price = withDot.length ? parseFloat(withDot[0]) : null, value = withDot.length > 1 ? parseFloat(withDot[withDot.length - 1]) : null;
+      // Require a price and a plausible quantity so branch numbers, pages and OCR junk cannot become product lines.
+      if (price == null && value == null) return;
+      if (qty == null || qty < 1) return;
+      if (qty > HARD_MAX_QTY) return;
+      if (qty > MAX_QTY && !(price != null && value != null && near(price * qty, value, 0.05))) return;
       var flags = ["Read from an unknown layout, check every field"];
       if (price != null && qty != null && value != null && !near(price * qty, value, 0.02)) { flags.push("Cost not clear"); price = null; }
       if (price == null) flags.push("Cost not read");
-      res.lines.push({ code: "", bc: bc, desc: words.join(" "), size: "", upc: null, qty: qty, case_cost: price, value: value, vat: "", vat_code: "", flags: flags.concat(["VAT not on this layout"]) });
+      res.lines.push({ code: "", bc: bc, desc: desc, size: "", upc: null, qty: qty, case_cost: price, value: value, vat: "", vat_code: "", flags: flags.concat(["VAT not on this layout"]) });
     });
     return res;
   }
@@ -297,6 +328,11 @@
     if (r.pages.of) { var miss = []; for (var p = 1; p <= r.pages.of; p++) if (!r.pages[p]) miss.push(p); if (miss.length) r.warnings.push("Page " + miss.join(", ") + " of " + r.pages.of + " not scanned"); }
     if (!r.inv_no) r.warnings.push("Invoice number not read, type it in");
     if (!r.date) r.warnings.push("Invoice date not read, type it in");
+    if (!r.lines.length) {
+      r.unreadable = true;
+      if (r.warnings.indexOf("Could not read this invoice, please retake the photo") < 0)
+        r.warnings.unshift("Could not read this invoice, please retake the photo");
+    } else r.unreadable = false;
     return r;
   }
 
@@ -356,5 +392,5 @@
     return { pid: null, match: "none", score: 0, alts: cands.slice(0, 3).map(function (c) { return c.pid; }) };
   }
 
-  return { layoutPage: layoutPage, parse: parse, splitInvoices: splitInvoices, detectSupplier: detectSupplier, parseDhamecha: parseDhamecha, parseEden: parseEden, parseGeneric: parseGeneric, matchLine: matchLine, sim: sim, fixNum: fixNum };
+  return { layoutPage: layoutPage, parse: parse, splitInvoices: splitInvoices, detectSupplier: detectSupplier, parseDhamecha: parseDhamecha, parseEden: parseEden, parseGeneric: parseGeneric, matchLine: matchLine, sim: sim, fixNum: fixNum, isHeaderLine: isHeaderLine, lineLooksJunk: lineLooksJunk };
 });
