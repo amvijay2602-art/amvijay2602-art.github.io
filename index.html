@@ -436,7 +436,13 @@
           if (p20left > 0) parts.push(p20left + " of " + p20.total + " priority checks");
         }
         setBadge("tileChiller", cd.length + gl.length + p20left + wfleft, parts.join(", "));
-        setBadge("tileDate", dd.length, dd.length + " date" + (dd.length > 1 ? "s" : "") + " due or past");
+        var bread = J.bread_datecheck, breadLeft = 0, dateParts = [];
+        if (bread && bread.due_today) {
+          breadLeft = Math.max(0, bread.left != null ? bread.left : (bread.total || 0) - (bread.checked || 0));
+          if (breadLeft > 0) dateParts.push("Breads date check due (" + breadLeft + " not checked)");
+        }
+        if (dd.length) dateParts.push(dd.length + " date" + (dd.length > 1 ? "s" : "") + " due or past");
+        setBadge("tileDate", (breadLeft > 0 ? 1 : 0) + dd.length, dateParts.join(", "));
         // Newspapers: only when the snapshot is fresh enough to know
         var f = londonOf(J.fetched_iso), P = J.paper || {}, pj = [];
         var dl = P.delivery_last ? P.delivery_last.slice(0, 10) : "", rl = P.returns_last ? P.returns_last.slice(0, 10) : "";

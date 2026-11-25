@@ -21,7 +21,7 @@
       ".mdc .pimg.big{width:120px;height:120px}.mdc .muted{color:#5b6f64;font-size:.95rem}.mdc .big{font-size:1.6rem;font-weight:900}.mdc .opt{display:flex;gap:10px;align-items:center;padding:12px;border:2px solid #d5e3da;border-radius:12px;margin:6px 0;font-weight:700}" +
       ".mdc .opt input{width:28px;min-height:28px;height:28px}.mdc .opt.on{border-color:#17643F;background:#e8f6ec}.mdc .msg{padding:10px;border-radius:12px;margin-top:10px;font-weight:700}.mdc .msg.ok{background:#e8f6ec;color:#17643F}.mdc .msg.err{background:#fdecea;color:#b71c1c}.mdc .msg.warn{background:#fff4e5;color:#8a4b00}" +
       ".mdc table{width:100%;border-collapse:collapse;font-size:16px}.mdc td,.mdc th{border-bottom:1px solid #e3ece6;padding:6px 4px;text-align:left;vertical-align:top}.mdc .tag{display:inline-block;padding:2px 8px;border-radius:8px;font-weight:800;font-size:.85rem}.mdc .tag.u{background:#b71c1c;color:#fff}.mdc .tag.w{background:#fff4e5;color:#8a4b00}" +
-      ".mdc .batch{display:grid;grid-template-columns:1.4fr 1fr 44px;gap:6px;margin-top:6px}.mdc .batch button{min-height:52px;border-radius:12px;border:1px solid #b71c1c;background:#fff;color:#b71c1c;font-weight:900}";
+      ".mdc .batch{display:grid;grid-template-columns:1.4fr 1fr 44px;gap:6px;margin-top:6px}.mdc .batch button{min-height:52px;border-radius:12px;border:1px solid #b71c1c;background:#fff;color:#b71c1c;font-weight:900}.mdc-due{background:#fff;border-radius:16px;padding:14px;margin:0 0 12px;box-shadow:0 1px 4px rgba(24,52,42,.1)}.mdc-due h2{font-size:1.3rem;margin:0 0 6px}.mdc-due .due{color:#17643F;font-weight:800}.mdc-due .off{color:#8a4b00}";
     document.head.appendChild(s);
   }
   function load() {
@@ -43,8 +43,10 @@
     var bar = document.createElement("div"); bar.className = "mdc-bar";
     bar.innerHTML = "<button type='button' id='mdcModeQuick'>Quick date check</button><button type='button' id='mdcModeManual'>Manual Date Check</button><button type='button' id='mdcModeReports'>Date Reports</button>";
     h1.parentNode.insertBefore(bar, h1.nextSibling);
-    box = document.createElement("div"); box.className = "mdc hidden"; box.id = "mdcBox"; bar.parentNode.insertBefore(box, bar.nextSibling);
+    var dueEl = document.createElement("div"); dueEl.className = "mdc-due hidden"; dueEl.id = "mdcDue"; bar.parentNode.insertBefore(dueEl, bar.nextSibling);
+    box = document.createElement("div"); box.className = "mdc hidden"; box.id = "mdcBox"; dueEl.parentNode.insertBefore(box, dueEl.nextSibling);
     $("mdcModeQuick").onclick = function () { mode("quick"); }; $("mdcModeManual").onclick = function () { mode("manual"); }; $("mdcModeReports").onclick = function () { mode("reports"); };
+    load().then(function () { renderDue(); }).catch(function () {});
     var m = new URLSearchParams(location.search).get("mode"); mode(m === "manual" || m === "reports" ? m : "quick");
   }
   function mode(m) {
@@ -58,12 +60,68 @@
     load().then(function () { m === "manual" ? manual() : reports(); }).catch(function () { box.innerHTML = "<div class='msg err'>Product list locked. Open this app once from the full link Vijay sent (it ends in #k=...).</div>"; });
   }
   function stockNote() { return "Recorded stock is the latest till figure, last updated " + esc(DATA.stock_taken_display || D.ukWhen(DATA.stock_taken_at)) + ". Please check it by hand."; }
+  function breadGroup() {
+    var s = DATA && DATA.due_today, g = s && s.groups && s.groups[0];
+    return g || null;
+  }
+  function liveBread(g) {
+    if (!g) return g;
+    var today = D.today(), recs = D.records(DATA.records || []), seen = {};
+    (g.checked_pids || []).forEach(function (id) { seen[id] = 1; });
+    recs.forEach(function (r) {
+      if (String(r.at || "").slice(0, 10) !== today) return;
+      var pid = +r.pid;
+      if (pid && (g.pids || []).indexOf(pid) >= 0) seen[pid] = 1;
+    });
+    var checked = 0, notChecked = [];
+    (g.pids || []).forEach(function (id) { if (seen[id]) checked++; });
+    (g.not_checked || []).forEach(function (p) { if (!seen[p.id]) notChecked.push(p); });
+    var out = {};
+    Object.keys(g).forEach(function (k) { out[k] = g[k]; });
+    out.checked = checked;
+    out.left = g.due ? Math.max(0, (g.total || 0) - checked) : 0;
+    out.not_checked = g.due ? notChecked : [];
+    return out;
+  }
+  function deptLabel(d) {
+    if (d && d.sched === "bread" && d.due) return d.n + " - due today";
+    return d ? d.n : "";
+  }
+  function renderDue() {
+    var el = $("mdcDue"); if (!el) return;
+    var g = liveBread(breadGroup());
+    if (!g) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+    el.classList.remove("hidden");
+    var days = (g.days || []).join(", ");
+    var depts = (g.departments || []).map(function (d) { return d.n; }).join(" and ");
+    if (g.due) {
+      el.innerHTML = "<h2>Due today</h2><div class='due'>" + esc(g.name) + " date check is due today (" + esc(days) + ").</div>" +
+        "<div class='muted' style='margin-top:6px'>" + esc(depts) + ": " + g.checked + " of " + g.total + " in stock checked. " + g.left + " not checked yet.</div>" +
+        "<div class='muted'>Open Manual Date Check and choose Breads or Bread & Cakes, or scan them on Quick date check.</div>";
+    } else {
+      el.innerHTML = "<h2>Breads date check</h2><div class='off'>Not due today. Next due: " + esc(g.next) + ".</div>" +
+        "<div class='muted' style='margin-top:6px'>Breads are checked on " + esc(days) + ". You can still check a bread product today if you need to: choose the department below or scan it.</div>";
+    }
+  }
+  function breadReportHtml() {
+    var g = liveBread(breadGroup());
+    if (!g) return "";
+    if (!g.due) {
+      return "<div class='card2'><h2>Breads date check</h2><div class='muted'>Not due today. Next due: " + esc(g.next) + " (" + esc((g.days || []).join(", ")) + "). Not counted as missing.</div></div>";
+    }
+    var rows = g.not_checked || [];
+    var list = rows.length ? "<table><tr><th>Product</th><th>Barcode</th></tr>" + rows.map(function (r) {
+      return "<tr><td>" + esc(r.n) + "<div class='muted'>" + esc(r.dept || "") + "</div></td><td>" + esc(r.bc || "none") + "</td></tr>";
+    }).join("") + "</table>" : "<div class='msg ok'>All in-stock breads have a check today.</div>";
+    return "<div class='card2' id='mdcBreadDue'><h2>Breads due today (" + g.left + " not checked)</h2>" +
+      "<div class='muted'>" + esc((g.days || []).join(", ")) + ". " + g.checked + " of " + g.total + " in stock checked. These are not counted as missing on other days.</div>" + list + "</div>";
+  }
   // ---------- Manual Date Check
   function manual() {
     var a = active(), st = D.staff();
     var h = "<div class='card2'><h2>Manual Date Check</h2><div class='muted'>" + stockNote() + "</div>" +
       "<label for='mdcStaff'>Your name</label><input id='mdcStaff' value='" + esc(st) + "' placeholder='Your name'>" +
-      "<label for='mdcDept'>1. Department</label><select id='mdcDept'><option value=''>Choose department</option>" + DATA.departments.map(function (d) { return "<option value='" + d.id + "'>" + esc(d.n) + "</option>"; }).join("") + "</select>" +
+      "<label for='mdcDept'>1. Department</label><select id='mdcDept'><option value=''>Choose department</option>" + DATA.departments.map(function (d) { return "<option value='" + d.id + "'>" + esc(deptLabel(d)) + "</option>"; }).join("") + "</select>" +
       "<label for='mdcSub'>2. Sub-department</label><select id='mdcSub'><option value=''>All sub-departments</option></select>" +
       "<label for='mdcQ'>3. Search by name or barcode</label><div class='row2'><input id='mdcQ' placeholder='Name or barcode' autocomplete='off'><button type='button' class='btn sec' id='mdcScan' style='margin-top:0'>Scan barcode</button></div>" +
       "<div id='mdcScanWrap' class='hidden' style='margin-top:8px'><video id='mdcVideo' playsinline muted autoplay style='width:100%;border-radius:12px'></video></div>" +
@@ -76,7 +134,7 @@
     $("mdcSub").onchange = search; $("mdcQ").oninput = search;
     $("mdcQ").onkeydown = function (e) { if (e.key === "Enter") { var p = BYBC[bkey(this.value)]; if (p) openProd(p, "typed"); } };
     $("mdcScan").onclick = scan; $("mdcFinish").onclick = finish; $("mdcHist").onclick = historyView;
-    drawActive(); search();
+    drawActive(); search(); renderDue();
   }
   function fillSubs() {
     var d = DATA.departments.filter(function (x) { return String(x.id) === $("mdcDept").value; })[0];
@@ -168,7 +226,7 @@
     a.items.push({ id: r.id, name: p.n, bc: p.b[0] || "", rec: rec, qty: q, dtype: dt, batches: batches, disc: disc, corr: c ? c.id : "", prev: c ? c.prev : null, at: r.at });
     setActive(a);
     $("mdcCard").innerHTML = ""; cur.prod = null; dtype = "useby"; $("mdcQ").value = ""; search();
-    drawActive(); say("Saved " + p.n + ". " + (c ? "Stock correction saved as a draft for Vijay (was " + c.prev + ", now " + q + "). " : "") + "Next product.", "ok");
+    drawActive(); renderDue(); say("Saved " + p.n + ". " + (c ? "Stock correction saved as a draft for Vijay (was " + c.prev + ", now " + q + "). " : "") + "Next product.", "ok");
   }
   function dateTxt(it) { return it.dtype === "zero" ? "Stock 0, no date" : it.dtype === "none" ? "No date printed" : it.batches.map(function (b) { return D.kindTxt(b.k) + " " + D.ukDate(b.d) + " x" + b.q; }).join("; "); }
   function drawActive() {
@@ -181,7 +239,7 @@
     var H = D.jget(HK, []); H.unshift(a); D.jset(HK, H);            // saved to history first
     D.send("MDC1", { t: "session_done", id: a.id, at: a.finished, staff: a.staff, items: a.items.length, corrections: a.items.filter(function (i) { return i.corr; }).length });
     setActive(null);                                                 // then clear only the active list
-    drawActive(); showReport(a);
+    drawActive(); renderDue(); showReport(a);
   }
   function reportOf(a) {
     var L = ["Birkhill manual date check " + D.ukWhen(a.finished), "Checked by " + a.staff + ". " + a.items.length + " products. Stock differences: " + a.items.filter(function (i) { return i.disc; }).length + "."];
@@ -211,6 +269,7 @@
       }).join("") + "</table>" : "<div class='msg ok'>None.</div>") + "</div>";
     }
     var h = "<div class='card2'><h2>Date Reports</h2><div class='muted'>From the latest check of each product (manual date checks and Eden deliveries, all phones after the box update, about every 30 minutes, plus this phone now). " + c.checked + " products with a check.</div>" +
+      breadReportHtml() +
       "<div style='margin-top:8px'>Short-dated warning: <b id='mdcWShort'>" + w.short + " days</b>. Urgent: <b id='mdcWUrg'>" + w.urgent + " days</b> or less." + (w.by ? " <span class='muted'>Set by " + esc(w.by) + " " + esc(D.ukWhen(w.at)) + ".</span>" : "") + "</div>" +
       "<button type='button' class='btn o' id='mdcRShare'>Share to Vijay office WhatsApp</button><button type='button' class='btn sec' id='mdcWEdit'>Change warning periods (manager)</button><div id='mdcWBox'></div></div>" +
       sec("mdcExpired", "Expired (use-by passed)", c.expired, "Remove from sale now.") +
