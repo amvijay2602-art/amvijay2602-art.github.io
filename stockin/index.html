@@ -342,14 +342,14 @@
   var SUPFLOWS = [
     { k: "parfetts", sid: "SUP-001", name: "Parfetts", st: "ok", tag: "Invoice check + till sync", how: "Load the Parfetts invoice file (EDN / Invoice Data CSV). The app compares every line with the till Stock In draft. Grok Bot fixes the till draft (draft only) at the next update." },
     { k: "eden", sid: "SUP-005", name: "Eden Farm", st: "ok", tag: "Delivery check + scanner", how: "Eden EDN delivery check: expected against received, problems, expiry dates with batches, Confirm Item and Confirm Full Delivery, then a delivery report. The Invoice Scanner still makes the till draft. Nothing is posted to the till." },
-    { k: "dhamecha", sid: "SUP-002", name: "Dhamecha", st: "part", tag: "Invoice Scanner works", how: "Photo or PDF of the Dhamecha invoice. The box reads it, compares with the till and saves a till draft automatically. Line-by-line check against an existing till draft: coming soon." },
-    { k: "booker", sid: "SUP-006", name: "Booker", st: "manual", tag: "Type lines by hand", how: "Type or scan the lines by hand. Reading the invoice automatically: coming soon." },
-    { k: "tns", sid: "SUP-008", name: "TNS Wholesale", st: "manual", tag: "Type lines by hand", how: "Type or scan the lines by hand. Reading the invoice automatically: coming soon." },
-    { k: "cc", sid: "SUP-004", name: "Country Choice", st: "manual", tag: "Type lines by hand", how: "Type or scan the lines by hand. Reading the invoice automatically: coming soon." },
-    { k: "galaxy", sid: "", name: "Galaxy", st: "soon", tag: "Send the invoice in chat", how: "Not set up in this app yet. Send the Galaxy invoice to Grok Bot in chat." },
+    { k: "dhamecha", sid: "SUP-002", name: "Dhamecha", st: "part", tag: "Invoice Scanner works", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking." },
+    { k: "booker", sid: "SUP-006", name: "Booker", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
+    { k: "tns", sid: "SUP-008", name: "TNS Wholesale", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
+    { k: "cc", sid: "SUP-004", name: "Country Choice", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
+    { k: "galaxy", sid: "", name: "Galaxy", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. A supplier the app does not know yet is added as 'waiting for approval' for a manager." },
     { k: "ud", sid: "SUP-003", name: "Unique Dairies", st: "ok", tag: "Milk and bread screen", how: "Use the quick Milk and bread screen for the daily delivery and returns." },
-    { k: "inpost", sid: "", name: "InPost (newspapers)", st: "soon", tag: "Papers: use the Paper app", how: "Newspapers and magazines stay in the Paper app. Invoice check here: coming soon." },
-    { k: "other", sid: "", name: "Other supplier", st: "manual", tag: "Type lines by hand", how: "Choose the supplier and type or scan the lines. A manager can add a new supplier in the Suppliers tab." }
+    { k: "inpost", sid: "", name: "InPost (newspapers)", st: "part", tag: "Paper app + Invoice Scanner", how: "Daily newspaper and magazine counts stay in the Paper app. The newspaper invoice can be photographed here like any other supplier." },
+    { k: "other", sid: "", name: "Any other supplier", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. A new supplier is found on the invoice and waits for a manager to approve it (Suppliers tab)." }
   ];
   var STTXT = { ok: "Working", part: "Working (scanner)", manual: "Manual only", soon: "Coming soon" };
   var STCOL = { ok: "#1b7f3b", part: "#1b7f3b", manual: "#b26a00", soon: "#777" };
@@ -370,12 +370,12 @@
     else {
       h += "<div class='card'>";
       if (f.k === "eden") h += "<button class='btn o' id='supEdn' style='margin-bottom:8px'>&#128666; Eden EDN delivery check</button>";
-      if (f.k === "eden" || f.k === "dhamecha") h += "<button class='btn' id='supScan'>&#129534; Invoice Scanner: photo or PDF</button>";
+      h += "<button class='btn' id='supScan'>&#129534; Invoice Scanner: photo or PDF</button>";   // universal pipeline: every supplier (25 Nov 2026)
       if (f.k === "eden") h += "<button class='btn sec' id='supHand' style='margin-top:8px'>Eden EDN file or type lines</button>";
       if (f.k === "ud") h += "<button class='btn' id='supUd'>&#129371; Milk and bread screen</button>";
-      if (f.k === "cc" || f.k === "booker" || f.k === "other") h += "<button class='btn' id='supHand'>Type or scan the lines</button>";
-      if (f.k === "inpost") h += "<a class='btn' href='../paper/' style='display:block;text-align:center;text-decoration:none'>Open the Paper app</a>";
-      if (f.st === "soon" || (f.st === "part" && f.k !== "eden")) h += "<div class='note' style='margin-top:8px'>" + (f.st === "soon" ? "Coming soon: invoice reading and the check against the till draft for " + esc(f.name) + "." : "Coming soon: line-by-line check of an existing till draft for " + esc(f.name) + ". The scanner and automatic till draft already work.") + "</div>";
+      if (f.k === "cc" || f.k === "booker" || f.k === "other" || f.k === "tns" || f.k === "galaxy") h += "<button class='btn sec' id='supHand' style='margin-top:8px'>Type or scan the lines by hand</button>";
+      if (f.k === "inpost") h += "<a class='btn sec' href='../paper/' style='display:block;text-align:center;text-decoration:none;margin-top:8px'>Open the Paper app</a>";
+      h += "<div class='note' style='margin-top:8px'>" + aiNote() + "</div>";
       h += "</div>";
     }
     h += histCard(f.k);
@@ -587,6 +587,18 @@
     if (d.scan && !d.delivered_checked) iss.push("Tick 'Delivered quantities checked' after checking what actually arrived");
     return iss;
   }
+  function univCard(d) {
+    var u = d.universal || {}, v = u.validation || {}, h = "<div class='card' style='margin-top:8px'><h2>Invoice check (any-supplier pipeline)</h2><div class='m'>Read by " + esc(u.reader || "") + " &middot; supplier " + esc(u.supplier_how || "") + "</div>";
+    if (d.hold && d.hold.length) h += "<div class='msg warn'>Held, not sent to the till: " + d.hold.map(esc).join("; ") + "</div>";
+    else if (d.waiting) h += "<div class='m'>" + esc(d.waiting) + "</div>";
+    h += "<div class='m'>" + (v.checks || []).map(function (c) { return (c.ok ? "&#9989; " : "&#9888;&#65039; ") + esc(c.check) + ": " + esc(c.detail); }).join("<br>") + "</div>";
+    if ((u.verify || []).length) h += "<h3 style='margin:10px 0 4px'>Check these lines (" + u.verify.length + ")</h3><table class='t'><tr><th>Line</th><th>Code</th><th>Invoice item</th><th>Why</th></tr>" + u.verify.map(function (x) { return "<tr><td>" + x.line + "</td><td>" + esc(x.code || "") + "</td><td>" + esc(x.name || "") + (x.barcode ? "<div class='lm'>" + esc(x.barcode) + "</div>" : "") + "</td><td class='lm'>" + esc(x.why) + "</td></tr>"; }).join("") + "</table>";
+    if ((u.price_flags || []).length) h += "<h3 style='margin:10px 0 4px'>Purchase price changes</h3><div class='m'>" + u.price_flags.map(function (x) { return esc(x.name || x.code) + ": " + esc(x.what || ("£" + x.old + " to £" + x.new + " (" + (x.pct > 0 ? "+" : "") + x.pct + "%)")) + " <span class='lm'>" + esc(x.source || "") + "</span>"; }).join("<br>") + "</div>";
+    if ((u.margin_flags || []).length) h += "<h3 style='margin:10px 0 4px'>Margin</h3><div class='m'>" + u.margin_flags.map(function (x) { return esc(x.name || x.code) + ": " + esc(x.note); }).join("<br>") + "</div>";
+    if (u.edn) h += "<div class='m' style='margin-top:6px'>EDN files on the box: " + esc(String(u.edn.edn).split("/").pop()) + ", " + esc(String(u.edn.template).split("/").pop()) + "</div>";
+    if (u.ai_error) h += "<div class='m'>Grok: " + esc(u.ai_error) + "</div>";
+    return h + "</div>";
+  }
   function renderDoc() {
     var d = cur.doc, s = status(d), ed = editable(d), tt = lineTotals(d), sup = (SI.suppliers || []).filter(function (x) { return x.id === d.sid; })[0];
     var h = "<div class='card'><div class='row' style='align-items:center'><div><b>" + esc(supName(d.sid)) + "</b> <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span></div><div style='flex:0 0 auto'><button class='btn small sec' id='dBack'>Back</button></div></div>" +
@@ -595,6 +607,7 @@
       h += "<div class='row'><div><label class='f'>Invoice or delivery note</label><input id='dRef' type='text' value='" + esc(d.ref || "") + "'></div><div><label class='f'>Delivery date</label><input id='dDate' type='date' value='" + esc(d.date || "") + "'></div></div>" +
         "<div class='row'><div><label class='f'>Staff name</label><input id='dStaff' type='text' value='" + esc(d.staff || staff()) + "'></div><div><label class='f'>Supplier</label><select id='dSup'>" + (SI.suppliers || []).map(function (x) { return "<option value='" + x.id + "'" + (x.id === d.sid ? " selected" : "") + ">" + esc(x.name) + "</option>"; }).join("") + "</select></div></div>";
     } else h += "<div class='m'>Ref " + esc(d.ref) + " &middot; " + ukDate(d.date) + " &middot; staff " + esc(d.staff || "") + (d.approval ? " &middot; approved by " + esc(d.approval.by) : "") + "</div>";
+    if (d.universal) h += univCard(d);
     if (d.scan) {
       var sc = d.scan, nfl = (d.lines || []).filter(function (l) { return (l.flags || []).length && !l.checked && !l.leave_out; }).length;
       h += "<div class='note' style='margin-top:6px'><b>Invoice scan</b> " + esc(sc.inv_no || "") + " &middot; " + esc(sc.method || "") + " &middot; " + (sc.pages || 0) + " page(s) &middot; " + (sc.lines || 0) + " lines &middot; invoice lines total " + money(sc.sum) +
@@ -802,12 +815,16 @@
   // suppliers
   VIEWS.suppliers = function () {
     var m = mgr(), miss = (SI.suppliers || []).filter(function (s) { return !s.till_id; });
-    var h = "<div class='card'><h2>Suppliers</h2><div class='m'>Matched to the till supplier list first, so nothing is duplicated. Till suppliers now: " + (SI.till_suppliers || []).map(function (t) { return esc(t.name) + " (" + t.id + ")"; }).join(", ") + ".</div>" +
+    var pend = (SI.suppliers || []).filter(function (s) { return supSt(s) === "pending_approval"; });
+    var h = (pend.length ? "<div class='card' style='border:2px solid #b26a00'><h2>New suppliers waiting for approval (" + pend.length + ")</h2><div class='m'>Found on invoices by Grok. Their drafts are held (not sent to the till) until a manager approves the supplier. " + (m ? "" : "Log in on the Manager tab to approve.") + "</div></div>" : "") +
+      "<div class='card'><h2>Suppliers</h2><div class='note'>Every supplier, old and new, uses the same invoice pipeline: staff only photograph the invoice.</div><div class='m'>Matched to the till supplier list first, so nothing is duplicated. Till suppliers now: " + (SI.till_suppliers || []).map(function (t) { return esc(t.name) + " (" + t.id + ")"; }).join(", ") + ".</div>" +
       (miss.length ? "<div class='msg warn'>Not in the till yet: " + miss.map(function (s) { return esc(s.name); }).join(", ") + ". A manager can add them below.</div>" : "") +
       (m ? "<button class='btn sec' id='sNew' style='margin-top:8px'>Add a supplier</button>" : "<div class='m' style='margin-top:6px'>Managers can add and edit suppliers (Manager tab).</div>") + "</div>";
-    (SI.suppliers || []).forEach(function (s) {
-      var ih = (SI.invoice_history || {})[s.id] || [], c = s.contact || {};
-      h += "<div class='card'><div style='font-weight:800'>" + esc(s.name) + " <span class='st " + (s.till_id ? "posted" : "pending_approval") + "'>" + (s.till_id ? "Till supplier " + s.till_id + " " + esc(s.till_name) : "Not in till") + "</span></div>" +
+    (SI.suppliers || []).slice().sort(function (a, b) { return (supSt(a) === "pending_approval" ? 0 : 1) - (supSt(b) === "pending_approval" ? 0 : 1); }).forEach(function (s) {
+      var ih = (SI.invoice_history || {})[s.id] || [], c = s.contact || {}, ss = supSt(s), pr = procOf(s), nm = Object.keys((SI.codes || {})[s.id] || {}).length;
+      h += "<div class='card'><div style='font-weight:800'>" + esc(s.name) + " <span class='st " + SSCLS[ss] + "'>" + esc(SSTXT[ss]) + "</span> <span class='st " + (s.till_id ? "posted" : "pending_approval") + "'>" + (s.till_id ? "Till supplier " + s.till_id + " " + esc(s.till_name) : "Not in till") + "</span></div>" +
+        (ss === "pending_approval" ? "<div class='note'>Found on an invoice by Grok" + ((s.found_on || [])[0] ? " (" + esc(s.found_on[0].source) + ")" : "") + ". VAT no " + esc(s.vat_no || "-") + ". Check the details, then approve or reject.</div>" : "") +
+        "<div class='m'>Invoice reading: " + esc(READERS[pr.reader] || pr.reader) + " &middot; till draft " + (pr.till_draft ? "automatic" : "OFF") + " &middot; margin flag under " + pr.min_margin + "% &middot; price change flag over " + pr.price_change_pct + "% &middot; " + nm + " verified product code(s)</div>" +
         "<div class='m'>App ID " + esc(s.id) + " &middot; account " + esc(s.account_no || "-") + " &middot; payment terms " + esc(s.payment_terms || "-") + "</div>" +
         "<div class='m'>Deliveries: " + esc((s.delivery_days || []).join(", ")) + (s.delivery_notes ? " (" + esc(s.delivery_notes) + ")" : "") + "</div>" +
         "<div class='m'>Categories: " + esc((s.categories || []).join(", ")) + "</div>" +
@@ -816,11 +833,27 @@
         (s.till_request ? "<div class='note'>Add to till: " + esc(s.till_request.status) + " (" + esc(s.till_request.by) + ")</div>" : "") +
         (s.link_request ? "<div class='note'>Link products in till: " + esc(s.link_request.status) + "</div>" : "") +
         "<details><summary class='m'>Invoice history (" + ih.length + " in 120 days)</summary><table class='t'>" + ih.map(function (x) { return "<tr><td>" + ukDate(x.date) + "</td><td>" + esc(x.ref) + "</td><td class='n'>" + money(x.ex) + "</td></tr>"; }).join("") + "</table></details>" +
+        "<div class='row' style='margin-top:8px'><button class='btn small sec' data-map='" + s.id + "'>Product mappings</button></div>" +
+        (m && ss === "pending_approval" ? "<div class='row' style='margin-top:8px'><button class='btn small' data-appr='" + s.id + "'>Approve supplier</button><button class='btn small sec' data-rej='" + s.id + "'>Reject</button></div>" : "") +
+        (m && (ss === "active" || ss === "inactive") ? "<div class='row' style='margin-top:8px'><button class='btn small sec' data-act='" + s.id + "'>" + (ss === "active" ? "Deactivate" : "Activate") + "</button></div>" : "") +
         (m ? "<div class='row' style='margin-top:8px'><button class='btn small sec' data-edit='" + s.id + "'>Edit</button>" + (!s.till_id && !s.till_request ? "<button class='btn small o' data-till='" + s.id + "'>Add to till</button>" : "") + (s.id === "SUP-003" && s.till_id && !s.link_request ? "<button class='btn small sec' data-link='" + s.id + "'>Make main till supplier for milk and bread</button>" : "") + "</div>" : "") + "</div>";
     });
     $("view").innerHTML = h;
     if ($("sNew")) $("sNew").onclick = function () { supForm({}); };
     each("[data-edit]", function (b) { b.onclick = function () { supForm(SI.suppliers.filter(function (s) { return s.id === b.getAttribute("data-edit"); })[0]); }; });
+    each("[data-map]", function (b) { b.onclick = function () { go("mappings", b.getAttribute("data-map")); }; });
+    function decide(sid, dec) {
+      var s = supById(sid); if (!confirm((dec === "approve" ? "Approve " : "Reject ") + s.name + "?" + (dec === "approve" ? " Its held drafts are released to the till-draft step at the next update." : ""))) return;
+      signRaw(function (at, by) { return "supplier_approve|" + sid + "|" + dec + "|" + at + "|" + by; }).then(function (x) { queueEv({ t: "supplier_approve", sid: sid, decision: dec, at: x.at, by: x.by, sig: x.sig }); alert("Sent. Active after the next update."); });
+    }
+    each("[data-appr]", function (b) { b.onclick = function () { decide(b.getAttribute("data-appr"), "approve"); }; });
+    each("[data-rej]", function (b) { b.onclick = function () { decide(b.getAttribute("data-rej"), "reject"); }; });
+    each("[data-act]", function (b) { b.onclick = function () {
+      var s = supById(b.getAttribute("data-act")), on = supSt(s) !== "active";
+      if (!confirm((on ? "Activate " : "Deactivate ") + s.name + "?" + (on ? "" : " Its new invoices are still read but held from the till."))) return;
+      var ds = JSON.stringify({ id: s.id, name: s.name, active: on });
+      sha256(ds).then(function (hh) { return signRaw(function (at, by) { return "supplier|" + hh + "|" + at + "|" + by; }); }).then(function (x) { queueEv({ t: "supplier", ds: ds, at: x.at, by: x.by, sig: x.sig }); alert("Sent. Changes after the next update."); });
+    }; });
     each("[data-till]", function (b) { b.onclick = function () {
       var s = SI.suppliers.filter(function (x) { return x.id === b.getAttribute("data-till"); })[0];
       if (!confirm("Add " + s.name + " to the till supplier list? The box checks for a duplicate first.")) return;
@@ -831,11 +864,40 @@
       sha256(pids.join(",")).then(function (hh) { return signRaw(function (at, by) { return "link|SUP-003|" + hh + "|" + at + "|" + by; }); }).then(function (x) { queueEv({ t: "link", sid: "SUP-003", pids: pids, at: x.at, by: x.by, sig: x.sig }); alert("Sent."); });
     }; });
   };
+  var READERS = { auto: "Grok AI + exact PDF reader cross-check", ai: "Grok AI only", parser: "PDF text reader only (no AI)" };
+  var SSTXT = { active: "Active", inactive: "Deactivated", pending_approval: "Waiting for approval", rejected: "Rejected" }, SSCLS = { active: "posted", inactive: "discarded", pending_approval: "pending_approval", rejected: "error" };
+  function supSt(s) { return (s && s.status) || (s && s.active === false ? "inactive" : "active"); }
+  function supById(id) { return (SI.suppliers || []).filter(function (x) { return x.id === id; })[0] || {}; }
+  function procOf(s) { var p = (s && s.processing) || {}; return { reader: p.reader || "auto", till_draft: p.till_draft !== false, min_margin: p.min_margin != null ? p.min_margin : 25, price_change_pct: p.price_change_pct != null ? p.price_change_pct : 2 }; }
+  // Product mappings: supplier product code -> existing till product (verified). Never creates a till product.
+  VIEWS.mappings = function (sid) {
+    sid = sid || cur.mapSid; cur.mapSid = sid; var s = supById(sid), m = mgr(), codes = (SI.codes || {})[sid] || {}, meta = (SI.mapping_meta || {})[sid] || {};
+    var keys = Object.keys(codes).sort();
+    var h = "<div class='card'><div class='row' style='align-items:center'><h2 style='margin:0'>Product mappings: " + esc(s.name || sid) + "</h2><div style='flex:0 0 auto'><button class='btn small sec' id='mpBack'>Suppliers</button></div></div>" +
+      "<div class='m'>Supplier product code to an EXISTING till product. Used after the barcode for every future delivery. Saved from a printed barcode that matched the till, from posted deliveries, or by a manager here.</div>";
+    if (m) h += "<div class='row' style='margin-top:8px'><div><label class='f'>Supplier code</label><input id='mpCode' type='text'></div><div><label class='f'>Till barcode</label><input id='mpBc' type='text' inputmode='numeric'></div></div><div id='mpHit' class='m'></div><button class='btn small' id='mpAdd' style='margin-top:6px'>Save mapping</button><div id='mpMsg'></div>";
+    else h += "<div class='m' style='margin-top:6px'>Managers can add or remove mappings (Manager tab).</div>";
+    h += "</div><div class='card'><table class='t'><tr><th>Code</th><th>Till product</th><th>How</th><th></th></tr>" + (keys.length ? keys.map(function (k) {
+      var p = BYID[codes[k]], mm = meta[k] || {};
+      return "<tr><td>" + esc(k) + "</td><td>" + (p ? esc(p.n) + "<div class='lm'>" + esc((p.b || [])[0] || "") + "</div>" : "Till product " + esc(codes[k])) + "</td><td class='lm'>" + esc(mm.source || "learned from a posted delivery") + (mm.by ? " (" + esc(mm.by) + ")" : "") + "</td><td>" + (m ? "<button class='btn small sec' data-mprm='" + esc(k) + "'>Remove</button>" : "") + "</td></tr>";
+    }).join("") : "<tr><td colspan='4' class='empty'>No mappings yet.</td></tr>") + "</table></div>";
+    $("view").innerHTML = h;
+    $("mpBack").onclick = function () { go("suppliers"); };
+    function send(code, pid, op) {
+      signRaw(function (at, by) { return "mapping|" + sid + "|" + code + "|" + pid + "|" + op + "|" + at + "|" + by; }).then(function (x) { queueEv({ t: "mapping", sid: sid, code: code, pid: pid, op: op, at: x.at, by: x.by, sig: x.sig }); say("mpMsg", "Sent. Saved after the next update (the box checks the till product exists).", "ok"); });
+    }
+    if ($("mpBc")) $("mpBc").oninput = function () { var p = lookup($("mpBc").value); $("mpHit").textContent = p ? "Till: " + p.n : ($("mpBc").value.length >= 8 ? "No till product has this barcode (new products are never created here)." : ""); };
+    if ($("mpAdd")) $("mpAdd").onclick = function () { var code = $("mpCode").value.trim(), p = lookup($("mpBc").value); if (!code || !p) return say("mpMsg", "Type the supplier code and a barcode that is on the till.", "err"); send(code, p.id, "add"); };
+    each("[data-mprm]", function (b) { b.onclick = function () { var k = b.getAttribute("data-mprm"); if (confirm("Remove mapping " + k + "?")) send(k, codes[k], "remove"); }; });
+  };
   function supForm(s) {
     var c = s.contact || {}, f = function (id, lab, v) { return "<label class='f'>" + lab + "</label><input id='" + id + "' type='text' value='" + esc(v || "") + "'>"; };
     $("view").innerHTML = "<div class='card'><h2>" + (s.id ? "Edit " + esc(s.name) : "Add a supplier") + "</h2>" + f("fName", "Name", s.name) + f("fAcc", "Account number", s.account_no) + f("fPerson", "Contact person", c.person) + f("fPhone", "Phone", c.phone) + f("fEmail", "Email", c.email) + f("fWeb", "Website", c.website) + f("fAddr", "Address", c.address) +
-      f("fCats", "Product categories (comma separated)", (s.categories || []).join(", ")) + f("fDays", "Delivery days (for example Mon, Thu)", (s.delivery_days || []).join(", ")) + f("fDn", "Delivery notes", s.delivery_notes) + f("fTerms", "Payment terms", s.payment_terms) +
-      "<label class='f'>Invoice import</label><select id='fImp'>" + [["manual", "Manual entry"], ["parfetts_edn", "Parfetts EDN file"], ["dhamecha_pdf", "Dhamecha PDF invoice"], ["glopos_template", "GloPOS Stock In Template"], ["ud_daily", "Milk and bread daily screen"]].map(function (o) { return "<option value='" + o[0] + "'" + (s.import_type === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select>" +
+      f("fCats", "Product categories (comma separated)", (s.categories || []).join(", ")) + f("fDays", "Delivery days (for example Mon, Thu)", (s.delivery_days || []).join(", ")) + f("fDn", "Delivery notes", s.delivery_notes) + f("fTerms", "Payment terms", s.payment_terms) + f("fVat", "Supplier VAT number (helps Grok recognise the invoice)", s.vat_no) + f("fAli", "Other names on their invoices (comma separated)", (s.aliases || []).join(", ")) +
+      "<h3 style='margin:14px 0 4px'>Invoice processing</h3><label class='f'>How invoices are read</label><select id='fRead'>" + Object.keys(READERS).map(function (k) { return "<option value='" + k + "'" + (procOf(s).reader === k ? " selected" : "") + ">" + esc(READERS[k]) + "</option>"; }).join("") + "</select>" +
+      "<label class='f'><input id='fTd' type='checkbox'" + (procOf(s).till_draft ? " checked" : "") + " style='width:auto'> Save validated invoices as a till DRAFT automatically (never posts stock)</label>" +
+      "<div class='row'><div><label class='f'>Flag margin under %</label><input id='fMg' type='number' step='0.5' value='" + procOf(s).min_margin + "'></div><div><label class='f'>Flag cost change over %</label><input id='fPc' type='number' step='0.5' value='" + procOf(s).price_change_pct + "'></div></div>" +
+      "<label class='f'>Invoice import</label><select id='fImp'>" + [["universal", "Invoice Scanner (any layout, Grok)"], ["manual", "Manual entry"], ["parfetts_edn", "Parfetts EDN file"], ["dhamecha_pdf", "Dhamecha PDF invoice"], ["glopos_template", "GloPOS Stock In Template"], ["ud_daily", "Milk and bread daily screen"]].map(function (o) { return "<option value='" + o[0] + "'" + (s.import_type === o[0] ? " selected" : "") + ">" + o[1] + "</option>"; }).join("") + "</select>" +
       "<button class='btn' id='fSave' style='margin-top:12px'>Save supplier</button><button class='btn sec' id='fCancel' style='margin-top:8px'>Cancel</button><div id='fMsg'></div></div>";
     $("fCancel").onclick = function () { go("suppliers"); };
     $("fSave").onclick = function () {
@@ -845,8 +907,10 @@
       if (dup) return say("fMsg", "That supplier already exists (" + dup.id + "). Edit it instead.", "err");
       var sp = function (v) { return v.split(",").map(function (x) { return x.trim(); }).filter(Boolean); };
       var d = { id: s.id || "", name: name, account_no: $("fAcc").value.trim(), contact: { person: $("fPerson").value.trim(), phone: $("fPhone").value.trim(), email: $("fEmail").value.trim(), website: $("fWeb").value.trim(), address: $("fAddr").value.trim() },
-        categories: sp($("fCats").value), delivery_days: sp($("fDays").value), delivery_notes: $("fDn").value.trim(), payment_terms: $("fTerms").value.trim(), import_type: $("fImp").value, active: true };
-      if (s.aliases) d.aliases = s.aliases;
+        categories: sp($("fCats").value), delivery_days: sp($("fDays").value), delivery_notes: $("fDn").value.trim(), payment_terms: $("fTerms").value.trim(), import_type: $("fImp").value, vat_no: $("fVat").value.trim(),
+        processing: { reader: $("fRead").value, till_draft: $("fTd").checked, min_margin: parseFloat($("fMg").value) || 25, price_change_pct: parseFloat($("fPc").value) || 2 } };
+      if (!s.id || supSt(s) === "active") d.active = true;
+      var al = sp($("fAli").value).map(function (x) { return x.toLowerCase(); }); if (al.length || s.aliases) d.aliases = al;
       var ds = JSON.stringify(d);
       sha256(ds).then(function (hh) { return signRaw(function (at, by) { return "supplier|" + hh + "|" + at + "|" + by; }); }).then(function (x) { queueEv({ t: "supplier", ds: ds, at: x.at, by: x.by, sig: x.sig }); say("fMsg", "Saved. Everyone sees it after the next update.", "ok"); });
     };
@@ -948,9 +1012,10 @@
     SCAN.parsed = null; renderScan();
   }
   VIEWS.scan = function () { renderScan(); };
+  function aiNote() { var a = SI.ai || {}; return a.key_present ? "Grok AI reading is on: photos and PDFs from any supplier are read on the box." : "Grok AI reading is waiting for its key on the box. PDFs with text are still read exactly; photos keep the phone reading until the key is added."; }
   function scanSupOpts(sel) { return "<option value=''>Work it out from the invoice</option>" + (SI.suppliers || []).filter(function (s) { return s.active !== false; }).map(function (s) { return "<option value='" + s.id + "'" + (s.id === sel ? " selected" : "") + ">" + esc(s.name) + "</option>"; }).join(""); }
   function renderScan() {
-    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Take a photo of each page of the invoice, or upload photos or the PDF. The app reads the invoice number, date and lines, matches them to till products and makes a Stock In draft for you to check. Nothing is sent to the till until a manager approves it.</div>" +
+    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Any supplier. Take a photo of each page of the invoice, or upload photos or the PDF. The box reads it with Grok, works out the supplier, checks the sums, matches barcodes and verified supplier codes and saves a Stock In draft. Stock is never posted and selling prices are never changed.</div><div class='note'>" + aiNote() + "</div>" +
       "<label class='f'>Supplier</label><select id='scSup'>" + scanSupOpts(SCAN.sid) + "</select>" +
       "<div class='row' style='margin-top:10px'><label class='btn' style='text-align:center'>&#128247; Photo of a page<input id='scCam' type='file' accept='image/*' capture='environment' class='hidden'></label>" +
       "<label class='btn sec' style='text-align:center'>&#128196; Upload photos or PDF<input id='scFile' type='file' accept='image/*,application/pdf,.pdf' multiple class='hidden'></label></div>" +
@@ -1048,7 +1113,7 @@
   function scanResultHtml() {
     var r = SCAN.parsed, flagged = r.lines.filter(function (l) { return l.flags.length; }).length, matched = r.lines.filter(function (l) { return l.pid; }).length;
     var h = "<div class='card'><h2>What the app read</h2><div class='m'>Read with " + esc(r.method || "?") + ". Supplier: <b>" + esc(r.sid ? supName(r.sid) : "not recognised") + "</b>" + (r.detected && r.detected !== r.sid ? " (invoice looks like " + esc(supName(r.detected)) + ")" : "") + "</div>";
-    if (!r.sid) h += "<div class='flag'>Supplier not recognised. Pick it above. New supplier? A manager can add it on the Suppliers screen. <button class='btn small sec' id='scSupGo'>Suppliers</button></div>";
+    if (!r.sid) h += "<div class='flag'>Supplier not recognised on the phone. Just create the draft: the box reads the supplier from the invoice. A supplier the app does not know yet is added as 'waiting for approval' for a manager. <button class='btn small sec' id='scSupGo'>Suppliers</button></div>";
     if (r.sid === "SUP-003") h += "<div class='note'>Unique Dairies milk and bread can also be checked on the quick screen. <button class='btn small sec' id='scUd'>Milk and bread</button></div>";
     h += "<div class='row'><div><label class='f'>Invoice number</label><input id='scInv' type='text' value='" + esc(r.inv_no) + "'></div><div><label class='f'>Invoice date</label><input id='scDate' type='date' value='" + esc(r.date) + "'></div></div>" +
       "<div class='m' style='margin-top:6px'>" + r.lines.length + " lines &middot; lines add up to " + money(r.sum) + (r.totals.goods != null ? " &middot; invoice goods total " + money(r.totals.goods) + (r.totals_match ? " &#9989; agrees" : " &#9888;&#65039; does not agree") : "") + " &middot; " + matched + " matched to till products &middot; " + flagged + " line(s) to check</div>";
@@ -1061,13 +1126,13 @@
         "<div class='lm'>" + (p ? (l.match === "suggested" ? "Suggested: " : "Till: ") + esc(p.n) : "Not matched to a till product") + "</div>" + (l.flags.length ? "<div class='lm' style='color:#b45309'>" + esc(l.flags.join("; ")) + "</div>" : "") + "</td>" +
         "<td class='n'>" + (l.qty == null ? "?" : l.qty) + "</td><td class='n'>" + (l.upc == null ? "?" : l.upc) + "</td><td class='n'>" + (l.case_cost == null ? "?" : money(l.case_cost)) + "</td><td>" + (l.vat === "" ? "?" : l.vat + "%") + "</td></tr>";
     }).join("") + "</table>";
-    h += "<button class='btn' id='scMake' style='margin-top:12px'" + (r.dup || !r.lines.length ? " disabled" : "") + ">Create Stock In draft</button>" +
+    if (!r.lines.length) h += "<div class='note'>The phone could not read the lines. Create the draft anyway: the pages go to the box and Grok reads them" + ((SI.ai || {}).key_present ? "." : " once its key is added.") + "</div>";
+    h += "<button class='btn' id='scMake' style='margin-top:12px'" + (r.dup ? " disabled" : "") + ">Create Stock In draft</button>" +
       "<div class='m' style='margin-top:6px'>Question marks are left blank on purpose: costs, barcodes and VAT are never guessed. Fill them in from the invoice on the draft.</div></div>";
     return h;
   }
   function makeDraftFromScan() {
     var r = SCAN.parsed, who = staff();
-    if (!r.sid) { alert("Pick the supplier first."); return; }
     if (r.dup) return;
     if (!who) { who = (prompt("Your name") || "").trim(); if (!who) return; try { localStorage.setItem("birkhill-staff-name", who); } catch (e) {} }
     var lines = r.lines.map(function (x) {
@@ -1080,7 +1145,7 @@
       if (x.match === "code") l.confirmed = true;
       return l;
     });
-    var doc = { id: newId("S"), kind: "delivery", sid: r.sid, ref: (supName(r.sid).split(" (")[0] + " " + (r.inv_no || "")).trim(), date: r.date || londonISO(), staff: who, lines: lines, rev: 0,
+    var doc = { id: newId("S"), kind: "delivery", sid: r.sid || "", ref: ((r.sid ? supName(r.sid).split(" (")[0] : "New supplier") + " " + (r.inv_no || "")).trim(), date: r.date || londonISO(), staff: who, lines: lines, rev: 0,
       source: "Invoice scan", localStatus: "local", unsent: true,
       scan: { inv_no: r.inv_no || "", method: r.method, lines: r.lines.length, sum: r.sum, totals: r.totals, totals_match: !!r.totals_match, warnings: r.warnings, pages: SCAN.pages.length, read_at: londonAt(), date_read: !!r.date } };
     saveLocal(doc);
