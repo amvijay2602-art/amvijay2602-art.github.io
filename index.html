@@ -168,10 +168,6 @@
           <a href="paper/?open=modeStockTake">Paper stock take</a>
         </div>
       </div>
-      <div class="card">
-        <button class="install" id="installBtn" type="button">Add Birkhill to Home screen</button>
-        <div class="hint" id="installHint">To keep this on your phone: Chrome menu &#8942; &rarr; <b>Add to Home screen</b> (iPhone: Share &rarr; <b>Add to Home Screen</b>).</div>
-      </div>
     </section>
 
     <section id="repView" class="hidden">
@@ -223,11 +219,6 @@
       $("staffNow").textContent = cur ? ("Saving as " + cur + " in every app. Tap another name to change.") : "Tap your name. It fills 'Checked by' in every app.";
     }
     renderStaff();
-
-    // ---- install prompt ----
-    var deferred = null;
-    window.addEventListener("beforeinstallprompt", function (e) { e.preventDefault(); deferred = e; $("installBtn").style.display = "block"; });
-    $("installBtn").addEventListener("click", function () { if (deferred) { deferred.prompt(); deferred = null; $("installBtn").style.display = "none"; } });
 
     // ---- reports ----
     var R = null, tab = "chiller";
@@ -470,5 +461,6 @@
   })();
   </script>
   <nav class="bk-nav" aria-label="Birkhill apps"><a href="./" class="on"><span class="i">&#8962;</span><span>Home</span></a><a href="paper/"><span class="i">&#128240;</span><span>Papers</span></a><a href="chiller/"><span class="i">&#129482;</span><span>Chiller</span></a><a href="date/"><span class="i">&#128247;</span><span>Date</span></a><a href="count/"><span class="i">&#128203;</span><span>Count</span></a><a href="shelf/"><span class="i">&#127991;&#65039;</span><span>Shelf</span></a><a href="stockin/"><span class="i">&#128666;</span><span>Deliveries</span></a></nav>
+  <script src="add-to-home.js"></script>
 </body>
 </html>

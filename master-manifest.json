@@ -1,0 +1,24 @@
+{
+  "name": "Birkhill Master Dashboard",
+  "short_name": "Master",
+  "description": "Birkhill Stores app status, wholesale compare and social adverts",
+  "display": "standalone",
+  "start_url": "./master.html",
+  "scope": "./master.html",
+  "theme_color": "#17643F",
+  "background_color": "#17643F",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
