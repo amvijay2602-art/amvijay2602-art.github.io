@@ -306,7 +306,7 @@
     return "<div class='list'>" + ds.map(function (d) {
       var s = status(d), n = (d.lines || []).filter(function (l) { return !l.leave_out; }).length;
       var chg = docCostAlerts(d);
-      return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(supName(d.sid)) + " &middot; " + esc(d.ref || d.id) + " <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span>" + (chg.length ? " <span class='st pricechg'>Price changes: " + chg.length + "</span>" : "") + "</div>" +
+      return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(supName(d.sid)) + " &middot; " + esc(d.ref || d.id) + " <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span>" + readChip(d) + (chg.length ? " <span class='st pricechg'>Price changes: " + chg.length + "</span>" : "") + "</div>" +
         "<div class='m'>" + esc(ukDate(d.date)) + " &middot; " + n + " lines &middot; " + money(docTotal(d)) + " ex VAT &middot; " + esc(d.staff || "") + (d.kind === "return" ? " &middot; supplier return" : "") + (d.source ? " &middot; " + esc(d.source) : "") + "</div>" +
         (chg.length ? "<div class='note'>Supplier price changes: " + chg.map(function (x) { return esc(x.name) + " " + money(x.a.old) + " → " + money(x.a.neu) + " (" + (x.a.pct >= 0 ? "+" : "") + x.a.pct.toFixed(0) + "%)"; }).join("; ") + "</div>" : "") +
         (d.error ? "<div class='flag'>" + esc(d.error) + "</div>" : "") + ((d.issues || []).length && s === "needs_fix" ? "<div class='flag'>" + esc(d.issues.length + " problem(s): " + d.issues[0]) + "</div>" : "") +
@@ -342,14 +342,14 @@
   var SUPFLOWS = [
     { k: "parfetts", sid: "SUP-001", name: "Parfetts", st: "ok", tag: "Invoice check + till sync", how: "Load the Parfetts invoice file (EDN / Invoice Data CSV). The app compares every line with the till Stock In draft. Grok Bot fixes the till draft (draft only) at the next update." },
     { k: "eden", sid: "SUP-005", name: "Eden Farm", st: "ok", tag: "Delivery check + scanner", how: "Eden EDN delivery check: expected against received, problems, expiry dates with batches, Confirm Item and Confirm Full Delivery, then a delivery report. The Invoice Scanner still makes the till draft. Nothing is posted to the till." },
-    { k: "dhamecha", sid: "SUP-002", name: "Dhamecha", st: "part", tag: "Invoice Scanner works", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking." },
+    { k: "dhamecha", sid: "SUP-002", name: "Dhamecha", st: "part", tag: "Invoice Scanner works", how: "Photo or PDF of the invoice: Grok Bot reads it on the box (any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking." },
     { k: "booker", sid: "SUP-006", name: "Booker", st: "ok", tag: "Invoice Scanner + Booker account check", how: "Photo or PDF of the invoice. The scanner reads the invoice number, date and total (you can edit them). The box then checks those figures against your Booker account summary: item count, goods at 0% and 20%, VAT and total. The draft shows a Matches Booker tick, or the exact differences, so you can fix the lines before approving. Recent Purchases is used to correct misread codes, names, pack sizes and prices. Stock is never posted and selling prices are never changed. Typing the lines by hand still works." },
-    { k: "tns", sid: "SUP-008", name: "TNS Wholesale", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
-    { k: "cc", sid: "SUP-004", name: "Country Choice", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
-    { k: "galaxy", sid: "", name: "Galaxy", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. A supplier the app does not know yet is added as 'waiting for approval' for a manager." },
+    { k: "tns", sid: "SUP-008", name: "TNS Wholesale", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: Grok Bot reads it on the box (any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
+    { k: "cc", sid: "SUP-004", name: "Country Choice", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: Grok Bot reads it on the box (any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
+    { k: "galaxy", sid: "", name: "Galaxy", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: Grok Bot reads it on the box (any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. A supplier the app does not know yet is added as 'waiting for approval' for a manager." },
     { k: "ud", sid: "SUP-003", name: "Unique Dairies", st: "ok", tag: "Milk and bread screen", how: "Use the quick Milk and bread screen for the daily delivery and returns." },
     { k: "inpost", sid: "", name: "InPost (newspapers)", st: "part", tag: "Paper app + Invoice Scanner", how: "Daily newspaper and magazine counts stay in the Paper app. The newspaper invoice can be photographed here like any other supplier." },
-    { k: "other", sid: "", name: "Any other supplier", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: the box reads it (Grok AI for any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. A new supplier is found on the invoice and waits for a manager to approve it (Suppliers tab)." }
+    { k: "other", sid: "", name: "Any other supplier", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: Grok Bot reads it on the box (any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. A new supplier is found on the invoice and waits for a manager to approve it (Suppliers tab)." }
   ];
   var STTXT = { ok: "Working", part: "Working (scanner)", manual: "Manual only", soon: "Coming soon" };
   var STCOL = { ok: "#1b7f3b", part: "#1b7f3b", manual: "#b26a00", soon: "#777" };
@@ -947,7 +947,7 @@
       sha256(pids.join(",")).then(function (hh) { return signRaw(function (at, by) { return "link|SUP-003|" + hh + "|" + at + "|" + by; }); }).then(function (x) { queueEv({ t: "link", sid: "SUP-003", pids: pids, at: x.at, by: x.by, sig: x.sig }); alert("Sent."); });
     }; });
   };
-  var READERS = { auto: "Grok AI + exact PDF reader cross-check", ai: "Grok AI only", parser: "PDF text reader only (no AI)" };
+  var READERS = { auto: "Exact PDF reader; Grok Bot reads photos and other layouts", ai: "Grok Bot reads every invoice", parser: "PDF text reader only (photos wait)" };
   var SSTXT = { active: "Active", inactive: "Deactivated", pending_approval: "Waiting for approval", rejected: "Rejected" }, SSCLS = { active: "posted", inactive: "discarded", pending_approval: "pending_approval", rejected: "error" };
   function supSt(s) { return (s && s.status) || (s && s.active === false ? "inactive" : "active"); }
   function supById(id) { return (SI.suppliers || []).filter(function (x) { return x.id === id; })[0] || {}; }
@@ -1095,10 +1095,28 @@
     SCAN.parsed = null; renderScan();
   }
   VIEWS.scan = function () { renderScan(); };
-  function aiNote() { var a = SI.ai || {}; if (!a.key_present) return "Grok AI reading is waiting for its key on the box. PDFs with text are still read exactly; photos keep the phone reading until the key is added."; if (a.working === false && a.last) return "Grok AI reading is NOT working: " + esc(a.note || "") + ". PDFs with text are still read exactly; photos keep the phone reading."; return "Grok AI reading is on: photos and PDFs from any supplier are read on the box."; }
+  function aiNote() {   // 26 Nov 2026: no paid API; Grok Bot reads queued scans itself
+    var r = SI.reading || {}, w = r.waiting || 0, rn = r.read_not_drafted || 0;
+    return (w ? "<b>Waiting for reading: " + w + "</b> scan(s). Grok Bot reads them on the box; the draft appears within about 30 minutes after reading." : "No scans waiting for reading.") +
+      (rn ? " " + rn + " read, being drafted at the next update." : "") + " PDFs with text the box can read exactly are drafted straight away.";
+  }
+  function readingList() {
+    var its = ((SI.reading || {}).items || []).slice(0, 8);
+    if (!its.length) return "";
+    return "<table class='t' style='margin-top:6px'><tr><th>Scan</th><th>Received</th><th>Status</th></tr>" + its.map(function (r) {
+      var st = /^read, drafted/.test(r.state) ? "Read" : (/^read/.test(r.state) ? "Read, drafting" : "Waiting for reading");
+      return "<tr><td>" + esc((r.sid ? supName(r.sid) + " " : "") + (r.id || "")) + "</td><td>" + esc(r.received ? ukDate(r.received.slice(0, 10)) + " " + r.received.slice(11, 16) : "") + "</td><td>" + st + "</td></tr>";
+    }).join("") + "</table>";
+  }
+  function readChip(d) {
+    var a = d.auto_done || {};
+    if (d.universal) return " <span class='st approved'>Read</span>";
+    if (a.ai_pending || a.queue_id) return " <span class='st pending_approval'>Waiting for reading</span>";
+    return "";
+  }
   function scanSupOpts(sel) { return "<option value=''>Work it out from the invoice</option>" + (SI.suppliers || []).filter(function (s) { return s.active !== false; }).map(function (s) { return "<option value='" + s.id + "'" + (s.id === sel ? " selected" : "") + ">" + esc(s.name) + "</option>"; }).join(""); }
   function renderScan() {
-    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Any supplier. Take a photo of each page of the invoice, or upload photos or the PDF. The box reads it with Grok, works out the supplier, checks the sums, matches barcodes and verified supplier codes and saves a Stock In draft. Stock is never posted and selling prices are never changed.</div><div class='note'>" + aiNote() + "</div>" +
+    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Any supplier. Take a photo of each page of the invoice, or upload photos or the PDF. Grok Bot reads it on the box, works out the supplier, checks the sums, matches barcodes and verified supplier codes and saves a Stock In draft. Stock is never posted and selling prices are never changed.</div><div class='note'>" + aiNote() + "</div>" + readingList() +
       "<label class='f'>Supplier</label><select id='scSup'>" + scanSupOpts(SCAN.sid) + "</select>" +
       "<div class='row' style='margin-top:10px'><label class='btn' style='text-align:center'>&#128247; Photo of a page<input id='scCam' type='file' accept='image/*' capture='environment' class='hidden'></label>" +
       "<label class='btn sec' style='text-align:center'>&#128196; Upload photos or PDF<input id='scFile' type='file' accept='image/*,application/pdf,.pdf' multiple class='hidden'></label></div>" +
