@@ -3581,9 +3581,12 @@
         return;
       }
       if (emptyEl) emptyEl.classList.add("hidden");
-      if (showSummary) return;
-      var papers = prog.items.filter(function (it) { return !it.done && it.kind === "NEWSPAPER"; });
-      var mags = prog.items.filter(function (it) { return !it.done && it.kind !== "NEWSPAPER"; });
+      // Staff-guide preview modes still show the cards so the How-to page can
+      // illustrate a changed quantity. Live use hides confirmed cards.
+      var previewing = !!_deliveryPreview && _deliveryPreview !== "finished" && !(_deliveryPreview && _deliveryPreview.finished);
+      if (showSummary && !previewing) return;
+      var papers = prog.items.filter(function (it) { return (previewing || !it.done) && it.kind === "NEWSPAPER"; });
+      var mags = prog.items.filter(function (it) { return (previewing || !it.done) && it.kind !== "NEWSPAPER"; });
       function addHeading(label) {
         var h = document.createElement("li");
         h.className = "rs-section";
