@@ -596,6 +596,8 @@
       padding: 16px 14px; font-size: 1.15rem; font-weight: 800;
       text-align: center; line-height: 1.4;
     }
+    .job-finished .dc-title { font-size: 1.4rem; margin-bottom: 6px; }
+    .job-finished .dc-sub { font-size: 1rem; font-weight: 700; opacity: 0.95; }
     .hidden { display: none !important; }
 
     .confirm-anyway {
@@ -3369,29 +3371,38 @@
     function deliveryJobSubmission() {
       if (_deliveryPreview === "todo" || _deliveryPreview === "changed") return null;
       if (_deliveryPreview && _deliveryPreview.finished) return _deliveryPreview;
-      return readDeliveryFinish();
+      var local = readDeliveryFinish();
+      if (local) return local;
+      var remote = deliverySheet && deliverySheet.finished;
+      if (remote && remote.finished) return remote;
+      return null;
+    }
+
+    function addConfirmRow(map, row) {
+      var key = deliveryLineKey({ barcode: row.barcode, title: row.name || row.title, full_title: row.full_title });
+      if (!key) return;
+      var actual = row.actual != null ? Number(row.actual) : Number(row.qty) || 0;
+      var expected = row.expected != null ? Number(row.expected) : null;
+      var prev = map[key];
+      if (!prev) {
+        map[key] = { done: true, actual: actual, expected: expected, method: row.method || "scan", time: row.time || row.at || "", by: row.by || "" };
+      } else if (row.actual != null) {
+        prev.actual = actual;
+        prev.method = row.method || prev.method;
+        prev.time = row.time || row.at || prev.time;
+        if (row.by) prev.by = row.by;
+      } else {
+        prev.actual = (Number(prev.actual) || 0) + (Number(row.qty) || 0);
+      }
     }
 
     function deliveryConfirmedMap() {
       var map = {};
+      // Shared confirms published from Camera Entries, so every phone sees the same result.
+      (((deliverySheet && deliverySheet.confirmed) || [])).forEach(function (row) { addConfirmRow(map, row); });
       if (typeof todays === "undefined" || !todays.delivery) return map;
       KINDS.forEach(function (k) {
-        ((todays.delivery[k]) || []).forEach(function (row) {
-          var key = deliveryLineKey({ barcode: row.barcode, title: row.name || row.title, full_title: row.full_title });
-          if (!key) return;
-          var actual = row.actual != null ? Number(row.actual) : Number(row.qty) || 0;
-          var expected = row.expected != null ? Number(row.expected) : null;
-          var prev = map[key];
-          if (!prev) {
-            map[key] = { done: true, actual: actual, expected: expected, method: row.method || "scan", time: row.time || "" };
-          } else if (row.actual != null) {
-            prev.actual = actual;
-            prev.method = row.method || prev.method;
-            prev.time = row.time || prev.time;
-          } else {
-            prev.actual = (Number(prev.actual) || 0) + (Number(row.qty) || 0);
-          }
-        });
+        ((todays.delivery[k]) || []).forEach(function (row) { addConfirmRow(map, row); });
       });
       return map;
     }
@@ -3512,24 +3523,56 @@
         if (deliverySheet && deliverySheet.total_qty) bits.push(deliverySheet.total_qty + " copies on the note");
         metaEl.textContent = bits.join(" · ");
       }
+      var allDone = prog.hasSheet && prog.total > 0 && prog.done === prog.total;
+      var showSummary = finished || allDone;
       if (banner) {
-        if (finished && submit) {
+        banner.textContent = "";
+        if (showSummary) {
           banner.classList.remove("hidden");
-          banner.textContent = "JOB FINISHED ✓ at " + (formatDeliveryTime(submit.at) || "now") + " by " + (submit.by || "staff");
+          var copies = 0;
+          prog.items.forEach(function (it) { copies += Number(it.actual != null ? it.actual : it.expected) || 0; });
+          var who = (submit && submit.by) || "";
+          if (!who) {
+            prog.items.forEach(function (it) {
+              var rec = deliveryConfirmedMap()[deliveryLineKey(it)];
+              if (rec && rec.by) who = rec.by;
+            });
+          }
+          var when = formatDeliveryTime((submit && submit.at) || "") || "";
+          if (!when) {
+            prog.items.forEach(function (it) {
+              var rec = deliveryConfirmedMap()[deliveryLineKey(it)];
+              var t = rec && formatDeliveryTime(rec.time);
+              if (t) when = t;
+            });
+          }
+          var titleEl = document.createElement("div");
+          titleEl.className = "dc-title";
+          titleEl.textContent = "Delivery confirmed";
+          banner.appendChild(titleEl);
+          var bits = [];
+          if (prog.total) bits.push(prog.total + " title" + (prog.total === 1 ? "" : "s") + ", " + copies + " cop" + (copies === 1 ? "y" : "ies"));
+          if (when || who) bits.push((when ? "Finished at " + when : "Finished") + (who ? " by " + who : ""));
+          if (submit && String(submit.status || "").toLowerCase() === "partial") bits.push("Some quantities were different from the note.");
+          if (bits.length) {
+            var subEl = document.createElement("div");
+            subEl.className = "dc-sub";
+            subEl.textContent = bits.join(" · ");
+            banner.appendChild(subEl);
+          }
         } else {
           banner.classList.add("hidden");
-          banner.textContent = "";
         }
       }
-      if (step1) step1.classList.toggle("hidden", finished);
-      if (step2) step2.classList.toggle("hidden", finished);
+      if (step1) step1.classList.toggle("hidden", showSummary);
+      if (step2) step2.classList.toggle("hidden", showSummary);
       if (confirmAll) {
-        confirmAll.classList.toggle("hidden", finished || !prog.hasSheet || prog.done === prog.total);
+        confirmAll.classList.toggle("hidden", showSummary || !prog.hasSheet || prog.done === prog.total);
         confirmAll.disabled = false;
       }
       if (finishBtn) {
-        finishBtn.classList.toggle("hidden", finished);
-        finishBtn.classList.toggle("is-ready", !finished && prog.hasSheet && prog.done === prog.total && prog.total > 0);
+        finishBtn.classList.toggle("hidden", showSummary);
+        finishBtn.classList.toggle("is-ready", !showSummary && prog.hasSheet && prog.done === prog.total && prog.total > 0);
         finishBtn.disabled = false;
       }
       listEl.innerHTML = "";
@@ -3538,8 +3581,9 @@
         return;
       }
       if (emptyEl) emptyEl.classList.add("hidden");
-      var papers = prog.items.filter(function (it) { return it.kind === "NEWSPAPER"; });
-      var mags = prog.items.filter(function (it) { return it.kind !== "NEWSPAPER"; });
+      if (showSummary) return;
+      var papers = prog.items.filter(function (it) { return !it.done && it.kind === "NEWSPAPER"; });
+      var mags = prog.items.filter(function (it) { return !it.done && it.kind !== "NEWSPAPER"; });
       function addHeading(label) {
         var h = document.createElement("li");
         h.className = "rs-section";
@@ -3706,7 +3750,7 @@
           ? "Saved " + title + ": expected " + expected + ", delivered " + actual
           : "Confirmed " + title + ": delivered " + actual, "ok");
         renderDeliverySheet();
-        return true;
+        return maybeFinishDeliveryJob();
       }).catch(function () {
         showErr("Could not save. Check your connection and try again.");
         if (btn) btn.disabled = false;
@@ -3746,7 +3790,18 @@
       });
     }
 
+    var _finishingDelivery = false;
+
+    function maybeFinishDeliveryJob() {
+      var prog = deliveryProgress();
+      if (prog.hasSheet && prog.total > 0 && prog.done === prog.total && !deliveryJobSubmission() && !_finishingDelivery) {
+        return finishDeliveryJob();
+      }
+      return Promise.resolve(true);
+    }
+
     function finishDeliveryJob() {
+      if (_finishingDelivery) return Promise.resolve(true);
       var who = (checkedBy.value || "").trim();
       if (!who) {
         setDeliveryStatus("Enter your name in Checked by first.", "error");
@@ -3778,6 +3833,7 @@
         var allBtn = document.getElementById("confirmAllDeliveryBtn");
         if (fin) fin.disabled = true;
         if (allBtn) allBtn.disabled = true;
+        _finishingDelivery = true;
         setDeliveryStatus("Saving job confirmation...", "");
         var confirmName = "PAPERCONFIRM: " + status + " | " + prog.done + " of " + prog.total + " done | " + diffText + " | " + who;
         return postPayload({
@@ -3786,10 +3842,12 @@
           lines: [{ date: date, qty: String(diffs.length) }]
         }).then(function () {
           markDeliveryJobFinished({ by: who, at: new Date().toISOString(), status: status.toLowerCase() });
+          _finishingDelivery = false;
           renderDeliverySheet();
-          setDeliveryStatus(diffs.length ? "Job finished (some quantities different)" : "Job finished", "ok");
+          setDeliveryStatus(diffs.length ? "Delivery confirmed (some quantities different)" : "Delivery confirmed", "ok");
           return true;
         }).catch(function () {
+          _finishingDelivery = false;
           setDeliveryStatus("Could not save. Check your connection and try again.", "error");
           if (fin) fin.disabled = false;
           if (allBtn) allBtn.disabled = false;
@@ -3799,7 +3857,7 @@
     }
 
     function loadDeliverySheet() {
-      return fetch("delivery_today.json").then(function (res) {
+      return fetch("delivery_today.json?t=" + Date.now()).then(function (res) {
         if (!res.ok) throw new Error("delivery");
         return res.json();
       }).then(function (data) {
@@ -3931,6 +3989,12 @@
     });
     loadReturnSheet();
     loadDeliverySheet();
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible") loadDeliverySheet();
+    });
+    setInterval(function () {
+      if (!isReturns() && !isStockTake()) loadDeliverySheet();
+    }, 60000);
   </script>
   <script src="../nav.js"></script>
   <script src="../add-to-home.js"></script>
