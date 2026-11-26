@@ -289,7 +289,7 @@
       ".jh-day{margin:12px 0 4px;font-weight:800;font-size:.95rem;color:#5f6b5f}" +
       ".jh-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}" +
       ".jh-item{background:#fff;border:1px solid #d5e3da;border-radius:12px;padding:10px 12px}" +
-      ".jh-item .n{font-weight:800}.jh-item .m{font-size:.88rem;color:#5f6b5f;margin-top:2px}" +
+      ".jh-item .n{font-weight:800}.jh-item .m{font-size:.88rem;color:#5f6b5f;margin-top:2px}.jh-item .jh-barcode{margin-top:4px;font-weight:800;font-size:1.15rem;color:#18342A;letter-spacing:.08em;word-break:break-all}" +
       ".jh-badge{display:inline-block;font-size:.78rem;font-weight:800;border-radius:8px;padding:2px 8px;margin-right:6px;color:#fff;background:#17643F}" +
       ".jh-badge.Skipped{background:#b8501a}.jh-badge.Cancelled{background:#7a3b3b}" +
       ".jh-empty{color:#5f6b5f;font-weight:600;padding:8px 0}" +
@@ -339,7 +339,7 @@
         if (r.day !== lastDay) { if (lastDay) html += "</ul>"; html += '<div class="jh-day">' + esc(ukDate(r.day)) + '</div><ul class="jh-list">'; lastDay = r.day; }
         var info = jobLine(r);
         html += '<li class="jh-item" data-status="' + esc(r.status) + '"><div class="n"><span class="jh-badge ' + esc(r.status) + '">' + esc(r.status) + "</span>" + esc(r.name || "Unknown") + "</div>" +
-          '<div class="m">' + esc(r.time || "") + (r.staff ? "  ·  " + esc(r.staff) : "") + "  ·  " + esc(APPNAME[r.app] || r.dept || r.app || "") + (r.barcode ? "  ·  " + esc(r.barcode) : "") + "</div>" +
+          '<div class="m">' + esc(r.time || "") + (r.staff ? "  ·  " + esc(r.staff) : "") + "  ·  " + esc(APPNAME[r.app] || r.dept || r.app || "") + "</div>" + (r.barcode ? '<div class="jh-barcode">' + esc(r.barcode) + "</div>" : "") +
           (info ? '<div class="m">' + esc(info) + "</div>" : "") + "</li>";
       });
       if (lastDay) html += "</ul>";

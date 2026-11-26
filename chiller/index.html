@@ -1146,7 +1146,34 @@
     .p20-thumb.is-empty { background: #eef5f0; display:flex; align-items:center; justify-content:center; text-align:center; padding:4px; font-size:0.68rem; font-weight:800; color:#7a3b3b; line-height:1.15; }
     .p20-meta { flex: 1 1 auto; min-width: 0; }
     .p20-name { margin: 0; font-weight: 800; font-size: 1.02rem; line-height: 1.25; }
+    .p20-barcode {
+      margin: 4px 0 0;
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #18342A;
+      letter-spacing: 0.08em;
+      word-break: break-all;
+    }
     .p20-cat { margin: 2px 0 0; color: var(--muted); font-size: 0.8rem; font-weight: 600; }
+    /* Big barcodes on scanned item lists and Job History in this app only */
+    body .bk-scan-meta {
+      font-size: 24px;
+      font-weight: 800;
+      color: #18342A;
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+      word-break: break-all;
+    }
+    html body .jh-item .jh-barcode {
+      margin-top: 4px;
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.2;
+      color: #18342A;
+      letter-spacing: 0.08em;
+      word-break: break-all;
+    }
     .p20-reason { margin: 6px 0 0; font-size: 0.88rem; font-weight: 700; color: #18342A; }
     .p20-item.is-short .p20-reason { color: #c62828; }
     .p20-done-flag { display: inline-block; margin-top: 6px; font-size: 0.8rem; font-weight: 800; color: #17643F; }
@@ -2285,7 +2312,8 @@
         return '<li class="' + cls + '" data-n="' + key + '">' +
           '<div class="p20-top">' + p20Thumb(it) +
           '<div class="p20-meta"><p class="p20-name">' + String(it.n) + ". " + String(it.name || "").replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + "</p>" +
-          '<p class="p20-cat">' + String(it.category || "").replace(/^./, function (c) { return c.toUpperCase(); }) + (it.barcode ? "  ·  " + it.barcode : "") + "</p>" +
+          (it.barcode ? '<p class="p20-barcode">' + String(it.barcode).replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + "</p>" : "") +
+          '<p class="p20-cat">' + String(it.category || "").replace(/^./, function (c) { return c.toUpperCase(); }) + "</p>" +
           '<p class="p20-reason">' + String(it.reason || "").replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + "</p>" +
           flag + "</div></div>" +
           '<div class="p20-fields">' +
