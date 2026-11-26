@@ -598,6 +598,12 @@
     }
     .job-finished .dc-title { font-size: 1.4rem; margin-bottom: 6px; }
     .job-finished .dc-sub { font-size: 1rem; font-weight: 700; opacity: 0.95; }
+    .dc-hint { margin: 12px 0 6px; font-size: 16px; font-weight: 700; color: #18342A; line-height: 1.35; }
+    .rs-item.is-editing { border: 2px solid #17643F; }
+    .rs-btn.edit { background: #fff; color: #17643F; min-height: 44px; font-size: 15px; width: auto; padding: 0 16px; }
+    .rs-btn.cancel { background: #fff; color: #18342A; border-color: #9aa59f; min-height: 44px; font-size: 15px; }
+    .rs-corrected { margin: 8px 0 0; font-size: 16px; font-weight: 800; color: #8a3b12; line-height: 1.35; }
+    .rs-actions-row { display: flex; flex-direction: column; gap: 8px; width: 100%; }
     .hidden { display: none !important; }
 
     .confirm-anyway {
@@ -1354,6 +1360,7 @@
 
     function setMode(next) {
       persistBasket();
+      _editingKey = null;
       mode = next;
       const ret = isReturns();
       const stock = isStockTake();
@@ -2086,6 +2093,13 @@
         if (item.expected != null) row.expected = item.expected;
         if (item.actual != null) row.actual = item.actual;
         if (item.kind) row.kind = item.kind;
+        if (item.time) row.time = item.time;
+        if (item.previous != null) row.previous = item.previous;
+        if (item.corrected) {
+          row.corrected = true;
+          row.corrected_by = item.corrected_by || item.by || "";
+          row.corrected_at = item.corrected_at || item.time || row.time;
+        }
         return row;
       }).reverse();
       setTodayItems(stamped.concat(todayItems()));
@@ -3323,6 +3337,7 @@
     var deliverySheet = null;
     var _deliveryPreview = null;
     var _justFinishedDelivery = false;
+    var _editingKey = null;
     var DELIVERY_FINISH_KEY = "birkhill-paper-stockin-delivery-finished-v1";
     window.__paperDelivery = window.__paperDelivery || {};
 
@@ -3384,15 +3399,23 @@
       var actual = row.actual != null ? Number(row.actual) : Number(row.qty) || 0;
       var expected = row.expected != null ? Number(row.expected) : null;
       var prev = map[key];
+      var rec = prev || { done: true, actual: actual, expected: expected, method: row.method || "scan", time: row.time || row.at || "", by: row.by || "" };
       if (!prev) {
-        map[key] = { done: true, actual: actual, expected: expected, method: row.method || "scan", time: row.time || row.at || "", by: row.by || "" };
+        map[key] = rec;
       } else if (row.actual != null) {
-        prev.actual = actual;
-        prev.method = row.method || prev.method;
-        prev.time = row.time || row.at || prev.time;
-        if (row.by) prev.by = row.by;
+        rec.actual = actual;
+        rec.method = row.method || rec.method;
+        rec.time = row.time || row.at || rec.time;
+        if (row.by) rec.by = row.by;
+        if (row.expected != null) rec.expected = expected;
       } else {
-        prev.actual = (Number(prev.actual) || 0) + (Number(row.qty) || 0);
+        rec.actual = (Number(rec.actual) || 0) + (Number(row.qty) || 0);
+      }
+      if (row.corrected || row.method === "corrected") {
+        rec.corrected = true;
+        rec.previous = row.previous != null ? Number(row.previous) : (prev && prev.actual != null && !prev.corrected ? Number(prev.actual) : rec.previous);
+        rec.corrected_by = row.corrected_by || row.by || rec.corrected_by || "";
+        rec.corrected_at = row.corrected_at || row.time || row.at || rec.corrected_at || "";
       }
     }
 
@@ -3418,6 +3441,11 @@
         row.actual = rec.actual;
         row.method = rec.method;
         row.time = rec.time;
+        row.by = rec.by || "";
+        row.corrected = !!rec.corrected;
+        row.previous = rec.previous;
+        row.corrected_by = rec.corrected_by || "";
+        row.corrected_at = rec.corrected_at || "";
       } else {
         row.done = false;
         row.actual = row.expected;
@@ -3554,6 +3582,7 @@
           if (prog.total) bits.push(prog.total + " title" + (prog.total === 1 ? "" : "s") + ", " + copies + " cop" + (copies === 1 ? "y" : "ies"));
           if (when || who) bits.push((when ? "Finished at " + when : "Finished") + (who ? " by " + who : ""));
           if (submit && String(submit.status || "").toLowerCase() === "partial") bits.push("Some quantities were different from the note.");
+          if (prog.items.some(function (it) { return it.corrected; })) bits.push("Some quantities were corrected.");
           if (bits.length) {
             var subEl = document.createElement("div");
             subEl.className = "dc-sub";
@@ -3582,24 +3611,105 @@
       }
       if (emptyEl) emptyEl.classList.add("hidden");
       // Staff-guide preview modes still show the cards so the How-to page can
-      // illustrate a changed quantity. Live use hides confirmed cards.
+      // illustrate a changed quantity. Live use hides confirmed cards from the
+      // to-do list and shows them in a short list with Edit.
       var previewing = !!_deliveryPreview && _deliveryPreview !== "finished" && !(_deliveryPreview && _deliveryPreview.finished);
-      if (showSummary && !previewing) return;
       var papers = prog.items.filter(function (it) { return (previewing || !it.done) && it.kind === "NEWSPAPER"; });
       var mags = prog.items.filter(function (it) { return (previewing || !it.done) && it.kind !== "NEWSPAPER"; });
+      var confirmed = prog.items.filter(function (it) { return it.done && !previewing; });
       function addHeading(label) {
         var h = document.createElement("li");
         h.className = "rs-section";
         h.textContent = label;
         listEl.appendChild(h);
       }
-      if (papers.length && mags.length) addHeading("Newspapers");
-      papers.forEach(function (it) { listEl.appendChild(deliveryRow(it, finished)); });
-      if (mags.length) addHeading("Magazines");
-      mags.forEach(function (it) { listEl.appendChild(deliveryRow(it, finished)); });
+      if (!showSummary || previewing) {
+        if (papers.length && mags.length) addHeading("Newspapers");
+        papers.forEach(function (it) { listEl.appendChild(deliveryRow(it, finished)); });
+        if (mags.length) addHeading("Magazines");
+        mags.forEach(function (it) { listEl.appendChild(deliveryRow(it, finished)); });
+      }
+      if (confirmed.length && !previewing) {
+        var hint = document.createElement("li");
+        hint.className = "dc-hint";
+        hint.textContent = showSummary
+          ? "If a quantity is wrong, tap Edit to correct it."
+          : "Confirmed. Tap Edit if a quantity is wrong.";
+        listEl.appendChild(hint);
+        if (!showSummary) addHeading("Confirmed");
+        confirmed.forEach(function (it) {
+          if (_editingKey && _editingKey === deliveryLineKey(it)) listEl.appendChild(deliveryRow(it, finished, { correct: true }));
+          else listEl.appendChild(confirmedRow(it));
+        });
+      }
     }
 
-    function deliveryRow(item, jobFinished) {
+    function correctionNote(item) {
+      if (!item || !item.corrected) return "";
+      var bits = ["Corrected to " + item.actual];
+      if (item.previous != null && Number(item.previous) !== Number(item.actual)) bits[0] += " (was " + item.previous + ")";
+      var when = formatDeliveryTime(item.corrected_at || item.time) || "";
+      var who = item.corrected_by || item.by || "";
+      if (when || who) bits.push((when ? "at " + when : "") + (who ? (when ? " by " : "by ") + who : ""));
+      return bits.join(" ");
+    }
+
+    function confirmedRow(item) {
+      var li = document.createElement("li");
+      var changed = Number(item.actual) !== Number(item.expected);
+      li.className = "rs-item" + (item.corrected || changed ? " is-changed" : " is-done");
+      var thumb = document.createElement("div");
+      thumb.className = "rs-thumb";
+      if (item.image) {
+        var img = document.createElement("img");
+        img.src = item.image;
+        img.alt = "";
+        thumb.appendChild(img);
+      } else {
+        var letters = String(item.title || item.full_title || "?").replace(/[^A-Za-z0-9]/g, "").slice(0, 3).toUpperCase();
+        thumb.textContent = letters || "?";
+      }
+      var col = document.createElement("div");
+      col.className = "rs-meta-col";
+      var name = document.createElement("p");
+      name.className = "rs-name";
+      name.textContent = item.title || item.full_title || "Title";
+      col.appendChild(name);
+      var qtyLine = document.createElement("p");
+      var note = correctionNote(item);
+      if (note) {
+        qtyLine.className = "rs-corrected";
+        qtyLine.textContent = note;
+      } else if (changed) {
+        qtyLine.className = "rs-changed";
+        qtyLine.textContent = "Expected " + item.expected + ", delivered " + item.actual + (item.actual < item.expected ? " (short)" : " (extra)");
+      } else {
+        qtyLine.className = "rs-done-line";
+        qtyLine.textContent = "Delivered " + item.actual;
+      }
+      col.appendChild(qtyLine);
+      li.appendChild(thumb);
+      li.appendChild(col);
+      var actions = document.createElement("div");
+      actions.className = "rs-actions";
+      var editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "rs-btn edit";
+      editBtn.textContent = "Edit";
+      editBtn.addEventListener("click", function () {
+        _editingKey = deliveryLineKey(item);
+        renderDeliverySheet();
+        var card = document.querySelector(".rs-item.is-editing");
+        if (card && card.scrollIntoView) card.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+      actions.appendChild(editBtn);
+      li.appendChild(actions);
+      return li;
+    }
+
+    function deliveryRow(item, jobFinished, opts) {
+      opts = opts || {};
+      var correcting = !!opts.correct;
       var li = document.createElement("li");
       var changed = item.done && Number(item.actual) !== Number(item.expected);
       li.className = "rs-item" + (item.done && !changed ? " is-done" : "") + (changed ? " is-changed" : "");
@@ -3624,12 +3734,30 @@
       issue.className = "rs-issue";
       issue.textContent = "Edition " + (item.issue_display || item.edition || "today");
       col.appendChild(issue);
-      if (item.done) {
+      if (item.done && !correcting) {
         var doneLine = document.createElement("p");
-        doneLine.className = changed ? "rs-changed" : "rs-done-line";
-        if (changed) doneLine.textContent = "Expected " + item.expected + ", delivered " + item.actual + (item.actual < item.expected ? " (short)" : " (extra)");
-        else doneLine.textContent = "Delivered " + item.actual + " ✓";
+        var note = correctionNote(item);
+        if (note) {
+          doneLine.className = "rs-corrected";
+          doneLine.textContent = note;
+        } else {
+          doneLine.className = changed ? "rs-changed" : "rs-done-line";
+          if (changed) doneLine.textContent = "Expected " + item.expected + ", delivered " + item.actual + (item.actual < item.expected ? " (short)" : " (extra)");
+          else doneLine.textContent = "Delivered " + item.actual + " ✓";
+        }
         col.appendChild(doneLine);
+      } else if (correcting) {
+        var qtyLabel = document.createElement("p");
+        qtyLabel.className = "rs-return-qty";
+        qtyLabel.textContent = "Currently recorded: " + item.actual;
+        col.appendChild(qtyLabel);
+        var note = correctionNote(item);
+        if (note) {
+          var prevLine = document.createElement("p");
+          prevLine.className = "rs-corrected";
+          prevLine.textContent = note;
+          col.appendChild(prevLine);
+        }
       } else if (jobFinished) {
         var miss = document.createElement("p");
         miss.className = "rs-changed";
@@ -3643,8 +3771,9 @@
       }
       li.appendChild(thumb);
       li.appendChild(col);
-      if (!item.done && !jobFinished) {
-        var qty = item.expected;
+      if (correcting) li.classList.add("is-editing");
+      if ((!item.done && !jobFinished) || correcting) {
+        var qty = correcting ? (item.actual != null ? Number(item.actual) : item.expected) : item.expected;
         var row = document.createElement("div");
         row.className = "rs-qty-row";
         var minus = document.createElement("button");
@@ -3672,7 +3801,7 @@
         function setQty(n) {
           if (n < 0) n = 0;
           input.value = String(n);
-          confirmBtn.textContent = "Confirm " + n;
+          if (!correcting) confirmBtn.textContent = "Confirm " + n;
         }
         minus.addEventListener("click", function () { setQty(currentQty() - 1); });
         plus.addEventListener("click", function () { setQty(currentQty() + 1); });
@@ -3685,18 +3814,102 @@
         var confirmBtn = document.createElement("button");
         confirmBtn.type = "button";
         confirmBtn.className = "rs-btn confirm";
-        confirmBtn.textContent = "Confirm " + qty;
+        confirmBtn.textContent = correcting ? "Save correction" : ("Confirm " + qty);
         var err = document.createElement("p");
         err.className = "rs-err";
         confirmBtn.addEventListener("click", function () {
-          confirmLineDelivery(item, currentQty(), err, confirmBtn);
+          if (correcting) saveDeliveryCorrection(item, currentQty(), err, confirmBtn);
+          else confirmLineDelivery(item, currentQty(), err, confirmBtn);
         });
         actions.appendChild(confirmBtn);
+        if (correcting) {
+          var cancelBtn = document.createElement("button");
+          cancelBtn.type = "button";
+          cancelBtn.className = "rs-btn cancel";
+          cancelBtn.textContent = "Cancel";
+          cancelBtn.addEventListener("click", function () {
+            _editingKey = null;
+            renderDeliverySheet();
+          });
+          actions.appendChild(cancelBtn);
+        }
         actions.appendChild(err);
         li.appendChild(row);
         li.appendChild(actions);
       }
       return li;
+    }
+
+    function saveDeliveryCorrection(item, actual, errEl, btn) {
+      actual = parseInt(actual, 10);
+      if (isNaN(actual) || actual < 0) actual = 0;
+      function showErr(msg) {
+        if (errEl) { errEl.textContent = msg || ""; errEl.classList.toggle("show", !!msg); }
+        if (msg) setDeliveryStatus(msg, "error");
+      }
+      var who = (checkedBy.value || "").trim();
+      if (!who) {
+        showErr("Enter your name in Checked by first.");
+        checkedBy.focus();
+        return Promise.resolve(false);
+      }
+      var previous = Number(item.actual != null ? item.actual : item.expected) || 0;
+      if (actual === previous) {
+        _editingKey = null;
+        renderDeliverySheet();
+        setDeliveryStatus("Quantity is unchanged.", "ok");
+        return Promise.resolve(true);
+      }
+      var date = (deliveryDate.value || todayLondon()).trim();
+      if (!date) {
+        deliveryDate.value = todayLondon();
+        date = deliveryDate.value;
+      }
+      var typ = item.kind || paperType(item.barcode, item.title || item.full_title) || "NEWSPAPER";
+      var expected = Number(item.expected != null ? item.expected : item.qty) || 0;
+      var title = item.title || item.full_title || "title";
+      var edition = item.issue_display || item.edition || "";
+      var flag = "";
+      if (actual !== expected) {
+        var diff = actual - expected;
+        flag = (diff < 0 ? "SHORT " : "OVER ") + String(Math.abs(diff));
+      }
+      if (btn) btn.disabled = true;
+      showErr("");
+      setDeliveryStatus("Saving correction for " + title + "...", "");
+      var name = "PAPER: " + cleanField(item.barcode || "") + " | " + cleanField(title) + " | " + who + " | corrected | expected " + String(expected) + " | actual " + String(actual) + " | edition " + edition + (flag ? " | " + flag : "") + " | was " + String(previous) + " | " + typ;
+      return postPayload({
+        name: name,
+        photo: "",
+        lines: [{ date: date, qty: String(actual) }]
+      }).then(function () {
+        if (kind() !== typ) setKind(typ);
+        appendToday([{
+          barcode: item.barcode || "",
+          name: title,
+          qty: actual,
+          method: "corrected",
+          expected: expected,
+          actual: actual,
+          previous: previous,
+          corrected: true,
+          corrected_by: who,
+          corrected_at: new Date().toISOString(),
+          edition: edition,
+          postedKind: typ,
+          postedMode: "delivery",
+          kind: typ,
+          time: new Date().toISOString()
+        }]);
+        _editingKey = null;
+        setDeliveryStatus("Corrected " + title + " to " + actual + " (was " + previous + ")", "ok");
+        renderDeliverySheet();
+        return true;
+      }).catch(function () {
+        showErr("Could not save. Check your connection and try again.");
+        if (btn) btn.disabled = false;
+        return false;
+      });
     }
 
     function confirmLineDelivery(item, actual, errEl, btn) {
@@ -3897,6 +4110,7 @@
     window.__paperDelivery.items = allDeliveryItems;
     window.__paperDelivery.progress = deliveryProgress;
     window.__paperDelivery.confirmLine = confirmLineDelivery;
+    window.__paperDelivery.saveCorrection = saveDeliveryCorrection;
     window.__paperDelivery.confirmAll = confirmAllDelivery;
     window.__paperDelivery.finish = finishDeliveryJob;
     window.__paperDelivery.markFinished = markDeliveryJobFinished;
