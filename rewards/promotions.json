@@ -1,6 +1,6 @@
 {
- "updated": "26 November 2026, 7:14pm",
- "updated_iso": "2026-11-26T19:14:23+00:00",
+ "updated": "26 November 2026, 8:16pm",
+ "updated_iso": "2026-11-26T20:16:12+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
   {
@@ -19584,7 +19584,13 @@
   }
  ],
  "discontinued_barcodes": [
+  "20175863",
+  "3268840001008",
+  "3574661265537",
+  "46239488",
+  "5000159559959",
   "5000378998195",
+  "5010038485897",
   "5020379178624",
   "5900852925061",
   "5900852925276",
