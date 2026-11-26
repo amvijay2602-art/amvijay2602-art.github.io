@@ -1104,7 +1104,7 @@
     var its = ((SI.reading || {}).items || []).slice(0, 8);
     if (!its.length) return "";
     return "<table class='t' style='margin-top:6px'><tr><th>Scan</th><th>Received</th><th>Status</th></tr>" + its.map(function (r) {
-      var st = /^read, drafted/.test(r.state) ? "Read" : (/^read/.test(r.state) ? "Read, drafting" : "Waiting for reading");
+      var st = /^read, drafted/.test(r.state) ? "Read" : /^read, duplicate/.test(r.state) ? "Read, already in the app" : /^read, totals/.test(r.state) ? "Read, totals only: photo of the invoice needed" : /^read, not drafted/.test(r.state) ? "Read, needs checking" : (/^read/.test(r.state) ? "Read, drafting" : "Waiting for reading");
       return "<tr><td>" + esc((r.sid ? supName(r.sid) + " " : "") + (r.id || "")) + "</td><td>" + esc(r.received ? ukDate(r.received.slice(0, 10)) + " " + r.received.slice(11, 16) : "") + "</td><td>" + st + "</td></tr>";
     }).join("") + "</table>";
   }
