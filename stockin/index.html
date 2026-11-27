@@ -55,7 +55,8 @@
     .tile small { display: block; font-weight: 600; color: #5b6573; font-size: .8rem; margin-top: 4px; }
     .tile .big { font-size: 1.6rem; display: block; }
     .list .item { border: 1px solid #e3ebe6; border-radius: 14px; padding: 10px; margin-bottom: 8px; background: #fff; }
-    .item .t { font-weight: 800; } .m { color: #5b6573; font-size: .85rem; margin-top: 2px; }
+    .item .t { font-weight: 800; } .m { color: #5b6573; font-size: 14px; margin-top: 2px; }
+    a.btn { display: block; text-align: center; text-decoration: none; box-sizing: border-box; }
     .st { display: inline-block; font-size: .75rem; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: #eef5f0; color: var(--bk-g); }
     .st.draft { background: #eef2ff; color: #3730a3; } .st.needs_fix, .st.error { background: #fdecec; color: #c62828; }
     .st.pending_approval { background: #fef3c7; color: #8a4b08; } .st.approved, .st.sending, .st.till_draft { background: #e0f2fe; color: #075985; }
@@ -397,7 +398,7 @@
     { k: "eden", sid: "SUP-005", name: "Eden Farm", st: "ok", tag: "Delivery check + scanner", how: "Eden EDN delivery check: expected against received, problems, expiry dates with batches, Confirm Item and Confirm Full Delivery, then a delivery report. The Invoice Scanner still makes the till draft. Nothing is posted to the till." },
     { k: "dhamecha", sid: "SUP-002", name: "Dhamecha", st: "part", tag: "Invoice Scanner works", how: "Photo or PDF of the invoice: Grok Bot reads it on the box (any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking." },
     { k: "booker", sid: "SUP-006", name: "Booker", st: "ok", tag: "Invoice Scanner + Booker account check", how: "Photo or PDF of the invoice. The scanner reads the invoice number, date and total (you can edit them). The box then checks those figures against your Booker account summary: item count, goods at 0% and 20%, VAT and total. The draft shows a Matches Booker tick, or the exact differences, so you can fix the lines before approving. Recent Purchases is used to correct misread codes, names, pack sizes and prices. Stock is never posted and selling prices are never changed. Typing the lines by hand still works." },
-    { k: "tns", sid: "SUP-008", name: "TNS Wholesale", st: "part", tag: "Website invoice + Invoice Scanner", how: "Get invoice from supplier website asks the shop computer to download the invoice and make a Stock In draft only. Until the TNS login is set up on the shop computer, use a photo or PDF in the Invoice Scanner. Typing the lines by hand still works. Nothing is posted and selling prices are not changed." },
+    { k: "tns", sid: "SUP-008", name: "TNS Wholesale", st: "ok", tag: "Sign in, upload, or website invoice", how: "Sign in yourself and upload the invoice or EDN file, or use Get invoice from supplier website. Only a Stock In draft is made. Nothing is posted and selling prices are not changed. Typing the lines by hand still works." },
     { k: "cc", sid: "SUP-004", name: "Country Choice", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: Grok Bot reads it on the box (any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. Typing the lines by hand still works." },
     { k: "galaxy", sid: "", name: "Galaxy", st: "part", tag: "Invoice Scanner (any supplier)", how: "Photo or PDF of the invoice: Grok Bot reads it on the box (any layout), checks the maths, matches barcodes and verified supplier codes, and saves a till DRAFT automatically. Unmatched lines are listed for checking. A supplier the app does not know yet is added as 'waiting for approval' for a manager." },
     { k: "ud", sid: "SUP-003", name: "Unique Dairies", st: "ok", tag: "Milk and bread screen", how: "Use the quick Milk and bread screen for the daily delivery and returns." },
@@ -406,6 +407,34 @@
   ];
   var STTXT = { ok: "Working", part: "Working (scanner)", manual: "Manual only", soon: "Coming soon" };
   var STCOL = { ok: "#1b7f3b", part: "#1b7f3b", manual: "#b26a00", soon: "#777" };
+  // Public supplier login or invoices pages only. Never put passwords here (Vijay, 27 Nov 2026).
+  var SUP_SITES = {
+    "SUP-001": { name: "Parfetts", url: "https://online.parfetts.co.uk/" },
+    "SUP-002": { name: "Dhamecha", url: "https://www.dhamecha.com/login" },
+    "SUP-005": { name: "Eden Farm", url: "https://www.eden-farm.co.uk/account/invoices" },
+    "SUP-006": { name: "Booker", url: "https://www.booker.co.uk/" },
+    "SUP-008": { name: "TNS Wholesale", url: "https://www.tnswholesale.co.uk/login" }
+  };
+  var INV_ACCEPT = "application/pdf,.pdf,.csv,text/csv,.txt,text/plain,.edn,.xml,application/xml,text/xml,image/*";
+  function siteOf(sid) { return SUP_SITES[sid] || null; }
+  function signInButton(sid, name, id) {
+    var s = siteOf(sid); if (!s || !s.url) return "";
+    var label = "Sign in to " + (s.name || name || "supplier") + " website";
+    return "<a class='btn o' id='" + (id || "supSign") + "' href='" + esc(s.url) + "' target='_blank' rel='noopener noreferrer' style='margin-top:8px'>" + esc(label) + "</a>";
+  }
+  function uploadControl(id) {
+    return "<label class='btn sec' style='margin-top:8px;text-align:center;font-size:1.05rem'>Upload the downloaded invoice / EDN file<input id='" + id + "' type='file' accept='" + INV_ACCEPT + "' multiple class='hidden'></label>" +
+      "<div id='" + id + "Msg' class='m' style='margin-top:6px;font-size:14px'>PDF, CSV, EDN, text or XML. The box makes a Stock In draft only. Nothing is posted and selling prices are not changed.</div>";
+  }
+  function startUpload(sid, files, msgId) {
+    if (!files || !files.length) return;
+    SCAN.sid = sid || "";
+    addFiles(files);
+    if (!SCAN.pages.length) { if (msgId) say(msgId, "Use a PDF, CSV, EDN, text, XML or a photo of the invoice.", "err"); return; }
+    go("scan");
+    setTimeout(function () { if ($("scRead") && !SCAN.busy) readInvoice(); }, 0);
+  }
+
   var KCHK = "birkhill-si-checks-v1";
   function flowOf(k) { return SUPFLOWS.filter(function (f) { return f.k === k; })[0]; }
   VIEWS.new = function () {
@@ -423,7 +452,9 @@
     else {
       h += "<div class='card'>";
       if (f.k === "eden") h += "<button class='btn o' id='supEdn' style='margin-bottom:8px'>&#128666; Eden EDN delivery check</button>";
-      h += "<button class='btn' id='supScan'>&#129534; Invoice Scanner: photo or PDF</button>";   // universal pipeline: every supplier (25 Nov 2026)
+      h += signInButton(f.sid, f.name, "supSign");
+      h += uploadControl("supUp");
+      h += "<button class='btn' id='supScan' style='margin-top:8px'>&#129534; Invoice Scanner: photo or PDF</button>";   // universal pipeline: every supplier (25 Nov 2026)
       if (f.sid) h += "<button class='btn' id='supWeb' style='margin-top:8px'>Get invoice from supplier website</button><div id='supWebBox' style='display:none;margin-top:8px'><label class='f'>Invoice number (optional)</label><input id='supRef' type='text' autocomplete='off'><label class='f'>Delivery date (optional)</label><input id='supDate' type='date' value='" + londonISO() + "'><label class='f'>Staff name</label><input id='supStaff' type='text' value='" + esc(staff()) + "'><button class='btn small' id='supWebGo' style='margin-top:8px'>Get invoice</button><div id='supWebMsg'></div></div><div class='m' style='margin-top:6px'>The shop computer logs in, downloads the invoice and makes a Stock In draft only.</div>";
       if (f.k === "eden") h += "<button class='btn sec' id='supHand' style='margin-top:8px'>Eden EDN file or type lines</button>";
       if (f.k === "ud") h += "<button class='btn' id='supUd'>&#129371; Milk and bread screen</button>";
@@ -437,6 +468,7 @@
     $("supBack").onclick = function () { go("new"); };
     if ($("supEdn")) $("supEdn").onclick = function () { go("edenedn"); };
     if ($("supScan")) $("supScan").onclick = function () { SCAN.sid = f.sid; go("scan"); };
+    if ($("supUp")) $("supUp").onchange = function () { startUpload(f.sid, this.files, "supUpMsg"); };
     if ($("supWeb")) $("supWeb").onclick = function () { var box = $("supWebBox"); box.style.display = box.style.display === "none" ? "block" : "none"; };
     if ($("supWebGo")) $("supWebGo").onclick = function () {
       var job = requestWebsiteInvoice(f.sid, $("supRef").value, $("supDate").value, ($("supStaff") && $("supStaff").value.trim()) || staff(), "supWebMsg");
@@ -455,7 +487,8 @@
   }
   function boxChecks(sup) { return (SI.invoice_checks || []).filter(function (c) { return c.supplier === sup; }); }
   function parfettsCard() {
-    var h = "<div class='card'><h2>1. Check an invoice against the till draft</h2>" +
+    var h = "<div class='card'>" + signInButton("SUP-001", "Parfetts", "pfSign") + uploadControl("pfUp") +
+      "<h2 style='margin-top:14px'>1. Check an invoice against the till draft</h2>" +
       "<label class='f'>Parfetts invoice file (EDN / Invoice Data CSV)</label><input id='pfFile' type='file' accept='.csv,.txt,text/csv,text/plain'>" +
       "<button class='btn sec' id='pfScan' style='margin-top:8px'>&#129534; Only have the PDF or paper? Use the Invoice Scanner</button>" +
       "<button class='btn' id='pfWeb' style='margin-top:8px'>Get invoice from supplier website</button><div id='pfWebMsg'></div>" +
@@ -528,6 +561,7 @@
     $("pfDone").onclick = function () { saveHist(); PF = null; go("sup", "parfetts"); };
   }
   function bindParfetts() {
+    if ($("pfUp")) $("pfUp").onchange = function () { startUpload("SUP-001", this.files, "pfUpMsg"); };
     $("pfScan").onclick = function () { SCAN.sid = "SUP-001"; go("scan"); };
     if ($("pfWeb")) $("pfWeb").onclick = function () {
       var job = requestWebsiteInvoice("SUP-001", "", londonISO(), staff(), "pfWebMsg");
@@ -571,6 +605,7 @@
   VIEWS.manual = function (presel) {
     var opts = (SI.suppliers || []).filter(function (s) { return s.active !== false; }).map(function (s) { return "<option value='" + s.id + "'" + (s.id === presel ? " selected" : "") + ">" + esc(s.name) + "</option>"; }).join("");
     $("view").innerHTML = "<div class='card'><h2>New delivery</h2><label class='f'>Supplier</label><select id='nSup'><option value=''>Choose supplier</option>" + opts + "</select>" +
+      "<div id='nSiteBox'></div>" +
       "<label class='f'>Invoice or delivery note number</label><input id='nRef' type='text' autocomplete='off'>" +
       "<div class='row'><div><label class='f'>Delivery date</label><input id='nDate' type='date' value='" + londonISO() + "'></div><div><label class='f'>Staff name</label><input id='nStaff' type='text' value='" + esc(staff()) + "'></div></div>" +
       "<label class='f'>Parfetts or Eden EDN file, or a CSV of barcode, cases, case size, case cost, VAT (optional)</label><input id='nFile' type='file' accept='.csv,text/csv'>" +
@@ -584,7 +619,19 @@
       var job = requestWebsiteInvoice($("nSup").value, $("nRef").value, $("nDate").value, $("nStaff").value.trim(), "nMsg");
       if (job) refreshFetchCard();
     };
-    $("nSup").onchange = function () { var s = (SI.suppliers || []).filter(function (x) { return x.id === $("nSup").value; })[0]; if (s && s.import_type === "ud_daily" && confirm("Use the quick Milk and bread screen?")) go("ud"); };
+    function renderNSite() {
+      var sid = $("nSup").value, box = $("nSiteBox"); if (!box) return;
+      var s = (SI.suppliers || []).filter(function (x) { return x.id === sid; })[0];
+      var name = s ? s.name : "";
+      box.innerHTML = (sid ? signInButton(sid, name, "nSign") + uploadControl("nUp") : "");
+      if ($("nUp")) $("nUp").onchange = function () { startUpload(sid, this.files, "nUpMsg"); };
+    }
+    $("nSup").onchange = function () {
+      renderNSite();
+      var s = (SI.suppliers || []).filter(function (x) { return x.id === $("nSup").value; })[0];
+      if (s && s.import_type === "ud_daily" && confirm("Use the quick Milk and bread screen?")) go("ud");
+    };
+    renderNSite();
     $("nGo").onclick = function () {
       var sid = $("nSup").value, who = $("nStaff").value.trim();
       if (!sid) return say("nMsg", "Choose the supplier.", "err"); if (!who) return say("nMsg", "Type your name.", "err");
@@ -1159,10 +1206,20 @@
     });
   }
   function canvasBlob(cv, q) { return new Promise(function (ok) { cv.toBlob(function (b) { ok(b); }, "image/jpeg", q || 0.8); }); }
+  function fileKind(f) {
+    var n = f.name || "", typ = f.type || "";
+    if (/pdf$/i.test(typ) || /\.pdf$/i.test(n)) return { kind: "pdf", mime: typ || "application/pdf" };
+    if (/^image\//.test(typ) || /\.(jpe?g|png|heic|webp)$/i.test(n)) return { kind: "image", mime: typ || "image/jpeg" };
+    if (/csv/i.test(typ) || /\.csv$/i.test(n)) return { kind: "csv", mime: typ || "text/csv" };
+    if (/xml/i.test(typ) || /\.xml$/i.test(n)) return { kind: "xml", mime: typ || "application/xml" };
+    if (/\.edn$/i.test(n)) return { kind: "edn", mime: typ || "text/plain" };
+    if (/plain|text\//i.test(typ) || /\.txt$/i.test(n)) return { kind: "txt", mime: typ || "text/plain" };
+    return null;
+  }
   function addFiles(files) {
     Array.prototype.forEach.call(files || [], function (f) {
-      if (/pdf$/i.test(f.type) || /\.pdf$/i.test(f.name)) SCAN.pages.push({ kind: "pdf", file: f, name: f.name });
-      else if (/^image\//.test(f.type) || /\.(jpe?g|png|heic|webp)$/i.test(f.name)) SCAN.pages.push({ kind: "image", file: f, name: f.name || "photo" });
+      var k = fileKind(f); if (!k) return;
+      SCAN.pages.push({ kind: k.kind, file: f, name: f.name || "invoice", mime: k.mime });
     });
     SCAN.parsed = null; renderScan();
   }
@@ -1188,14 +1245,14 @@
   }
   function scanSupOpts(sel) { return "<option value=''>Work it out from the invoice</option>" + (SI.suppliers || []).filter(function (s) { return s.active !== false; }).map(function (s) { return "<option value='" + s.id + "'" + (s.id === sel ? " selected" : "") + ">" + esc(s.name) + "</option>"; }).join(""); }
   function renderScan() {
-    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Any supplier. Take a photo of each page of the invoice, or upload photos or the PDF. Grok Bot reads it on the box, works out the supplier, checks the sums, matches barcodes and verified supplier codes and saves a Stock In draft. Stock is never posted and selling prices are never changed.</div><div class='note'>" + aiNote() + "</div>" + readingList() +
+    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Any supplier. Take a photo of each page of the invoice, or upload photos, a PDF, or an EDN, CSV, text or XML file. Grok Bot reads it on the box, works out the supplier, checks the sums, matches barcodes and verified supplier codes and saves a Stock In draft. Stock is never posted and selling prices are never changed.</div><div class='note'>" + aiNote() + "</div>" + readingList() +
       "<label class='f'>Supplier</label><select id='scSup'>" + scanSupOpts(SCAN.sid) + "</select>" +
       "<div class='row' style='margin-top:10px'><label class='btn' style='text-align:center'>&#128247; Photo of a page<input id='scCam' type='file' accept='image/*' capture='environment' class='hidden'></label>" +
-      "<label class='btn sec' style='text-align:center'>&#128196; Upload photos or PDF<input id='scFile' type='file' accept='image/*,application/pdf,.pdf' multiple class='hidden'></label></div>" +
+      "<label class='btn sec' style='text-align:center'>&#128196; Upload photos, PDF or EDN file<input id='scFile' type='file' accept='" + INV_ACCEPT + "' multiple class='hidden'></label></div>" +
       "<div class='m' style='margin-top:6px'>Several pages? Take one photo per page, in order. Flat, bright, whole page in the frame.</div></div>";
     if (SCAN.pages.length) {
       h += "<div class='card'><h2>Pages (" + SCAN.pages.length + ")</h2><div class='list'>" + SCAN.pages.map(function (p, i) {
-        return "<div class='item' style='cursor:default'><div class='t'>" + (p.kind === "pdf" ? "&#128196; PDF: " : "&#128247; Page " + (i + 1) + ": ") + esc(p.name) + "</div><div class='m'>" + (p.kind === "pdf" ? "All pages in the PDF are read" : "") +
+        return "<div class='item' style='cursor:default'><div class='t'>" + (p.kind === "pdf" ? "&#128196; PDF: " : (p.kind === "image" ? "&#128247; Page " + (i + 1) + ": " : "&#128196; File: ")) + esc(p.name) + "</div><div class='m'>" + (p.kind === "pdf" ? "All pages in the PDF are read" : (p.kind === "image" ? "" : "This file is sent to the box so it can make a Stock In draft only")) +
           "</div><div class='row' style='margin-top:6px'>" + (i ? "<button class='btn small sec' data-up='" + i + "' style='flex:0 0 auto'>Move up</button>" : "") + "<button class='btn small sec' data-rm='" + i + "' style='flex:0 0 auto'>Remove</button></div></div>";
       }).join("") + "</div><button class='btn' id='scRead' style='margin-top:10px'" + (SCAN.busy ? " disabled" : "") + ">Read invoice</button><div id='scProg' class='m' style='margin-top:6px'></div></div>";
     }
@@ -1234,6 +1291,15 @@
     function next() {
       if (i >= SCAN.pages.length) return Promise.resolve();
       var p = SCAN.pages[i++], n = i;
+      if (p.kind !== "pdf" && p.kind !== "image") {
+        prog("Reading file " + n + " of " + SCAN.pages.length + "...");
+        return new Promise(function (ok, no) {
+          var rd = new FileReader();
+          rd.onload = function () { texts.push(String(rd.result || "")); methods["File text"] = 1; ok(); };
+          rd.onerror = function () { no(rd.error || new Error("Could not read the file")); };
+          rd.readAsText(p.file);
+        }).then(next);
+      }
       if (p.kind === "pdf") {
         prog("Opening PDF...");
         return getPdf().then(function (lib) { return p.file.arrayBuffer().then(function (buf) { return lib.getDocument({ data: new Uint8Array(buf) }).promise; }); }).then(function (pdf) {
@@ -1270,6 +1336,20 @@
     return { codes: (SI.codes || {})[sid] || {}, byId: BYID, hist: hist, products: scanCtx.products, lookup: lookup };
   }
   function reparse(text) {
+    if (text && /Retail_Barcode/i.test(text)) {
+      try {
+        var tmp = { sid: SCAN.sid || "SUP-001", ref: "", date: londonISO(), staff: staff() || "", lines: [] };
+        parseEDN(text, tmp);
+        if (tmp.lines.length) {
+          return { sid: tmp.sid, inv_no: String(tmp.ref || "").replace(/^(Parfetts|Eden)\s+/, ""), date: tmp.date,
+            lines: tmp.lines.map(function (l) {
+              return { pid: l.pid, bc: l.bc, desc: l.inv_name || l.name, size: "", code: l.inv_code, qty: l.rcv, upc: l.upc, case_cost: l.case_cost, vat: l.vat, match: l.match, flags: l.leave_out ? ["Not supplied"] : [], alts: [], value: null };
+            }),
+            sum: null, totals: {}, totals_match: true, warnings: ["Read from the EDN or CSV file. Only a Stock In draft is made."],
+            items: tmp.lines.length, text: text, method: SCAN.method || "EDN file", unreadable: false };
+        }
+      } catch (e) {}
+    }
     var r = BHInvoice.parse(text, SCAN.sid || "");
     r.text = text; r.method = SCAN.method;
     var parts = BHInvoice.splitInvoices ? BHInvoice.splitInvoices(text) : [];
@@ -1387,9 +1467,10 @@
   function uploadPages(docId, pages) {
     var jobs = [];
     pages.forEach(function (p, i) {
-      jobs.push((p.kind === "pdf" ? p.file.arrayBuffer() : (p.canvas ? Promise.resolve(p.canvas) : imageToCanvas(p.file, 2400)).then(function (cv) { return canvasBlob(cv, 0.8); }).then(function (b) { return b.arrayBuffer(); }))
+      var raw = (p.kind === "pdf" || (p.kind !== "image")) ? p.file.arrayBuffer() : (p.canvas ? Promise.resolve(p.canvas) : imageToCanvas(p.file, 2400)).then(function (cv) { return canvasBlob(cv, 0.8); }).then(function (b) { return b.arrayBuffer(); });
+      jobs.push(raw
         .then(function (buf) { if (buf.byteLength > 15e6) throw new Error("file too big to keep (over 15 MB)"); return encryptFile(buf); })
-        .then(function (e) { return idbDo("readwrite", function (st) { return st.put({ key: docId + "|" + i, meta: { t: "file", id: docId, n: i, of: pages.length, kind: p.kind === "pdf" ? "pdf" : "page", mime: p.kind === "pdf" ? "application/pdf" : "image/jpeg", iv: e.iv, wk: e.wk, sha: e.sha, by: staff() }, data: e.data }); }); }));
+        .then(function (e) { return idbDo("readwrite", function (st) { var kind = p.kind === "pdf" ? "pdf" : (p.kind === "image" ? "page" : (p.kind || "file")); var mime = p.mime || (kind === "pdf" ? "application/pdf" : (kind === "page" ? "image/jpeg" : "application/octet-stream")); return st.put({ key: docId + "|" + i, meta: { t: "file", id: docId, n: i, of: pages.length, kind: kind, mime: mime, iv: e.iv, wk: e.wk, sha: e.sha, by: staff() }, data: e.data }); }); }));
     });
     Promise.all(jobs).then(function () { flushFiles(); }).catch(function (e) { alert("The invoice pictures could not be saved for history: " + (e && e.message || e) + ". The draft is fine."); });
   }
