@@ -318,6 +318,68 @@
     if (/total\s*items/i.test(t) && /total\s*goods/i.test(t) && /invoice\s*total/i.test(t) && !/\b\d{5,6}\s+[A-Za-z]{3,}/.test(t)) return true;
     return false;
   }
+  function bookerVatFromLetter(letter, rates) {
+    var c = String(letter || "").toUpperCase().charAt(0);
+    if (rates && rates[c] != null) return String(rates[c]);
+    if (c === "Z") return "0";
+    if (c === "A") return "20";
+    if (c === "B") return "5";
+    return "";
+  }
+  function parseBookerVatRates(text) {
+    var rates = {}, boxes = {};
+    var re = /(?:^|\n)\s*([A-Z])\s*:\s*(\d+(?:\.\d+)?)\s+([\d,]+(?:\.\d{2})?)\s+([\d,]+(?:\.\d{2})?)\s+([\d,]+(?:\.\d{2})?)\s+([\d,]+(?:\.\d{2})?)/g;
+    var m;
+    while ((m = re.exec(String(text || "")))) {
+      var letter = m[1], rate = parseFloat(m[2]), goods = bookerMoneyTok(m[3]), vatAmt = bookerMoneyTok(m[6]);
+      rates[letter] = Math.abs(rate) < 0.01 ? "0" : (Math.abs(rate - 20) < 0.01 ? "20" : (Math.abs(rate - 5) < 0.01 ? "5" : String(rate)));
+      if (Math.abs(rate) < 0.01) { boxes["0"] = goods; boxes.vat_0 = vatAmt; }
+      else if (Math.abs(rate - 20) < 0.01) { boxes["20"] = goods; boxes.vat_20 = vatAmt; }
+    }
+    return { rates: rates, boxes: boxes };
+  }
+  // Official Booker-Invoice PDF (CODE, DESCRIPTION, PACK SIZE, QTY, PRICE, VALUE, VAT, RRP, POR).
+  // Pack size is two tokens such as "6 75cl" or "1 12x500c". Trailing P/R after price is promo/reduced.
+  var BOOKER_OFFICIAL_LINE = /^(\d{5,6})\s+(.+?)\s+(\d+)\s+(\S+)\s+(\d+)(-)?\s+([\d,]+(?:\.\d{2}))\s*([PR])?\s+([\d,]+(?:\.\d{2}))(-)?\s+([ABZS])(?:\s+([\d,]+(?:\.\d{2})))?(?:\s+(\d+(?:\.\d+)?%))?\s*$/i;
+  function parseBookerOfficialLine(raw, rates) {
+    var m = BOOKER_OFFICIAL_LINE.exec(String(raw || "").trim());
+    if (!m) return null;
+    var qty = parseInt(m[5], 10); if (m[6]) qty = -qty;
+    var price = bookerMoneyTok(m[7]);
+    var value = bookerMoneyTok(m[9]); if (m[10] && value != null) value = -Math.abs(value);
+    var letter = m[11].toUpperCase();
+    var vat = bookerVatFromLetter(letter, rates);
+    var packN = parseInt(m[3], 10);
+    var flags = [];
+    if (m[8] && /^P$/i.test(m[8])) flags.push("Promo price");
+    if (m[8] && /^R$/i.test(m[8])) flags.push("Reduced price");
+    if (price != null && qty != null && value != null && !near(price * qty, value, 0.02)) flags.push("Qty x price does not equal the line value, check");
+    if (price == null) flags.push("Cost not read");
+    if (!vat) flags.push("VAT not read");
+    var rrp = m[12] ? bookerMoneyTok(m[12]) : null;
+    return { code: m[1], bc: "", desc: m[2].replace(/\s+/g, " ").trim(), size: packN + "x" + m[4], upc: packN, qty: qty, case_cost: price, value: value, vat: vat, vat_code: letter, flags: flags, pmp: rrp, rrp: rrp };
+  }
+  function netBookerVoids(lines) {
+    var out = [];
+    (lines || []).forEach(function (l) {
+      if (l.qty < 0 || (l.value != null && l.value < 0)) {
+        var used = false;
+        for (var i = out.length - 1; i >= 0; i--) {
+          var prev = out[i];
+          if (prev.code === l.code && Math.abs((prev.case_cost || 0) - Math.abs(l.case_cost || 0)) < 0.011) {
+            var nq = prev.qty + l.qty;
+            var nv = (prev.value != null && l.value != null) ? r2(prev.value + l.value) : prev.value;
+            if (Math.abs(nq) < 0.001) out.splice(i, 1);
+            else { prev.qty = nq; prev.value = nv; }
+            used = true;
+            break;
+          }
+        }
+        if (!used) out.push(l);
+      } else out.push(l);
+    });
+    return out;
+  }
   function parseBooker(text) {
     var res = { supplier: "Booker", inv_no: "", date: "", lines: [], warnings: [], totals: {}, pages: {}, vat_box: {}, items: null, branch: "", customer: "", time: "", summary_only: false };
     var m = /invoice\s*(?:no\.?|number|#)?\s*[:.]?\s*([0-9OoIl]{6,8})/i.exec(text);
@@ -343,6 +405,7 @@
     m = /(?:^|[^\d])20\s*%\s*[£\u00a3]?\s*([\dOoIl.,]+)\s*[£\u00a3]?\s*([\dOoIl.,]+)/im.exec(text);
     if (m) { res.vat_box["20"] = bookerMoneyTok(m[1]); res.totals.goods_20 = res.vat_box["20"]; res.totals.vat = bookerMoneyTok(m[2]); }
     m = /total\s*goods\s*[:.]?\s*[£\u00a3]?\s*([\dOoIl.,]+)/i.exec(text);
+    if (!m) m = /TOTALS:\s*GOODS\s*[£\u00a3]?\s*([\dOoIl.,]+)/i.exec(text);
     if (m) res.totals.goods = bookerMoneyTok(m[1]);
     m = /total\s*vat\s*[:.]?\s*[£\u00a3]?\s*([\dOoIl.,]+)/i.exec(text);
     if (m) res.totals.vat = bookerMoneyTok(m[1]);
@@ -351,48 +414,72 @@
     if (m) res.totals.total = bookerMoneyTok(m[1]);
     if (res.items != null) res.totals.items = res.items;
 
+    var box = parseBookerVatRates(text);
+    if (box.boxes["0"] != null) { res.vat_box["0"] = box.boxes["0"]; res.totals.goods_0 = box.boxes["0"]; }
+    if (box.boxes["20"] != null) { res.vat_box["20"] = box.boxes["20"]; res.totals.goods_20 = box.boxes["20"]; }
+    if (box.boxes.vat_20 != null && res.totals.vat == null) res.totals.vat = box.boxes.vat_20;
+    if (Object.keys(box.rates).length) res.vat_rates = box.rates;
+
+    var official = [];
+    var stop = false;
     String(text).split(/\r?\n/).forEach(function (ln) {
       var raw = ln.trim();
       if (!raw) return;
-      if (isHeaderLine(raw) || isHeaderLine(raw.replace(/^\d{5,6}\s+/, ""))) return;
-      if (/total\s*(items|goods|vat)|invoice\s*(no|total)|goods\s*ex\s*vat|purchase\s*order/i.test(raw)) return;
-      var toks = raw.split(/\s+/), ci = -1, code = "";
-      toks.forEach(function (t, i) {
-        var f = fixNum(t);
-        if (/^\d{5,6}$/.test(f) && ci < 0) { code = f; ci = i; }
-      });
-      if (ci < 0) return;
-      var end = toks.length, vatCode = "", vat = "";
-      var vl = vatLetter(toks[end - 1]);
-      if (vl && vl.c) { vatCode = vl.c; vat = vatCode === "Z" ? "0" : (vatCode === "A" ? "20" : (vatCode === "B" ? "5" : "")); end--; }
-      var after = toks.slice(ci + 1, end), nums = [], words = [];
-      after.forEach(function (t) {
-        var mv = bookerMoneyTok(t), iv = intTok(t);
-        if (mv != null && /\d+\.\d{2}/.test(fixNum(t).replace(/[£\u00a3]/g, ""))) nums.push({ kind: "money", v: mv });
-        else if (iv != null && iv > 0 && iv <= HARD_MAX_QTY) nums.push({ kind: "int", v: iv, raw: t });
-        else if (!/^(z|a|b|%|vat)$/i.test(t)) words.push(t);
-      });
-      var mon = nums.filter(function (n) { return n.kind === "money"; }).map(function (n) { return n.v; });
-      var ints = nums.filter(function (n) { return n.kind === "int"; }).map(function (n) { return n.v; });
-      var qty = ints.length ? ints[0] : null;
-      var price = mon.length ? mon[0] : null;
-      var value = mon.length > 1 ? mon[mon.length - 1] : null;
-      var desc = words.join(" ").trim();
-      if (!desc || isHeaderLine(desc)) return;
-      if (qty == null || qty < 1) return;
-      if (price == null && value == null) return;
-      var flags = [];
-      if (price != null && qty != null && value != null && !near(price * qty, value, 0.02)) { flags.push("Qty x price does not equal the line value, check"); }
-      if (price == null) flags.push("Cost not read");
-      if (!vat) flags.push("VAT not read");
-      var upc = ints.length > 1 ? ints[1] : null;
-      res.lines.push({ code: code, bc: "", desc: desc, size: "", upc: upc, qty: qty, case_cost: price, value: value, vat: vat, vat_code: vatCode, flags: flags });
+      if (/payment\s+card\s+receipt|total\s*items|thank\s+you\s+for\s+your\s+custom/i.test(raw)) { stop = true; return; }
+      if (stop) return;
+      if (/^void\s+note$|sub[\s-]*total/i.test(raw)) return;
+      var row = parseBookerOfficialLine(raw, box.rates);
+      if (row) official.push(row);
     });
+    if (official.length) {
+      res.lines = netBookerVoids(official);
+    } else {
+      String(text).split(/\r?\n/).forEach(function (ln) {
+        var raw = ln.trim();
+        if (!raw) return;
+        if (isHeaderLine(raw) || isHeaderLine(raw.replace(/^\d{5,6}\s+/, ""))) return;
+        if (/total\s*(items|goods|vat)|invoice\s*(no|total)|goods\s*ex\s*vat|purchase\s*order/i.test(raw)) return;
+        var toks = raw.split(/\s+/), ci = -1, code = "";
+        toks.forEach(function (t, i) {
+          var f = fixNum(t);
+          if (/^\d{5,6}$/.test(f) && ci < 0) { code = f; ci = i; }
+        });
+        if (ci < 0) return;
+        var end = toks.length, vatCode = "", vat = "";
+        var vl = vatLetter(toks[end - 1]);
+        if (vl && vl.c) { vatCode = vl.c; vat = bookerVatFromLetter(vatCode, box.rates); end--; }
+        var after = toks.slice(ci + 1, end), nums = [], words = [];
+        after.forEach(function (t) {
+          var mv = bookerMoneyTok(t), iv = intTok(t);
+          if (mv != null && /\d+\.\d{2}/.test(fixNum(t).replace(/[£\u00a3]/g, ""))) nums.push({ kind: "money", v: mv });
+          else if (iv != null && iv > 0 && iv <= HARD_MAX_QTY) nums.push({ kind: "int", v: iv, raw: t });
+          else if (!/^(z|a|b|%|vat)$/i.test(t)) words.push(t);
+        });
+        var mon = nums.filter(function (n) { return n.kind === "money"; }).map(function (n) { return n.v; });
+        var ints = nums.filter(function (n) { return n.kind === "int"; }).map(function (n) { return n.v; });
+        var qty = ints.length ? ints[0] : null;
+        var price = mon.length ? mon[0] : null;
+        var value = mon.length > 1 ? mon[mon.length - 1] : null;
+        var desc = words.join(" ").trim();
+        if (!desc || isHeaderLine(desc)) return;
+        if (qty == null || qty < 1) return;
+        if (price == null && value == null) return;
+        var flags = [];
+        if (price != null && qty != null && value != null && !near(price * qty, value, 0.02)) { flags.push("Qty x price does not equal the line value, check"); }
+        if (price == null) flags.push("Cost not read");
+        if (!vat) flags.push("VAT not read");
+        var upc = ints.length > 1 ? ints[1] : null;
+        res.lines.push({ code: code, bc: "", desc: desc, size: "", upc: upc, qty: qty, case_cost: price, value: value, vat: vat, vat_code: vatCode, flags: flags });
+      });
+    }
 
     if (!res.lines.length && looksLikeBookerSummary(text) && res.inv_no && (res.totals.total != null || res.totals.goods != null)) {
       res.summary_only = true;
     }
     if (!res.totals.goods && res.vat_box["0"] != null && res.vat_box["20"] != null) res.totals.goods = r2(res.vat_box["0"] + res.vat_box["20"]);
+    if (res.totals.goods != null && res.totals.vat != null && res.totals.total != null && !near(r2(res.totals.goods + res.totals.vat), res.totals.total, 0.02)) {
+      res.warnings.push("Goods £" + res.totals.goods.toFixed(2) + " plus VAT £" + res.totals.vat.toFixed(2) + " does not equal the invoice total £" + res.totals.total.toFixed(2) + ".");
+    }
     return res;
   }
 
