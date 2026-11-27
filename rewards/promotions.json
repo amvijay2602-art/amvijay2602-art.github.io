@@ -1,6 +1,6 @@
 {
- "updated": "27 November 2026, 12:15pm",
- "updated_iso": "2026-11-27T12:15:09+00:00",
+ "updated": "27 November 2026, 1:01pm",
+ "updated_iso": "2026-11-27T13:01:48+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
   {
@@ -19527,6 +19527,181 @@
     0.878
    ],
    "photo_source": "Parfetts"
+  },
+  {
+   "id": "till-15160",
+   "source": "till",
+   "title": "Wkd Blue 4 Pack PM \u00a34.99 and 11 more",
+   "deal": "Now \u00a33.99",
+   "normal": "\u00a34.99 each",
+   "end": null,
+   "end_iso": null,
+   "start_iso": "2026-11-27T00:00:00+00:00",
+   "department": "Grocery",
+   "dept_key": "grocery",
+   "picture": "pimg/5024993733207.jpg",
+   "note": "Mix and match, 12 products",
+   "pack": "275ML",
+   "barcode": "5024993733207",
+   "barcodes": [
+    "5024993733207",
+    "5010153873685",
+    "1210000107602",
+    "1210000108173",
+    "850035474037",
+    "850035474068",
+    "850035474051",
+    "1210000107923",
+    "850035474006",
+    "850035474464",
+    "8712000050115",
+    "5410228292081"
+   ],
+   "items": [
+    "Wkd Blue 4 Pack PM \u00a34.99",
+    "Carlsberg Pilsner 440ML",
+    "Buzz Ballz Berry Cherry",
+    "Buzzballz Cranblaster",
+    "Buzzballz Choc Tease",
+    "Buzzball Espress Martini",
+    "Buzzballz Lotta Colada",
+    "Buzz Ballz World Cup Lto",
+    "Buzzballz Lime Rita",
+    "Buzzball Passionfruit Martini",
+    "Heineken 4PK 0.0",
+    "Corona Cero 4 Pack Nrb"
+   ],
+   "item_barcodes": [
+    "5024993733207",
+    "5010153873685",
+    "1210000107602",
+    "1210000108173",
+    "850035474037",
+    "850035474068",
+    "850035474051",
+    "1210000107923",
+    "850035474006",
+    "850035474464",
+    "8712000050115",
+    "5410228292081"
+   ],
+   "headline": "Wkd, Carlsberg And More",
+   "promo_name": "Rewards Members Poro",
+   "kind": "price",
+   "qty": 1,
+   "free_qty": 0,
+   "price": "3.99",
+   "normal_price": "4.99",
+   "save": "1.00",
+   "lines": [
+    {
+     "name": "Wkd Blue 4 Pack PM \u00a34.99",
+     "barcode": "5024993733207",
+     "price": "4.99",
+     "size": "275ML",
+     "picture": "img/5024993733207.jpg",
+     "photo": "pimg/5024993733207.jpg"
+    },
+    {
+     "name": "Carlsberg Pilsner 440ML",
+     "barcode": "5010153873685",
+     "price": "5.25",
+     "size": "1",
+     "picture": "img/5010153873685.jpg",
+     "photo": "pimg/5010153873685.jpg"
+    },
+    {
+     "name": "Buzz Ballz Berry Cherry",
+     "barcode": "1210000107602",
+     "price": "4.49",
+     "size": "",
+     "picture": "img/1210000107602.jpg",
+     "photo": "pimg/1210000107602.jpg"
+    },
+    {
+     "name": "Buzzballz Cranblaster",
+     "barcode": "1210000108173",
+     "price": "4.49",
+     "size": "1",
+     "picture": "img/1210000108173.jpg",
+     "photo": "pimg/1210000108173.jpg"
+    },
+    {
+     "name": "Buzzballz Choc Tease",
+     "barcode": "850035474037",
+     "price": "4.49",
+     "size": "",
+     "picture": "img/850035474037.jpg",
+     "photo": "pimg/850035474037.jpg"
+    },
+    {
+     "name": "Buzzball Espress Martini",
+     "barcode": "850035474068",
+     "price": "4.49",
+     "size": "",
+     "picture": "img/850035474068.jpg",
+     "photo": "pimg/850035474068.jpg"
+    },
+    {
+     "name": "Buzzballz Lotta Colada",
+     "barcode": "850035474051",
+     "price": "4.49",
+     "size": "200ML",
+     "picture": "img/850035474051.jpg",
+     "photo": "pimg/850035474051.jpg"
+    },
+    {
+     "name": "Buzz Ballz World Cup Lto",
+     "barcode": "1210000107923",
+     "price": "4.49",
+     "size": "",
+     "picture": "img/1210000107923.jpg",
+     "photo": "pimg/1210000107923.jpg"
+    },
+    {
+     "name": "Buzzballz Lime Rita",
+     "barcode": "850035474006",
+     "price": "4.49",
+     "size": "200ML",
+     "picture": "img/850035474006.jpg",
+     "photo": "pimg/850035474006.jpg"
+    },
+    {
+     "name": "Buzzball Passionfruit Martini",
+     "barcode": "850035474464",
+     "price": "4.49",
+     "size": "",
+     "picture": "img/850035474464.jpg",
+     "photo": "pimg/850035474464.jpg"
+    },
+    {
+     "name": "Heineken 4PK 0.0",
+     "barcode": "8712000050115",
+     "price": "4.50",
+     "size": "330ML",
+     "picture": "img/8712000050115.jpg",
+     "photo": "pimg/8712000050115.jpg"
+    },
+    {
+     "name": "Corona Cero 4 Pack Nrb",
+     "barcode": "5410228292081",
+     "price": "4.49",
+     "size": "330ML",
+     "picture": "img/5410228292081.jpg",
+     "photo": "pimg/5410228292081.jpg"
+    }
+   ],
+   "pictures": [
+    "pimg/5024993733207.jpg",
+    "pimg/5010153873685.jpg",
+    "pimg/1210000107602.jpg"
+   ],
+   "picture_ratios": [
+    1.452,
+    0.833,
+    0.976
+   ],
+   "photo_source": "Parfetts, Bestway, Appy Shop"
   },
   {
    "id": "till-9732",
