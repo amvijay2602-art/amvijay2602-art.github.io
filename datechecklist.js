@@ -29,7 +29,7 @@
       ".dcl-chip button{border:0;background:none;color:#b71c1c;font-weight:900;font-size:1.1rem;cursor:pointer}" +
       ".dcl-days{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.dcl-days label{display:flex;align-items:center;gap:4px;min-height:44px;font-weight:700}" +
       ".dcl-ed{background:#fff;border-radius:16px;padding:14px;margin:8px 0;box-shadow:0 1px 4px rgba(24,52,42,.1)}" +
-      ".mdc-due .btn{display:block;width:100%;min-height:48px;border:0;border-radius:14px;background:#17643F;color:#fff;font-weight:800;font-size:1.05rem;margin-top:8px;cursor:pointer}.mdc-due .btn.sec{background:#fff;color:#17643F;border:2px solid #17643F}";
+      ".mdc-due .btn{display:block;width:100%;min-height:48px;border:0;border-radius:14px;background:#17643F;color:#fff;font-weight:800;font-size:1.05rem;margin-top:8px;cursor:pointer}.mdc-due .btn.sec{background:#fff;color:#17643F;border:2px solid #17643F}.dcl-check{display:flex;gap:10px;align-items:center;padding:12px 0;border-bottom:1px solid #e3ece6;font-weight:700}.dcl-check input{width:28px;min-height:28px;height:28px;flex:0 0 28px}";
     document.head.appendChild(s);
   }
   function img(p) {
@@ -306,6 +306,8 @@
       h += "</optgroup>";
     });
     h += "</select><div class='row2' style='margin-top:8px'><button type='button' class='btn' id='dclScan' style='margin-top:0'>Scan barcode</button><button type='button' class='btn sec' id='dclManage' style='margin-top:0'>Manage lists</button></div>" +
+      "<button type='button' class='btn o' id='dclShare'>Share on WhatsApp</button>" +
+      "<div id='dclShareBox'></div>" +
       "<div id='dclScanWrap' class='hidden' style='margin-top:8px'><video id='dclVideo' playsinline muted autoplay style='width:100%;border-radius:12px'></video></div>" +
       "<div style='margin-top:12px;font-weight:800'>" + doneN + " of " + tot + " checked</div>" +
       "<div class='dcl-prog' aria-hidden='true'><span style='width:" + pct + "%'></span></div>" +
@@ -320,6 +322,7 @@
     $("dclPick").onchange = function () { drawList(this.value); };
     $("dclScan").onclick = toggleScan;
     $("dclManage").onclick = function () { manage(); };
+    $("dclShare").onclick = function () { shareList(); };
     drawRows();
     if (window.__mdc && window.__mdc.renderDueNow) window.__mdc.renderDueNow();
   }
@@ -337,10 +340,13 @@
       if (inDone && r.last && r.last.prevQty != null && (r.last.prevQty !== r.last.qty || r.last.prevDtype !== r.last.dtype)) {
         corr = "<div class='muted'>Corrected to " + (r.last.dtype === "zero" ? "no stock" : r.last.dtype === "long" ? "all OK" : r.last.qty) + " (was " + (r.last.prevDtype === "zero" ? "no stock" : r.last.prevQty) + ")</div>";
       }
+      var pend = pendingFor(p.id), pendTxt = "";
+      if (pend) pendTxt = "<div><span class='dcl-tag w'>Dept change pending</span> <span class='muted'>" + esc(pend.from_dept || "") + " to " + esc(pend.to_dept || "") + "</span></div>";
       return "<div class='dcl-item' data-pid='" + p.id + "' id='dclP" + p.id + "'>" + img(p) + "<div><div class='nm'>" + esc(p.n) + "</div>" +
-        "<div class='meta'>" + esc(bc) + " &middot; stock " + (p.q == null ? "?" : p.q) + "</div>" +
-        "<div class='meta'>" + esc(lastTxt(r.last)) + "</div>" + warn + corr +
-        (inDone ? "<button type='button' class='btn sec' data-edit='" + p.id + "' style='margin-top:8px;min-height:44px'>Edit</button>" : "") +
+        "<div class='meta'>" + esc(bc) + " &middot; stock " + (p.q == null ? "?" : p.q) + " &middot; " + esc(DEPN[p.did] || "") + "</div>" +
+        "<div class='meta'>" + esc(lastTxt(r.last)) + "</div>" + warn + corr + pendTxt +
+        "<div class='row2'><button type='button' class='btn sec' data-edit='" + p.id + "' style='margin-top:8px;min-height:44px'>" + (inDone ? "Edit" : "Enter dates") + "</button>" +
+        "<button type='button' class='btn sec' data-dept='" + p.id + "' style='margin-top:8px;min-height:44px'>Change department</button></div>" +
         "</div></div>";
     }
     var left = cur.items.filter(function (r) { return !r.done; });
@@ -354,7 +360,10 @@
       };
     });
     Array.prototype.forEach.call(boxEl().querySelectorAll("[data-edit]"), function (b) {
-      b.onclick = function (e) { e.stopPropagation(); openEditor(+b.getAttribute("data-edit"), true); };
+      b.onclick = function (e) { e.stopPropagation(); openEditor(+b.getAttribute("data-edit"), !!cur.items.filter(function (r) { return r.p.id === +b.getAttribute("data-edit") && r.done; })[0]); };
+    });
+    Array.prototype.forEach.call(boxEl().querySelectorAll("[data-dept]"), function (b) {
+      b.onclick = function (e) { e.stopPropagation(); changeDeptFor(+b.getAttribute("data-dept")); };
     });
   }
   function openEditor(pid, isEdit) {
@@ -371,6 +380,7 @@
       "<button type='button' class='btn sec' id='dclAddD'>+ Add another date</button>" +
       "<div class='row2'><button type='button' class='btn o' id='dclNone'>No stock on shelf</button><button type='button' class='btn sec' id='dclOk'>All OK / long date</button></div>" +
       "<button type='button' class='btn' id='dclSave'>" + (isEdit ? "Save correction" : "Save check") + "</button>" +
+      "<button type='button' class='btn sec' id='dclDeptEd'>Change department</button>" +
       "<button type='button' class='btn sec' id='dclCancel'>Cancel</button><div id='dclEMsg'></div>" +
       "<div class='muted'>Dates that are expired, today, or within " + (w.urgent || 3) + " days are highlighted to reduce or remove.</div></div>";
     $("dclEd").innerHTML = h;
@@ -398,6 +408,7 @@
     $("dclNone").onclick = function () { saveCheck(p, { dtype: "zero", qty: 0, batches: [] }, isEdit, lc); };
     $("dclOk").onclick = function () { var q = p.q == null ? 0 : Math.max(0, Number(p.q) || 0); saveCheck(p, { dtype: "long", qty: q, batches: [] }, isEdit, lc); };
     $("dclSave").onclick = function () { saveDates(p, isEdit, lc); };
+    $("dclDeptEd").onclick = function () { changeDeptFor(p.id); };
     $("dclCancel").onclick = function () { $("dclEd").innerHTML = ""; cur.open = null; };
     try { $("dclEditor").scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
   }
@@ -490,10 +501,13 @@
           (x.by ? " &middot; last saved by " + esc(x.by) : "") + (x.at ? " " + esc(D.ukWhen(x.at)) : "") + "</div>" +
           "<div class='row2'><button type='button' class='btn sec' data-ledit='" + esc(x.id) + "' style='margin-top:8px'>Edit</button><button type='button' class='btn red' data-ldel='" + esc(x.id) + "' style='margin-top:8px'>Delete</button></div></div></div>";
       }).join("") : "<div class='muted' style='margin-top:10px'>No custom lists yet.</div>") +
+      staffWhatsAppHtml() + pendingDeptHtml() +
       "<button type='button' class='btn sec' id='dclBack'>Back to Date Check List</button></div></div>";
     box.innerHTML = h;
     $("dclNew").onclick = function () { manageForm(null); };
     $("dclBack").onclick = function () { open({ pick: cur.pick }); };
+    bindWhatsAppManage();
+    bindPendingDept();
     Array.prototype.forEach.call(box.querySelectorAll("[data-ledit]"), function (b) { b.onclick = function () { manageForm(customLists().filter(function (x) { return x.id === b.getAttribute("data-ledit"); })[0]); }; });
     Array.prototype.forEach.call(box.querySelectorAll("[data-ldel]"), function (b) {
       b.onclick = function () {
@@ -516,8 +530,11 @@
       form.dids.forEach(function (id) { chips += "<span class='dcl-chip'>Dept: " + esc(DEPN[id] || id) + " <button type='button' data-rmd='" + id + "'>&times;</button></span>"; });
       form.sids.forEach(function (id) { chips += "<span class='dcl-chip'>Sub-dept " + id + " <button type='button' data-rms='" + id + "'>&times;</button></span>"; });
       form.pids.forEach(function (id) {
-        var p = BYID[id];
-        chips += "<span class='dcl-chip'>" + esc(p ? p.n : ("Product " + id)) + " <button type='button' data-rmp='" + id + "'>&times;</button></span>";
+        var p = BYID[id], pend = pendingFor(id);
+        chips += "<span class='dcl-chip'>" + esc(p ? p.n : ("Product " + id)) +
+          (pend ? " <span class='dcl-tag w'>Dept change pending</span>" : "") +
+          " <button type='button' data-chd='" + id + "'>Dept</button>" +
+          " <button type='button' data-rmp='" + id + "'>&times;</button></span>";
       });
       box.innerHTML = "<div class='dcl'><div class='card2'><h2>" + (form.id ? "Edit list" : "Create a list") + "</h2>" +
         "<label for='dclLName'>List name</label><input id='dclLName' value='" + esc(form.name) + "' placeholder='e.g. Dairy daily'>" +
@@ -548,6 +565,7 @@
       Array.prototype.forEach.call(box.querySelectorAll("[data-rmd]"), function (b) { b.onclick = function () { form.dids = form.dids.filter(function (x) { return x !== +b.getAttribute("data-rmd"); }); body(); }; });
       Array.prototype.forEach.call(box.querySelectorAll("[data-rms]"), function (b) { b.onclick = function () { form.sids = form.sids.filter(function (x) { return x !== +b.getAttribute("data-rms"); }); body(); }; });
       Array.prototype.forEach.call(box.querySelectorAll("[data-rmp]"), function (b) { b.onclick = function () { form.pids = form.pids.filter(function (x) { return x !== +b.getAttribute("data-rmp"); }); body(); }; });
+      Array.prototype.forEach.call(box.querySelectorAll("[data-chd]"), function (b) { b.onclick = function () { changeDeptFor(+b.getAttribute("data-chd"), function () { body(); }); }; });
       $("dclLSave").onclick = function () { saveForm(form); };
       $("dclLCancel").onclick = function () { if (cur.scanS) try { cur.scanS.stop(); } catch (e) {} manageHome(); };
     }
@@ -598,6 +616,226 @@
     manageHome();
   }
 
+
+  function pendingFor(pid) {
+    var all = D.deptChanges((DATA && DATA.dept_changes) || { all: [] });
+    return (all.latest_by_pid || {})[String(pid)] || null;
+  }
+  function tillDepartments() {
+    if (cur.tillDepts) return Promise.resolve(cur.tillDepts);
+    return fetch("../count/stockcount.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var list = [], seen = {};
+      ((j && j.departments) || []).forEach(function (d) {
+        if (!d || !d.id || d.key === "WINE-RECOUNT") return;
+        var n = d.name || d.n; if (!n || seen[d.id]) return;
+        seen[d.id] = 1; list.push({ id: d.id, n: n });
+      });
+      if (!list.length) (DATA.departments || []).forEach(function (d) { list.push({ id: d.id, n: d.n }); });
+      list.sort(function (a, b) { return a.n.toUpperCase() < b.n.toUpperCase() ? -1 : 1; });
+      cur.tillDepts = list; return list;
+    }).catch(function () {
+      var list = (DATA.departments || []).map(function (d) { return { id: d.id, n: d.n }; });
+      cur.tillDepts = list; return list;
+    });
+  }
+  function needManager(thenFn) {
+    if (mgr.ok) { thenFn(); return; }
+    var box = $("dclShareBox") || boxEl();
+    var host = $("dclShareBox");
+    var html = "<div class='card2' id='dclNeedMgr'><h2>Manager code</h2><div class='muted'>Staff WhatsApp numbers are only shown after the manager code already used in Deliveries (Stock In). Numbers stay on this phone.</div><div id='dclNeedGate'>Loading managers...</div><button type='button' class='btn sec' id='dclNeedCancel'>Cancel</button></div>";
+    if (host) host.innerHTML = html; else boxEl().insertAdjacentHTML("afterbegin", html);
+    $("dclNeedCancel").onclick = function () { if (host) host.innerHTML = ""; else { var el = $("dclNeedMgr"); if (el) el.remove(); } };
+    D.managers().then(function (M) {
+      var names = Object.keys(M);
+      if (!names.length) { $("dclNeedGate").innerHTML = "<div class='msg warn'>No manager code is set up yet. Set one up in Deliveries (Stock In) > Manager first.</div>"; return; }
+      $("dclNeedGate").innerHTML = "<label>Manager</label><select id='dclNeedName'>" + names.map(function (n) { return "<option>" + esc(n) + "</option>"; }).join("") + "</select>" +
+        "<label>Manager code</label><input id='dclNeedCode' type='password' autocomplete='current-password'>" +
+        "<button type='button' class='btn' id='dclNeedGo'>Continue</button><div id='dclNeedMsg'></div>";
+      $("dclNeedGo").onclick = function () {
+        $("dclNeedMsg").innerHTML = "<div class='msg warn'>Checking...</div>";
+        D.checkManager($("dclNeedName").value, $("dclNeedCode").value).then(function () {
+          mgr.ok = true; mgr.name = $("dclNeedName").value;
+          if (host) host.innerHTML = ""; else { var el = $("dclNeedMgr"); if (el) el.remove(); }
+          thenFn();
+        }).catch(function (e) { $("dclNeedMsg").innerHTML = "<div class='msg err'>" + esc(e.message || "Code not right.") + "</div>"; });
+      };
+    }).catch(function () { $("dclNeedGate").innerHTML = "<div class='msg err'>Could not load the manager list. Open the app from the full link first.</div>"; });
+  }
+  function listShareUrl(pickKey) {
+    var path = (location.pathname || "/date/").replace(/index\.html$/i, "");
+    if (path.slice(-1) !== "/") path += "/";
+    return location.origin + path + "?mode=list&list=" + encodeURIComponent(pickKey || "");
+  }
+  function currentShareText() {
+    var opts = picks(), opt = opts.filter(function (o) { return o.key === cur.pick; })[0] || opts[0] || {};
+    var doneN = cur.items.filter(function (r) { return r.done; }).length, tot = cur.items.length;
+    var name = (opt.group && opt.group.name) || opt.label || (opt.name || "").replace(/ \(.*/, "") || "Date check";
+    return D.listShareMessage(name, doneN, tot, listShareUrl(cur.pick));
+  }
+  function shareList() {
+    needManager(function () { drawSharePicker(); });
+  }
+  function drawSharePicker() {
+    var host = $("dclShareBox"); if (!host) return;
+    var people = D.waContacts(), text = currentShareText();
+    if (!people.length) {
+      host.innerHTML = "<div class='msg warn'>No staff WhatsApp numbers are saved on this phone yet. Open Manage lists and add them under Staff WhatsApp numbers. Numbers stay on this phone only.</div>";
+      return;
+    }
+    var h = "<div class='card2'><h2>Share on WhatsApp</h2><div class='muted'>Pick who should get this list. Only these saved staff numbers can be chosen. The message does not include the app key.</div>" +
+      "<div class='muted' style='margin-top:8px;white-space:pre-wrap'>" + esc(text) + "</div>" +
+      people.map(function (p) {
+        return "<label class='dcl-check'><input type='checkbox' data-wa='" + esc(p.id) + "'> " + esc(p.name) + " <span class='muted'>" + esc(p.display) + "</span></label>";
+      }).join("") +
+      "<button type='button' class='btn o' id='dclWaSend'>Open WhatsApp</button>" +
+      "<button type='button' class='btn sec' id='dclWaCancel'>Cancel</button><div id='dclWaMsg'></div><div id='dclWaLinks'></div></div>";
+    host.innerHTML = h;
+    $("dclWaCancel").onclick = function () { host.innerHTML = ""; };
+    $("dclWaSend").onclick = function () {
+      var ids = [];
+      Array.prototype.forEach.call(host.querySelectorAll("[data-wa]:checked"), function (c) { ids.push(c.getAttribute("data-wa")); });
+      var chosen = people.filter(function (p) { return ids.indexOf(p.id) >= 0; });
+      if (!chosen.length) { $("dclWaMsg").innerHTML = "<div class='msg err'>Tick at least one person.</div>"; return; }
+      var first = chosen[0], rest = chosen.slice(1);
+      var url = D.waLink(first.number, text);
+      if (url) window.open(url, "_blank");
+      if (rest.length) {
+        $("dclWaLinks").innerHTML = "<div class='muted' style='margin-top:8px'>WhatsApp may only open one chat at a time. Tap each name below.</div>" + rest.map(function (p) {
+          return "<a class='btn o' style='display:block;text-align:center;text-decoration:none;margin-top:8px' href='" + esc(D.waLink(p.number, text)) + "' target='_blank' rel='noopener'>Open WhatsApp for " + esc(p.name) + "</a>";
+        }).join("");
+      } else {
+        $("dclWaMsg").innerHTML = "<div class='msg ok'>Opening WhatsApp for " + esc(first.name) + ".</div>";
+      }
+    };
+  }
+  function staffWhatsAppHtml() {
+    var people = D.waContacts();
+    var rows = people.length ? people.map(function (p) {
+      return "<div class='dcl-item' style='cursor:default'><div><div class='nm'>" + esc(p.name) + "</div><div class='meta'>" + esc(p.display) +
+        (p.by ? " &middot; saved by " + esc(p.by) : "") + "</div>" +
+        "<div class='row2'><button type='button' class='btn sec' data-waedit='" + esc(p.id) + "' style='margin-top:8px'>Edit</button><button type='button' class='btn red' data-wadel='" + esc(p.id) + "' style='margin-top:8px'>Remove</button></div></div></div>";
+    }).join("") : "<div class='muted'>No numbers saved on this phone yet.</div>";
+    return "<h2 style='margin-top:22px'>Staff WhatsApp numbers</h2>" +
+      "<div class='muted'>Saved on this phone only. They are not uploaded and not published on the website, because that would put staff numbers in a public place. Add the same names on each manager phone you use.</div>" +
+      "<div id='dclWaForm'></div>" +
+      "<button type='button' class='btn' id='dclWaAdd'>Add a staff number</button>" + rows;
+  }
+  function waForm(existing) {
+    var el = $("dclWaForm"); if (!el) return;
+    el.innerHTML = "<label>Staff name</label><input id='dclWaName' value='" + esc(existing ? existing.name : "") + "' placeholder='e.g. Kani'>" +
+      "<label>WhatsApp number</label><input id='dclWaNum' value='" + esc(existing && existing.display ? existing.display : "") + "' inputmode='tel' placeholder='07... or +44 7...'>" +
+      "<div class='muted'>UK numbers are saved as 44... (for example 07911 123456 becomes 447911123456).</div>" +
+      "<button type='button' class='btn' id='dclWaSave'>" + (existing ? "Save number" : "Save number") + "</button>" +
+      "<button type='button' class='btn sec' id='dclWaCancel'>Cancel</button><div id='dclWaFMsg'></div>";
+    $("dclWaCancel").onclick = function () { el.innerHTML = ""; };
+    $("dclWaSave").onclick = function () {
+      try {
+        D.saveWaContact({ id: existing ? existing.id : undefined, name: $("dclWaName").value, number: $("dclWaNum").value, by: mgr.name });
+        manageHome();
+      } catch (e) { $("dclWaFMsg").innerHTML = "<div class='msg err'>" + esc(e.message || "Could not save.") + "</div>"; }
+    };
+  }
+  function bindWhatsAppManage() {
+    if ($("dclWaAdd")) $("dclWaAdd").onclick = function () { waForm(null); };
+    var box = boxEl();
+    Array.prototype.forEach.call(box.querySelectorAll("[data-waedit]"), function (b) {
+      b.onclick = function () { waForm(D.waContacts().filter(function (p) { return p.id === b.getAttribute("data-waedit"); })[0]); };
+    });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-wadel]"), function (b) {
+      b.onclick = function () {
+        var p = D.waContacts().filter(function (x) { return x.id === b.getAttribute("data-wadel"); })[0];
+        if (!p) return;
+        if (!window.confirm("Remove " + p.name + " from the saved WhatsApp list on this phone?")) return;
+        D.deleteWaContact(p.id, mgr.name);
+        manageHome();
+      };
+    });
+  }
+  function pendingDeptHtml() {
+    var ch = D.deptChanges((DATA && DATA.dept_changes) || { all: [] });
+    var pend = ch.pending || [], all = ch.all || [];
+    var rows = pend.length ? pend.map(function (r) {
+      return "<div class='dcl-item' style='cursor:default'><div><div class='nm'>" + esc(r.name || "Product") + "</div>" +
+        "<div class='meta'>" + esc(r.bc || "no barcode") + " &middot; " + esc(r.from_dept || "") + " to " + esc(r.to_dept || "") + "</div>" +
+        "<div class='meta'>Requested by " + esc(r.staff || "Staff") + (r.at ? ", " + esc(D.ukWhen(r.at)) : "") + ". Not changed on the till.</div>" +
+        "<div class='row2'><button type='button' class='btn' data-dcappr='" + esc(r.id) + "' style='margin-top:8px'>Mark done on the till</button>" +
+        "<button type='button' class='btn red' data-dcrej='" + esc(r.id) + "' style='margin-top:8px'>Reject</button></div></div></div>";
+    }).join("") : "<div class='muted'>None pending.</div>";
+    return "<h2 style='margin-top:22px'>Pending department changes (" + pend.length + ")</h2>" +
+      "<div class='muted'>These are requests only. Nothing is written to the till until you change it yourself, or you give explicit approval for it to be done later. Mark done on the till once you have made the change.</div>" +
+      rows +
+      (pend.length ? "<button type='button' class='btn o' id='dclDeptShare'>Share pending list</button><button type='button' class='btn sec' id='dclDeptCopy'>Copy pending list</button>" : "") +
+      (all.length && !pend.length ? "<div class='msg ok'>No department changes waiting. Earlier requests are kept in the history.</div>" : "") +
+      "<div id='dclDeptMsg'></div>";
+  }
+  function bindPendingDept() {
+    var box = boxEl();
+    function review(id, status) {
+      try { D.reviewDeptChange(id, status, mgr.name); manageHome(); }
+      catch (e) { if ($("dclDeptMsg")) $("dclDeptMsg").innerHTML = "<div class='msg err'>" + esc(e.message) + "</div>"; }
+    }
+    Array.prototype.forEach.call(box.querySelectorAll("[data-dcappr]"), function (b) { b.onclick = function () { review(b.getAttribute("data-dcappr"), "approved"); }; });
+    Array.prototype.forEach.call(box.querySelectorAll("[data-dcrej]"), function (b) { b.onclick = function () { review(b.getAttribute("data-dcrej"), "rejected"); }; });
+    if ($("dclDeptShare")) $("dclDeptShare").onclick = function () {
+      var text = D.deptChangeExport(D.deptChanges((DATA && DATA.dept_changes) || { all: [] }).pending);
+      D.share(text, "Pending department changes");
+    };
+    if ($("dclDeptCopy")) $("dclDeptCopy").onclick = function () {
+      var text = D.deptChangeExport(D.deptChanges((DATA && DATA.dept_changes) || { all: [] }).pending);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { $("dclDeptMsg").innerHTML = "<div class='msg ok'>Copied. You can paste it into an email or WhatsApp.</div>"; }).catch(function () { fallbackCopy(text); });
+      } else fallbackCopy(text);
+    };
+  }
+  function fallbackCopy(text) {
+    var a = document.createElement("textarea"); a.value = text; document.body.appendChild(a); a.select();
+    try { document.execCommand("copy"); $("dclDeptMsg").innerHTML = "<div class='msg ok'>Copied. You can paste it into an email or WhatsApp.</div>"; }
+    catch (e) { $("dclDeptMsg").innerHTML = "<div class='msg warn'>Copy this text:</div><pre style='white-space:pre-wrap'>" + esc(text) + "</pre>"; }
+    a.remove();
+  }
+  function changeDeptFor(pid, after) {
+    var p = BYID[pid];
+    if (!p) { say("That product was not found on the till list.", "err"); return; }
+    var staff = staffVal() || D.staff() || mgr.name;
+    if (!staff) { if ($("dclEd")) { $("dclEd").innerHTML = "<div class='msg err'>Type your name in Checked by first.</div>"; } else say("Type your name in Checked by first.", "err"); return; }
+    tillDepartments().then(function (depts) {
+      var host = $("dclEd") || $("dclShareBox") || boxEl();
+      var pend = pendingFor(p.id);
+      var opts = depts.map(function (d) {
+        return "<option value='" + d.id + "'" + (Number(d.id) === Number(p.did) ? " selected" : "") + ">" + esc(d.n) + (Number(d.id) === Number(p.did) ? " (current)" : "") + "</option>";
+      }).join("");
+      var wrapId = "dclDeptPick";
+      var html = "<div class='dcl-ed' id='" + wrapId + "'><div style='font-weight:900'>" + esc(p.n) + "</div>" +
+        "<div class='muted'>" + esc((p.b && p.b[0]) || "no barcode") + " &middot; current department " + esc(DEPN[p.did] || p.did || "unknown") + "</div>" +
+        (pend ? "<div class='msg warn'>A change to " + esc(pend.to_dept) + " is already pending. You can request a different one; the old request stays in the history.</div>" : "") +
+        "<label for='dclToDept'>New department (from the till list)</label><select id='dclToDept'>" + opts + "</select>" +
+        "<div class='muted'>This saves a request only. Nothing is changed on the till until Vijay approves it.</div>" +
+        "<button type='button' class='btn' id='dclDeptGo'>Save request</button>" +
+        "<button type='button' class='btn sec' id='dclDeptNo'>Cancel</button><div id='dclDeptPMsg'></div></div>";
+      if ($("dclEd")) $("dclEd").innerHTML = html;
+      else {
+        var existing = $(wrapId); if (existing) existing.remove();
+        var d = document.createElement("div"); d.innerHTML = html; boxEl().insertBefore(d.firstChild, boxEl().firstChild);
+      }
+      try { $(wrapId).scrollIntoView({ behavior: "smooth", block: "start" }); } catch (e) {}
+      $("dclDeptNo").onclick = function () { if ($("dclEd")) $("dclEd").innerHTML = ""; else { var el = $(wrapId); if (el) el.remove(); } };
+      $("dclDeptGo").onclick = function () {
+        var to = +$("dclToDept").value, rec = depts.filter(function (d) { return Number(d.id) === to; })[0];
+        try {
+          D.requestDeptChange({
+            pid: p.id, bc: (p.b && p.b[0]) || "", name: p.n,
+            from_did: p.did, from_dept: DEPN[p.did] || "",
+            to_did: to, to_dept: rec ? rec.n : String(to),
+            staff: staff
+          });
+          if ($("dclEd")) $("dclEd").innerHTML = "";
+          if (typeof after === "function") after();
+          else { drawList(cur.pick); say("Department change requested for " + p.n + ". It shows as pending until Vijay approves it. Nothing was changed on the till.", "ok"); }
+        } catch (err) { $("dclDeptPMsg").innerHTML = "<div class='msg err'>" + esc(err.message || "Could not save.") + "</div>"; }
+      };
+    });
+  }
+
   function hookTabs() {
     css();
     var bar = document.querySelector(".mdc-bar");
@@ -609,6 +847,6 @@
     b.onclick = function () { if (window.__mdc && window.__mdc.mode) window.__mdc.mode("list"); else open({}); };
   }
 
-  window.BirkhillDateList = { open: open, manage: manage, renderDue: renderDue, load: load, setData: setData, liveGroups: liveGroups, hookTabs: hookTabs, jumpToCode: jumpToCode };
+  window.BirkhillDateList = { open: open, manage: manage, renderDue: renderDue, load: load, setData: setData, liveGroups: liveGroups, hookTabs: hookTabs, jumpToCode: jumpToCode, listShareUrl: listShareUrl, shareList: shareList, changeDeptFor: changeDeptFor };
   if (document.readyState !== "loading") hookTabs(); else document.addEventListener("DOMContentLoaded", hookTabs);
 })();

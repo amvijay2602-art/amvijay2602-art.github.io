@@ -5,7 +5,7 @@
 (function () {
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
   var K = { rec: "birkhill-date-records-v1", corr: "birkhill-stock-corrections-v1", prod: "birkhill-product-records-v1",
-            warn: "birkhill-date-warn-v1", queue: "birkhill-date-queue-v1", lists: "birkhill-date-lists-v1" };
+            warn: "birkhill-date-warn-v1", queue: "birkhill-date-queue-v1", lists: "birkhill-date-lists-v1", wa: "birkhill-staff-whatsapp-v1", dept: "birkhill-dept-changes-v1" };
   function jget(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function jset(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -158,10 +158,127 @@
       return { id: e.id, key: "list:" + e.id, name: e.name, days: e.days || [], pids: e.pids || [], dids: e.dids || [], sids: e.sids || [], by: e.by || "", at: e.at || "" };
     });
   }
+
+  // Staff WhatsApp numbers: this phone only (localStorage). Never send() to Camera Entries
+  // and never publish them: the shared store is copied into datecheck.json on the public site.
+  function normalizeUkWhatsApp(raw) {
+    var s = String(raw || "").trim().replace(/[^\d+]/g, "");
+    if (s.charAt(0) === "+") s = s.slice(1);
+    s = s.replace(/\D/g, "");
+    if (s.indexOf("0044") === 0) s = "44" + s.slice(4);
+    else if (s.charAt(0) === "0") s = "44" + s.slice(1);
+    else if (s.length === 10 && s.charAt(0) === "7") s = "44" + s;
+    return /^44[1-9]\d{8,9}$/.test(s) ? s : "";
+  }
+  function displayUkWhatsApp(raw) {
+    var n = normalizeUkWhatsApp(raw); if (!n) return "";
+    var rest = n.slice(2);
+    if (rest.charAt(0) === "7" && rest.length === 10) return "+44 " + rest.slice(0, 4) + " " + rest.slice(4, 7) + " " + rest.slice(7);
+    return "+44 " + rest;
+  }
+  function waEvents() { return jget(K.wa, []); }
+  function waContacts() {
+    var latest = {}, order = [];
+    waEvents().forEach(function (e) {
+      if (!e || e.test) return;
+      var id = String(e.id || ""); if (!id) return;
+      if (!Object.prototype.hasOwnProperty.call(latest, id)) order.push(id);
+      latest[id] = (e.t === "wa_contact_delete") ? null : e;
+    });
+    return order.map(function (id) { return latest[id]; }).filter(Boolean).map(function (e) {
+      return { id: e.id, name: e.name, number: e.number, display: displayUkWhatsApp(e.number), by: e.by || "", at: e.at || "" };
+    }).sort(function (a, b) { return String(a.name).toUpperCase() < String(b.name).toUpperCase() ? -1 : 1; });
+  }
+  function saveWaContact(o) {
+    var number = normalizeUkWhatsApp(o.number);
+    var name = String(o.name || "").trim();
+    if (!name) throw new Error("Type the staff name.");
+    if (!number) throw new Error("Type a UK WhatsApp number, for example 07... or +44 7...");
+    var ev = { t: "wa_contact", id: o.id || uid("W"), name: name, number: number, by: o.by || staff(), at: nowAt() };
+    var all = waEvents(); all.push(ev); jset(K.wa, all);
+    return ev;
+  }
+  function deleteWaContact(id, by) {
+    var ev = { t: "wa_contact_delete", id: id, by: by || staff(), at: nowAt() };
+    var all = waEvents(); all.push(ev); jset(K.wa, all);
+    return ev;
+  }
+  function waLink(number, text) {
+    var n = normalizeUkWhatsApp(number); if (!n) return "";
+    return "https://wa.me/" + n + "?text=" + encodeURIComponent(text || "");
+  }
+  function listShareMessage(name, checked, total, url) {
+    return "Date check due: " + (name || "Date check") + " (" + (checked || 0) + " of " + (total || 0) + " checked). Open: " + (url || "");
+  }
+
+  // Department-change requests go to the shared store (no phone numbers). Never written to the till.
+  function saveDeptEvent(ev) {
+    ev.at = ev.at || nowAt(); ev.staff = ev.staff || staff();
+    if (isTest()) ev.test = true;
+    var all = jget(K.dept, []); all.push(ev); jset(K.dept, all);
+    send("MDC1", ev);
+    return ev;
+  }
+  function requestDeptChange(o) {
+    var ev = { t: "dept_change", id: o.id || uid("DC"), pid: o.pid || 0, bc: o.bc || "", name: o.name || "",
+      from_did: o.from_did || 0, from_dept: o.from_dept || "", to_did: o.to_did || 0, to_dept: o.to_dept || "",
+      staff: o.staff || staff(), at: nowAt(), status: "pending" };
+    if (!ev.to_did || Number(ev.to_did) === Number(ev.from_did)) throw new Error("Pick a different department.");
+    return saveDeptEvent(ev);
+  }
+  function reviewDeptChange(reqId, status, by, note) {
+    if (status !== "approved" && status !== "rejected") throw new Error("Choose approved or rejected.");
+    return saveDeptEvent({ t: "dept_change_review", id: uid("DR"), req: reqId, status: status, staff: by || staff(), note: note || "", at: nowAt() });
+  }
+  function deptChanges(published) {
+    var evs = [];
+    var pub = published || {};
+    (pub.all || published || []).forEach(function (r) {
+      if (!r || !r.id) return;
+      evs.push({ t: "dept_change", id: r.id, pid: r.pid, bc: r.bc, name: r.name, from_did: r.from_did, from_dept: r.from_dept,
+        to_did: r.to_did, to_dept: r.to_dept, staff: r.staff, at: r.at });
+      if (r.status && r.status !== "pending") evs.push({ t: "dept_change_review", req: r.id, status: r.status, staff: r.reviewed_by, at: r.reviewed_at, note: r.note });
+    });
+    evs = evs.concat(jget(K.dept, []));
+    evs.sort(function (a, b) { return String(a.at || "") < String(b.at || "") ? -1 : 1; });
+    var reqs = {}, order = [];
+    evs.forEach(function (e) {
+      if (!e || e.test) return;
+      if (e.t === "dept_change") {
+        var id = String(e.id || ""); if (!id) return;
+        if (!Object.prototype.hasOwnProperty.call(reqs, id)) order.push(id);
+        reqs[id] = { id: id, pid: e.pid || 0, bc: e.bc || "", name: e.name || "", from_did: e.from_did || 0, from_dept: e.from_dept || "",
+          to_did: e.to_did || 0, to_dept: e.to_dept || "", staff: e.staff || e.by || "", at: e.at || "", status: "pending", reviewed_by: "", reviewed_at: "", note: "", till: "not sent" };
+      } else if (e.t === "dept_change_review") {
+        var r = reqs[String(e.req || "")];
+        if (!r) return;
+        if (e.status === "approved" || e.status === "rejected" || e.status === "pending") r.status = e.status;
+        r.reviewed_by = e.staff || e.by || ""; r.reviewed_at = e.at || ""; r.note = e.note || "";
+      }
+    });
+    var all = order.map(function (id) { return reqs[id]; }).filter(Boolean);
+    var pending = all.filter(function (x) { return x.status === "pending"; });
+    var latest = {};
+    pending.forEach(function (x) { if (x.pid) latest[String(x.pid)] = x; });
+    return { all: all, pending: pending, latest_by_pid: latest };
+  }
+  function deptChangeExport(pending) {
+    var L = ["Birkhill pending department changes " + ukDate(today()), "Nothing below has been changed on the till. Each line is a request only."];
+    if (!pending || !pending.length) { L.push("None pending."); return L.join("\n"); }
+    pending.forEach(function (r) {
+      L.push(""); L.push((r.name || "Unknown product") + ", barcode " + (r.bc || "none"));
+      L.push("From " + (r.from_dept || "unknown") + " (" + (r.from_did || "?") + ") to " + (r.to_dept || "unknown") + " (" + (r.to_did || "?") + ")");
+      L.push("Requested by " + (r.staff || "Staff") + (r.at ? ", " + ukWhen(r.at) : ""));
+      L.push("Not changed on the till.");
+    });
+    L.push(""); L.push(pending.length + " request" + (pending.length === 1 ? "" : "s") + ". Approve them on the till, then mark each one reviewed in the Date app.");
+    return L.join("\n");
+  }
   setTimeout(flush, 1500);
   window.BirkhillDates =
+
  { K: K, jget: jget, jset: jset, esc: esc, today: today, nowAt: nowAt, ukDate: ukDate, ukWhen: ukWhen, days: days, uid: uid, staff: staff,
     send: send, flush: flush, waiting: waiting, pkey: pkey, product: product, touchProduct: touchProduct, correction: correction, lastCorrection: lastCorrection,
     addCheck: addCheck, records: records, warn: warn, setWarn: setWarn, classify: classify, reportText: reportText, share: share,
-    managers: managers, checkManager: checkManager, kindTxt: kindTxt, saveList: saveList, deleteList: deleteList, lists: lists };
+    managers: managers, checkManager: checkManager, kindTxt: kindTxt, saveList: saveList, deleteList: deleteList, lists: lists, normalizeUkWhatsApp: normalizeUkWhatsApp, displayUkWhatsApp: displayUkWhatsApp, waContacts: waContacts, saveWaContact: saveWaContact, deleteWaContact: deleteWaContact, waLink: waLink, listShareMessage: listShareMessage, requestDeptChange: requestDeptChange, reviewDeptChange: reviewDeptChange, deptChanges: deptChanges, deptChangeExport: deptChangeExport };
 })();
