@@ -1176,6 +1176,16 @@
     }
     .p20-reason { margin: 6px 0 0; font-size: 0.88rem; font-weight: 700; color: #18342A; }
     .p20-item.is-short .p20-reason { color: #c62828; }
+
+    .p20-expected { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: #eef5f0; font-size: 0.92rem; font-weight: 700; color: #18342A; }
+    .p20-item.is-short .p20-expected { background: #fdecec; color: #7f0000; }
+    .p20-expected .exp-num { font-size: 1.15rem; font-weight: 800; }
+    .p20-confirm-row { display: flex; gap: 8px; margin-top: 8px; }
+    .p20-confirm-row button { flex: 1; min-height: 44px; border-radius: 10px; font-weight: 800; font-size: 0.92rem; cursor: pointer; }
+    .p20-btn-confirm { background: #17643F; color: #fff; border: 0; }
+    .p20-btn-correct { background: #fff; color: #18342A; border: 2px solid #17643F; }
+    .p20-confirm-row button.is-on { outline: 3px solid #0b3d27; }
+    .dc-expected { margin: 8px 0 0; padding: 8px 10px; border-radius: 10px; background: #eef5f0; font-weight: 700; }
     .p20-done-flag { display: inline-block; margin-top: 6px; font-size: 0.8rem; font-weight: 800; color: #17643F; }
     .p20-item.is-removed .p20-done-flag { color: #c62828; }
     .p20-fields { display: flex; gap: 8px; margin-top: 10px; align-items: stretch; }
@@ -1311,6 +1321,7 @@
         <div class="till-box">
           <div id="dcTillStock" class="till-stock muted"></div>
           <div id="dcTillWhen" class="till-when"></div>
+          <div id="dcExpected" class="dc-expected" hidden></div>
         </div>
         <div class="dc-qty-wrap"><span class="dc-qty-label">On shelf now (count all)</span><div class="dc-qty">
           <button type="button" class="dc-minus" aria-label="One less">&minus;</button>
@@ -2032,6 +2043,18 @@
         dcTillWhenEl.textContent = dcStockTaken ? ("As at " + dcStockTaken + " (Europe/London)") :
           (dcStockMap === null ? "Till stock snapshot could not be loaded." : "");
       }
+      const expEl = document.getElementById("dcExpected");
+      if (expEl) {
+        const code = String(barcode || "").replace(/\D/g, "");
+        const f = (window.DATE_FIFO || {})[code];
+        if (f && (f.sale_note || f.expected_qty != null)) {
+          expEl.hidden = false;
+          expEl.innerHTML = (f.expected_qty != null ? "Expected on shelf: <b>" + f.expected_qty + "</b>. " : "") + (f.sale_note || "");
+        } else {
+          expEl.hidden = true;
+          expEl.textContent = "";
+        }
+      }
     }
 
     function tillHtml(barcode, fallback) {
@@ -2039,6 +2062,38 @@
       const cls = "till-stock" + (q !== null && q < 0 ? " negative" : "");
       const when = dcStockTaken ? ('<div class="till-when">As at ' + String(dcStockTaken).replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + " (Europe/London)</div>") : "";
       return '<div class="till-box"><div class="' + cls + '">Till stock: ' + (q === null ? "-" : String(q)) + "</div>" + when + "</div>";
+    }
+
+    function fifoEsc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[ch]; }); }
+    function fifoStaff() { try { return (localStorage.getItem("birkhill-staff-name") || "").trim() || "Staff"; } catch (e) { return "Staff"; } }
+    function fifoOfItem(it) {
+      if (!it) return null;
+      if (it.sale_note || it.expected_qty != null || it.dated_qty) return it;
+      const map = window.DATE_FIFO || {};
+      const code = String(it.barcode || "").replace(/\D/g, "");
+      return (code && map[code]) || null;
+    }
+    function expectedHtml(it) {
+      const f = fifoOfItem(it);
+      if (!f) return "";
+      const exp = (f.expected_qty != null) ? f.expected_qty : f.remaining_qty;
+      if (exp == null && !f.sale_note) return "";
+      const note = f.sale_note || "";
+      const expTxt = (exp == null || exp === "") ? "" : '<div>Expected on shelf: <span class="exp-num">' + fifoEsc(exp) + "</span></div>";
+      const dated = (f.dated_qty != null && f.sold_since != null) ? "" : "";
+      return '<div class="p20-expected">' + expTxt + (note ? "<div>" + fifoEsc(note) + "</div>" : "") +
+        ((f.entry_at || f.entry_by) ? '<div style="font-weight:600;color:#5b6573">Date entered' + (f.entry_at ? " " + fifoEsc(f.entry_at) : "") + (f.entry_by ? " by " + fifoEsc(f.entry_by) : "") + "</div>" : "") +
+        '<div class="p20-confirm-row"><button type="button" class="p20-btn-confirm" data-confirm="yes">Confirm ' + fifoEsc(exp == null ? "count" : exp) + '</button>' +
+        '<button type="button" class="p20-btn-correct" data-confirm="edit">Enter a different count</button></div></div>';
+    }
+    function postDateConfirm(item, expected, counted, dated, sold) {
+      const variance = Number(expected) - Number(counted);
+      let name = "DATECONFIRM: " + (item.name || "Unknown");
+      if (item.barcode) name += " [" + item.barcode + "]";
+      const dates = (item.dates || []).map(function (d) { return (d.date || d.d || "") + ":" + (d.remaining != null ? d.remaining : (d.q || 0)); }).filter(function (x) { return x.charAt(0) !== ":"; }).join(" ");
+      name += " | expected " + expected + " | counted " + counted + " | dated " + (dated != null ? dated : "") + " | sold " + (sold != null ? sold : "") + " | variance " + variance + (dates ? " | batches " + dates : "") + " | " + fifoStaff();
+      const useBy = item.use_by || "";
+      return postPayload({ name: name, photo: "", lines: [{ date: useBy || new Date().toISOString().slice(0, 10), qty: String(counted) }] });
     }
 
     fetch("../count/stockcount.json").then(function (res) {
@@ -2295,7 +2350,7 @@
         const key = String(it.n);
         const saved = p20Results[key];
         const dateVal = (saved && saved.date) || it.use_by || "";
-        const qtyVal = (saved && saved.qty) || (it.qty_known ? String(it.qty_known) : "1");
+        const qtyVal = (saved && saved.qty) || (it.expected_qty != null && it.expected_qty !== "" ? String(it.expected_qty) : (it.qty_known ? String(it.qty_known) : "1"));
         const left = p20DaysLeft(dateVal);
         const isShort = (it.action_hint === "remove") || (left !== null && left <= 3);
         const done = saved && saved.result;
@@ -2315,6 +2370,7 @@
           (it.barcode ? '<p class="p20-barcode">' + String(it.barcode).replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + "</p>" : "") +
           '<p class="p20-cat">' + String(it.category || "").replace(/^./, function (c) { return c.toUpperCase(); }) + "</p>" +
           '<p class="p20-reason">' + String(it.reason || "").replace(/[&<>]/g, function (ch) { return ({"&":"&amp;","<":"&lt;",">":"&gt;"})[ch]; }) + "</p>" +
+          expectedHtml(it) +
           flag + "</div></div>" +
           '<div class="p20-fields">' +
           '<input class="p20-date" type="date" aria-label="Use by or best before for ' + String(it.name || "").replace(/"/g, "") + '" value="' + dateVal + '">' +
@@ -2353,6 +2409,24 @@
       if (!err) return;
       err.textContent = msg || "";
       err.classList.toggle("show", !!msg);
+    }
+
+    function p20ConfirmShelf(li, kind) {
+      if (!p20Data) return;
+      const n = li.getAttribute("data-n");
+      const item = (p20Data.items || []).filter(function (it) { return String(it.n) === n; })[0];
+      if (!item) return;
+      const shelfEl = li.querySelector(".p20-shelf");
+      const exp = (item.expected_qty != null && item.expected_qty !== "") ? Number(item.expected_qty) : (item.qty_known != null ? Number(item.qty_known) : 0);
+      if (kind === "yes") {
+        if (shelfEl) { shelfEl.value = String(exp); li.classList.toggle("is-zero", exp === 0); }
+        li.querySelectorAll("[data-confirm]").forEach(function (b) { b.classList.toggle("is-on", b.getAttribute("data-confirm") === "yes"); });
+        setStatus("Confirmed expected " + exp + " on the shelf for " + item.name + ". Tap OK or Remove to save.", "ok");
+        return;
+      }
+      if (shelfEl) shelfEl.focus();
+      li.querySelectorAll("[data-confirm]").forEach(function (b) { b.classList.toggle("is-on", b.getAttribute("data-confirm") === "edit"); });
+      setStatus("Enter how many are on the shelf now, then tap OK or Remove. The difference is saved as a correction, not written to the till.", "ok");
     }
 
     function p20SaveLine(li, result) {
@@ -2417,6 +2491,9 @@
       if (item.barcode) savedName += " [" + item.barcode + "]";
       savedName += " | " + result;
       postPayload({ name: savedName, photo: p20Photos[n] || "", lines: [{ date: dateVal, qty: String(qtyVal) }] }).then(function () {
+        if (item.expected_qty != null && item.expected_qty !== "" && item.dated_qty) {
+          postDateConfirm(item, item.expected_qty, Number(shelfRaw), item.dated_qty, item.sold_since);
+        }
         if (dc) dc.count(dcItemP20(item), Number(shelfRaw), dateVal, result, Number(qtyVal));
         p20Results[n] = { result: result, date: dateVal, qty: qtyVal, shelf: Number(shelfRaw), time: nowLondonTime(), at: Date.now() };
         dcUpdate();
@@ -2466,6 +2543,9 @@
     function p20LoadFallback() {
       p20SetKind("daily");
       p20LoadResults();
+      fetch("date_fifo.json").then(function (res) { return res.ok ? res.json() : null; }).then(function (d) {
+        if (d && d.by_barcode) window.DATE_FIFO = d.by_barcode;
+      }).catch(function () {});
       fetch("priority20.json").then(function (res) {
         if (!res.ok) throw new Error("priority20");
         return res.json();
@@ -2487,6 +2567,12 @@
       const list = document.getElementById("priority20List");
       if (list) {
         list.addEventListener("click", function (ev) {
+          const conf = ev.target.closest("[data-confirm]");
+          if (conf && list.contains(conf)) {
+            const li = conf.closest(".p20-item");
+            if (li) p20ConfirmShelf(li, conf.getAttribute("data-confirm"));
+            return;
+          }
           const btn = ev.target.closest(".p20-btn");
           if (!btn || !list.contains(btn)) return;
           const li = btn.closest(".p20-item");

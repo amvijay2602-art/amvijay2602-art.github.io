@@ -1,6 +1,6 @@
 {
- "updated": "27 November 2026, 8:14am",
- "updated_iso": "2026-11-27T08:14:19+00:00",
+ "updated": "27 November 2026, 9:14am",
+ "updated_iso": "2026-11-27T09:14:54+00:00",
  "source": "GloPOSNet till, read only. Ended offers are dropped automatically.",
  "promotions": [
   {
@@ -18573,7 +18573,7 @@
   {
    "id": "till-14455",
    "source": "till",
-   "title": "Pepsi Max Pet \u00a31.39 and 47 more",
+   "title": "Pepsi Max Pet \u00a31.39 and 48 more",
    "deal": "3 for \u00a33.00",
    "normal": "\u00a31.39 each",
    "end": null,
@@ -18582,7 +18582,7 @@
    "department": "Soft drinks",
    "dept_key": "soft_drinks",
    "picture": "pimg/4062139024216.jpg",
-   "note": "Mix and match, 48 products",
+   "note": "Mix and match, 49 products",
    "pack": "500ML",
    "barcode": "4062139024216",
    "barcodes": [
@@ -18590,6 +18590,7 @@
     "4062139024247",
     "4062139024421",
     "4062139032853",
+    "4062139032952",
     "5000112684315",
     "5000112684483",
     "5000112684520",
@@ -18640,30 +18641,30 @@
     "Pepsi Max Cherry Pet PM139",
     "Pepsi Regular Pet PM145",
     "Pepsi Max Pet \u00a31.45",
+    "Pep Max Cherry \u00a31.45",
     "Coca Cola Zero \u00a31.40",
     "Diet Coke 500ML",
     "Fanta Orange \u00a31.40",
     "Fanta Fruit Twist PM140",
     "Fanta Lemon 500ML",
     "Bounty Trio Bar",
-    "Jacobs Cheeselets Pm?1.25",
-    "Jacob M/c Chpl&lime 1.25"
+    "Jacobs Cheeselets Pm?1.25"
    ],
    "item_barcodes": [
     "4062139024216",
     "4062139024247",
     "4062139024421",
     "4062139032853",
+    "4062139032952",
     "5000112684315",
     "5000112684483",
     "5000112684520",
     "5000112684766",
     "5000112685411",
     "5000159610582",
-    "5000168012551",
-    "5000168012773"
+    "5000168012551"
    ],
-   "headline": "Pepsi, Coca And More",
+   "headline": "Pepsi, Pep And More",
    "promo_name": "3FOR \u00a33.00 M&m1",
    "kind": "multi",
    "qty": 3,
@@ -18703,6 +18704,14 @@
      "size": "500ML",
      "picture": "img/4062139032853.jpg",
      "photo": "pimg/4062139032853.jpg"
+    },
+    {
+     "name": "Pep Max Cherry \u00a31.45",
+     "barcode": "4062139032952",
+     "price": "1.45",
+     "size": "500ML",
+     "picture": "",
+     "photo": "pimg/4062139032952.jpg"
     },
     {
      "name": "Coca Cola Zero \u00a31.40",

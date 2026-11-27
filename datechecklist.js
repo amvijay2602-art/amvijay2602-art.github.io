@@ -204,6 +204,24 @@
     });
     return rows;
   }
+  function fifoOf(p) {
+    var m = (DATA && DATA.date_fifo) || {};
+    var bcs = (p && p.b) || [];
+    for (var i = 0; i < bcs.length; i++) {
+      var k = String(bcs[i] || "").replace(/\D/g, "");
+      if (k && m[k]) return m[k];
+    }
+    return null;
+  }
+  function fifoNote(p) {
+    var f = fifoOf(p);
+    if (!f) return "";
+    var bits = [];
+    if (f.sale_note) bits.push(f.sale_note);
+    if (f.expected_qty != null) bits.push("Expected on shelf: " + f.expected_qty);
+    if (f.entry_at || f.entry_by) bits.push("Date entered" + (f.entry_at ? " " + f.entry_at : "") + (f.entry_by ? " by " + f.entry_by : ""));
+    return bits.join(". ");
+  }
   function lastTxt(lc) {
     if (!lc || !lc.at) return "Not checked yet";
     var bit = "Last checked " + D.ukWhen(lc.at);
@@ -344,7 +362,9 @@
       if (pend) pendTxt = "<div><span class='dcl-tag w'>Dept change pending</span> <span class='muted'>" + esc(pend.from_dept || "") + " to " + esc(pend.to_dept || "") + "</span></div>";
       return "<div class='dcl-item' data-pid='" + p.id + "' id='dclP" + p.id + "'>" + img(p) + "<div><div class='nm'>" + esc(p.n) + "</div>" +
         "<div class='meta'>" + esc(bc) + " &middot; stock " + (p.q == null ? "?" : p.q) + " &middot; " + esc(DEPN[p.did] || "") + "</div>" +
-        "<div class='meta'>" + esc(lastTxt(r.last)) + "</div>" + warn + corr + pendTxt +
+        "<div class='meta'>" + esc(lastTxt(r.last)) + "</div>" +
+        (fifoNote(p) ? "<div class='meta' style='font-weight:800'>" + esc(fifoNote(p)) + "</div>" : "") +
+        warn + corr + pendTxt +
         "<div class='row2'><button type='button' class='btn sec' data-edit='" + p.id + "' style='margin-top:8px;min-height:44px'>" + (inDone ? "Edit" : "Enter dates") + "</button>" +
         "<button type='button' class='btn sec' data-dept='" + p.id + "' style='margin-top:8px;min-height:44px'>Change department</button></div>" +
         "</div></div>";
@@ -376,6 +396,9 @@
     var h = "<div class='dcl-ed' id='dclEditor'><div style='font-weight:900;font-size:1.15rem'>" + esc(p.n) + "</div>" +
       "<div class='muted'>" + esc((p.b && p.b[0]) || "no barcode") + " &middot; till stock " + (p.q == null ? "?" : p.q) + " &middot; " + esc(DEPN[p.did] || "") + "</div>" +
       "<div class='muted'>" + esc(lastTxt(lc)) + "</div>" +
+      (fifoNote(p) ? "<div class='dcl-expected' style='margin:8px 0;padding:8px 10px;border-radius:10px;background:#eef5f0;font-weight:800'>" + esc(fifoNote(p)) +
+        "<div class='row2' style='margin-top:8px'><button type='button' class='btn' id='dclConfirm' style='margin-top:0'>Confirm expected " + esc((fifoOf(p) && fifoOf(p).expected_qty != null) ? fifoOf(p).expected_qty : "count") + "</button>" +
+        "<button type='button' class='btn sec' id='dclCorrect' style='margin-top:0'>Enter a different count</button></div></div>" : "") +
       "<label>Best before or use-by dates</label><div id='dclBatches'></div>" +
       "<button type='button' class='btn sec' id='dclAddD'>+ Add another date</button>" +
       "<div class='row2'><button type='button' class='btn o' id='dclNone'>No stock on shelf</button><button type='button' class='btn sec' id='dclOk'>All OK / long date</button></div>" +
@@ -405,6 +428,28 @@
     }
     batches.forEach(addLine);
     $("dclAddD").onclick = function () { addLine(); };
+    var f0 = fifoOf(p);
+    if ($("dclConfirm")) $("dclConfirm").onclick = function () {
+      if (!f0) return;
+      // Prefill the first date line with the expected remaining qty (FIFO) so staff can save a confirmation.
+      var first = $("dclBatches") && $("dclBatches").querySelector(".batch");
+      if (first) {
+        if (f0.use_by && first.querySelector(".bd") && !first.querySelector(".bd").value) first.querySelector(".bd").value = f0.use_by;
+        if (first.querySelector(".bq")) first.querySelector(".bq").value = f0.expected_qty != null ? f0.expected_qty : "";
+      }
+      if (window.BirkhillDates && BirkhillDates.addConfirm) {
+        BirkhillDates.addConfirm({ src: "list", staff: staffVal() || D.staff(), pid: p.id, bc: (p.b && p.b[0]) || "", name: p.n,
+          expected: f0.expected_qty, counted: f0.expected_qty, sold: f0.sold_since, dated: f0.dated_qty,
+          batches: (f0.dates || []).map(function (d) { return { d: d.date, q: d.remaining, k: d.kind || "useby" }; }),
+          note: "Confirmed expected " + f0.expected_qty });
+      }
+      eMsg("Confirmed expected " + f0.expected_qty + " on the shelf. Tap Save check to keep the dates. Nothing is written to the till.", "ok");
+    };
+    if ($("dclCorrect")) $("dclCorrect").onclick = function () {
+      var first = $("dclBatches") && $("dclBatches").querySelector(".bq");
+      if (first) first.focus();
+      eMsg("Enter the quantity on the shelf next to each date, then tap Save check. The difference is saved as a correction, not written to the till.", "ok");
+    };
     $("dclNone").onclick = function () { saveCheck(p, { dtype: "zero", qty: 0, batches: [] }, isEdit, lc); };
     $("dclOk").onclick = function () { var q = p.q == null ? 0 : Math.max(0, Number(p.q) || 0); saveCheck(p, { dtype: "long", qty: q, batches: [] }, isEdit, lc); };
     $("dclSave").onclick = function () { saveDates(p, isEdit, lc); };
@@ -436,6 +481,12 @@
     });
     if (p.q != null && rec.dtype !== "long" && rec.dtype !== "ok" && Number(rec.qty) !== Number(p.q)) {
       D.correction({ pid: p.id, bc: (p.b && p.b[0]) || "", name: p.n, recorded: p.q, snapshotAt: DATA.stock_taken_at, qty: rec.qty, src: "list", staff: staff, ref: cur.pick });
+    }
+    var f1 = fifoOf(p);
+    if (f1 && rec.dtype !== "long" && rec.dtype !== "ok" && D.addConfirm) {
+      D.addConfirm({ src: "list", staff: staff, pid: p.id, bc: (p.b && p.b[0]) || "", name: p.n,
+        expected: f1.expected_qty, counted: rec.qty, sold: f1.sold_since, dated: f1.dated_qty,
+        batches: rec.batches || [], note: Number(rec.qty) === Number(f1.expected_qty) ? "Confirmed expected" : "Corrected count" });
     }
     if ($("dclEd")) $("dclEd").innerHTML = "";
     cur.open = null;

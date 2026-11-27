@@ -65,6 +65,18 @@
     send(r.src === "edn" ? "EDN1" : "MDC1", r);
     return r;
   }
+  // Staff confirm or correct the expected quantity after sales (append-only, never overwrites, never writes to the till).
+  function addConfirm(o) {
+    var counted = Number(o.counted), expected = Number(o.expected);
+    var c = { t: "dateconfirm", id: uid("CF"), at: nowAt(), staff: o.staff || staff(),
+      pid: o.pid || null, bc: o.bc || "", name: o.name || "",
+      expected: expected, counted: counted, variance: expected - counted,
+      sold: o.sold != null ? Number(o.sold) : "", dated: o.dated != null ? Number(o.dated) : "",
+      batches: o.batches || [], note: o.note || "", src: o.src || "list" };
+    var all = jget(K.rec, []); all.push(c); jset(K.rec, all);
+    send("MDC1", c);
+    return c;
+  }
   function records(extra) {
     var mine = jget(K.rec, []), ids = {}; mine.forEach(function (r) { ids[r.id] = 1; });
     return mine.concat((extra || []).filter(function (r) { return !ids[r.id]; }));
@@ -279,6 +291,6 @@
 
  { K: K, jget: jget, jset: jset, esc: esc, today: today, nowAt: nowAt, ukDate: ukDate, ukWhen: ukWhen, days: days, uid: uid, staff: staff,
     send: send, flush: flush, waiting: waiting, pkey: pkey, product: product, touchProduct: touchProduct, correction: correction, lastCorrection: lastCorrection,
-    addCheck: addCheck, records: records, warn: warn, setWarn: setWarn, classify: classify, reportText: reportText, share: share,
+    addCheck: addCheck, addConfirm: addConfirm, records: records, warn: warn, setWarn: setWarn, classify: classify, reportText: reportText, share: share,
     managers: managers, checkManager: checkManager, kindTxt: kindTxt, saveList: saveList, deleteList: deleteList, lists: lists, normalizeUkWhatsApp: normalizeUkWhatsApp, displayUkWhatsApp: displayUkWhatsApp, waContacts: waContacts, saveWaContact: saveWaContact, deleteWaContact: deleteWaContact, waLink: waLink, listShareMessage: listShareMessage, requestDeptChange: requestDeptChange, reviewDeptChange: reviewDeptChange, deptChanges: deptChanges, deptChangeExport: deptChangeExport };
 })();
