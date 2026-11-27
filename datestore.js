@@ -5,7 +5,7 @@
 (function () {
   var ENDPOINT = "https://script.google.com/macros/s/AKfycbz7eKFQN2UbbSA8-4nLzB9crDkQUE5b7_CJ3wnVfqmxODFIfz8G3XNpQ1_igg9SCNJbKg/exec";
   var K = { rec: "birkhill-date-records-v1", corr: "birkhill-stock-corrections-v1", prod: "birkhill-product-records-v1",
-            warn: "birkhill-date-warn-v1", queue: "birkhill-date-queue-v1" };
+            warn: "birkhill-date-warn-v1", queue: "birkhill-date-queue-v1", lists: "birkhill-date-lists-v1" };
   function jget(k, d) { try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   function jset(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -86,7 +86,7 @@
     var t = today(), out = { expired: [], overdue: [], short: [], checked: 0 };
     Object.keys(latest).forEach(function (k) {
       var r = latest[k]; out.checked++;
-      if (!r.qty || r.dtype === "none" || r.dtype === "zero") return;
+      if (!r.qty || r.dtype === "none" || r.dtype === "zero" || r.dtype === "long" || r.dtype === "ok") return;
       (r.batches || []).forEach(function (b) {
         if (!b.d || !(Number(b.q) > 0)) return;
         var left = days(b.d, t), kind = b.k || r.dtype;
@@ -125,9 +125,43 @@
       }).then(function (sig) { if (hex(sig) !== M[name]) throw new Error("Code not right."); return true; });
     });
   }
+  // manager date-check lists (append-only; latest event per id wins; delete is a new row)
+  function saveListEvent(ev) {
+    ev.at = ev.at || nowAt(); ev.by = ev.by || staff();
+    if (isTest()) ev.test = true;
+    var all = jget(K.lists, []); all.push(ev); jset(K.lists, all);
+    send("MDC1", ev);
+    return ev;
+  }
+  function saveList(o) {
+    var ev = { t: "list", id: o.id || uid("L"), name: String(o.name || "").trim(), days: o.days || [],
+      pids: o.pids || [], dids: o.dids || [], sids: o.sids || [], by: o.by || staff(), at: nowAt() };
+    if (!ev.name) throw new Error("Type a list name.");
+    return saveListEvent(ev);
+  }
+  function deleteList(id, by) {
+    return saveListEvent({ t: "list_delete", id: id, by: by || staff(), at: nowAt() });
+  }
+  function lists(published) {
+    var evs = (published || []).map(function (L) {
+      return { t: "list", id: L.id, name: L.name, days: L.days, pids: L.pids, dids: L.dids, sids: L.sids, by: L.by, at: L.at };
+    }).concat(jget(K.lists, []));
+    evs.sort(function (a, b) { return String(a.at || "") < String(b.at || "") ? -1 : String(a.at || "") > String(b.at || "") ? 1 : 0; });
+    var latest = {}, order = [];
+    evs.forEach(function (e) {
+      if (!e || (e.t !== "list" && e.t !== "list_delete") || e.test) return;
+      var id = String(e.id || ""); if (!id) return;
+      if (!Object.prototype.hasOwnProperty.call(latest, id)) order.push(id);
+      latest[id] = (e.t === "list_delete" || e.deleted) ? null : e;
+    });
+    return order.map(function (id) { return latest[id]; }).filter(Boolean).map(function (e) {
+      return { id: e.id, key: "list:" + e.id, name: e.name, days: e.days || [], pids: e.pids || [], dids: e.dids || [], sids: e.sids || [], by: e.by || "", at: e.at || "" };
+    });
+  }
   setTimeout(flush, 1500);
-  window.BirkhillDates = { K: K, jget: jget, jset: jset, esc: esc, today: today, nowAt: nowAt, ukDate: ukDate, ukWhen: ukWhen, days: days, uid: uid, staff: staff,
+  window.BirkhillDates =
+ { K: K, jget: jget, jset: jset, esc: esc, today: today, nowAt: nowAt, ukDate: ukDate, ukWhen: ukWhen, days: days, uid: uid, staff: staff,
     send: send, flush: flush, waiting: waiting, pkey: pkey, product: product, touchProduct: touchProduct, correction: correction, lastCorrection: lastCorrection,
     addCheck: addCheck, records: records, warn: warn, setWarn: setWarn, classify: classify, reportText: reportText, share: share,
-    managers: managers, checkManager: checkManager, kindTxt: kindTxt };
+    managers: managers, checkManager: checkManager, kindTxt: kindTxt, saveList: saveList, deleteList: deleteList, lists: lists };
 })();
