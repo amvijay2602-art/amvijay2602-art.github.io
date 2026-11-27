@@ -14,6 +14,7 @@
   <script src="sentry-init.js"></script>
   <script src="error-report.js"></script>
   <script src="secure-data.js"></script>
+  <script src="paper-returns-job.js"></script>
   <style>
     :root { --blue:#17643F; --blue2:#1d7a4e; --bg:#F4F7F4; --card:#fff; --ink:#18342A; --muted:#5b6573;
             --red:#c62828; --redbg:#fdecec; --amber:#b45309; --amberbg:#fef3c7; --green:#1b7a3d; --greenbg:#e8f6ec; }
@@ -109,6 +110,9 @@
     #returnSheetHomeCard .rs-total.is-done { color: #17643F; }
     #returnSheetHomeCard .rs-instruct { margin: 0 0 8px; font-weight: 800; line-height: 1.35; }
     #returnSheetHomeCard .rs-home-sum { margin: 0 0 10px; color: var(--muted); font-size: .92rem; }
+    #paperReturnsJobCard { border: 2px solid #c62828; background: #fdecec; }
+    #paperReturnsJobCard h2 { color: #b71c1c; }
+    #paperReturnsJobCard .job-copy { margin: 0 0 10px; font-weight: 800; color: #b71c1c; line-height: 1.35; }
   </style>
 </head>
 <body class="bk-has-nav">
@@ -133,6 +137,13 @@
         <h2>Who is working?</h2>
         <div class="staff-row" id="staffRow"></div>
         <div class="staff-now" id="staffNow"></div>
+      </div>
+      <div class="card hidden" id="paperReturnsJobCard">
+        <h2>Newspaper returns</h2>
+        <p class="job-copy" id="paperReturnsJobText">From 6pm, pack tonight's unsold newspapers.</p>
+        <div class="quick">
+          <a id="paperReturnsJobLink" href="paper/?open=modeReturns">Open the Returns screen</a>
+        </div>
       </div>
       <div class="tiles">
         <a class="tile paper" href="paper/" id="tilePaper"><span class="ico">&#128240;</span><span><span class="t">Newspapers</span><span class="d" style="display:block">Delivery In, Returns, Stock Take</span></span></a>
@@ -346,6 +357,7 @@
       });
     }
 
+    var RETURNS = null;
     function loadReturnSheetHome() {
       var total = $("returnSheetHomeTotal"), inst = $("returnSheetHomeInstruct"), sum = $("returnSheetHomeSummary");
       if (!total) return;
@@ -354,10 +366,12 @@
         return res.json();
       }).then(function (d) {
         if (!d) throw new Error("empty");
+        RETURNS = d;
         total.textContent = d.total_line || "";
         total.classList.toggle("is-done", !d.total_left);
         inst.textContent = d.scan_now || "";
         sum.textContent = d.home_summary || "";
+        if (typeof badges === "function") badges();
       }).catch(function () {
         total.textContent = ls("birkhill-data-key") ? "Today's return sheet could not be loaded." : "Open the full link with #k= once to see today's returns.";
       });
@@ -413,6 +427,29 @@
       if (!j) { j = el("span", { "class": "bk-job" }); var d = t.querySelector(".d"); (d ? d.parentNode : t).appendChild(j); }
       j.textContent = "\u25CF To do: " + label; t.setAttribute("data-job", label);
     }
+    function newspaperReturnsJob(now, paper) {
+      paper = paper || {};
+      var Job = window.BirkhillPaperReturnsJob;
+      if (!Job) return null;
+      var conf = null;
+      if (RETURNS && RETURNS.date === now.day && RETURNS.confirmation) {
+        conf = Object.assign({ date: RETURNS.date }, RETURNS.confirmation);
+      } else if (paper.returns_confirm && paper.returns_confirm.date === now.day) {
+        conf = paper.returns_confirm;
+      }
+      var tonight = [];
+      if (RETURNS && RETURNS.date === now.day && RETURNS.tonight && RETURNS.tonight.newspapers) tonight = RETURNS.tonight.newspapers;
+      else if (paper.tonight_news && paper.tonight_news.length) tonight = paper.tonight_news;
+      return Job.decide({ now: now, confirmation: conf, tonightNews: tonight });
+    }
+    function showNewspaperReturnsCard(job) {
+      var card = $("paperReturnsJobCard"), text = $("paperReturnsJobText"), link = $("paperReturnsJobLink");
+      if (!card) return;
+      if (!job) { card.classList.add("hidden"); return; }
+      card.classList.remove("hidden");
+      if (text) text.textContent = job.label === "Newspaper returns" ? "From 6pm, pack tonight's unsold newspapers." : job.label;
+      if (link) link.setAttribute("href", job.href);
+    }
     var SYNC = null;
     function badges() {
       var now = londonNow(), J = R && R.jobs && R.jobs.available ? R.jobs : null;
@@ -447,16 +484,27 @@
         });
         if (dd.length) dateParts.push(dd.length + " date" + (dd.length > 1 ? "s" : "") + " due or past");
         setBadge("tileDate", dueN + dd.length, dateParts.join(", "));
-        // Newspapers: only when the snapshot is fresh enough to know
+        // Newspapers: morning delivery still needs a same-day snapshot. The 6pm returns job
+        // uses the phone's Europe/London clock, so it appears at 6pm even between rebuilds.
         var f = londonOf(J.fetched_iso), P = J.paper || {}, pj = [];
-        var dl = P.delivery_last ? P.delivery_last.slice(0, 10) : "", rl = P.returns_last ? P.returns_last.slice(0, 10) : "";
+        var dl = P.delivery_last ? P.delivery_last.slice(0, 10) : "";
         if (f && f.day === now.day && now.hm >= "07:00" && f.hm >= "07:00" && dl !== now.day && !localPaperDone("birkhill-paper-stockin-today-delivery-v1", now.day)) pj.push("Morning delivery not saved");
-        if (f && f.day === now.day && now.hm >= "20:00" && f.hm >= "20:00" && rl !== now.day && !localPaperDone("birkhill-paper-stockin-today-returns-v1", now.day)) pj.push("Evening returns not done");
         var mag = P.mag_returns, mleft = mag && mag.date === now.day ? (Number(mag.outstanding) || 0) : 0;
         if (now.hm >= "07:00" && mleft > 0 && !localMagReturnsDone(mag, now.day)) {
           pj.push(mleft + " magazine return" + (mleft === 1 ? "" : "s") + " to do");
         }
+        var newsJob = newspaperReturnsJob(now, P);
+        if (newsJob) pj.unshift(newsJob.label);
         setBadge("tilePaper", pj.length, pj.join(", "));
+        var paperTile = $("tilePaper");
+        if (paperTile) paperTile.setAttribute("href", newsJob ? newsJob.href : "paper/");
+        showNewspaperReturnsCard(newsJob);
+      } else {
+        var newsJobOnly = newspaperReturnsJob(now, {});
+        setBadge("tilePaper", newsJobOnly ? 1 : 0, newsJobOnly ? newsJobOnly.label : "");
+        var paperTileOnly = $("tilePaper");
+        if (paperTileOnly) paperTileOnly.setAttribute("href", newsJobOnly ? newsJobOnly.href : "paper/");
+        showNewspaperReturnsCard(newsJobOnly);
       }
       var seen = ls("birkhill-reports-seen") || "";
       setBadge("tileReports", R && R.generated_iso && R.generated_iso > seen ? 1 : 0, "New report to read");
