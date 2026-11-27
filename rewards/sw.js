@@ -1,5 +1,5 @@
 /* Customer Rewards Club. Promotions are fetched fresh (network first) so ended offers drop off. */
-const CACHE = "birkhill-rewards-customer-posters-v3";
+const CACHE = "birkhill-rewards-customer-posters-v4";
 const SHELL = ["./","index.html","manifest.json","logo.png","icon-192.png","icon-512.png","add-to-home.js","jsbarcode.min.js","poster/poster.css","poster/poster.js","poster/html-to-image.js","poster/fonts/poppins-medium.woff","poster/fonts/poppins-semibold.woff","poster/fonts/poppins-bold.woff","poster/fonts/poppins-extrabold.woff","poster/fonts/poppins-black.woff"];
 
 self.addEventListener("install", event => {

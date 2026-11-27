@@ -1,5 +1,5 @@
 /* Home shell service worker. Only handles the home page files; the sub-apps keep their own. */
-const CACHE = "birkhill-home-v4";
+const CACHE = "birkhill-home-v5";
 const SHELL = ["./", "index.html", "manifest.json", "master.html", "master-manifest.json", "icon-192.png", "icon-512.png", "secure-data.js", "add-to-home.js"];
 const SHELL_PATHS = new Set(SHELL.map(function (p) { return new URL(p, self.registration.scope).pathname; }));
 self.addEventListener("install", function (e) {
