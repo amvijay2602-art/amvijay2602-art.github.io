@@ -151,12 +151,24 @@
     return Math.round(prop * 100) / 100;
   }
   function lineCostAlert(l, p) {
+    // Till cost is always current Product_Cost (p.c). Invoice unit cost is case cost / case size.
     if (!p || l.leave_out || l.case_cost === "" || l.case_cost == null || !num(l.upc) || !(p.c > 0)) return null;
-    var neu = num(l.case_cost) / num(l.upc);
+    var neu = Math.round((num(l.case_cost) / num(l.upc)) * 100) / 100;
     if (!costChanged(p.c, neu)) return null;
     var pct = ((neu - p.c) / p.c) * 100;
     var sug = suggestedSell(neu, l.vat != null && l.vat !== "" ? l.vat : vatOf(p), p.p, (p.n || "") + " " + (l.inv_name || ""));
     return { old: p.c, neu: neu, pct: pct, sell: p.p, suggested: sug };
+  }
+  function costChangeText(c) {
+    c = String(c || "");
+    return /^(Invoice cost|Unit cost|Till has no cost|Cost [£\u00a3])/.test(c) || /: Invoice cost|: Cost [£\u00a3]/.test(c);
+  }
+  function otherLineChanges(l) {
+    return (l.changes || []).filter(function (c) { return c !== "Not matched to a till product" && !costChangeText(c); });
+  }
+  function invoiceCostMsg(a) {
+    var sug = a.suggested != null ? " Suggested sell " + money(a.suggested) + ", awaiting Vijay's yes" + (a.sell && Math.abs(a.sell - a.suggested) >= 0.005 ? " (till sells at " + money(a.sell) + ")" : "") + "." : "";
+    return "Invoice cost " + money(a.neu) + " will be used in this draft (till cost was " + money(a.old) + ")." + sug;
   }
   function docCostAlerts(d) {
     return (d.lines || []).map(function (l) {
@@ -362,7 +374,7 @@
       var chg = docCostAlerts(d);
       return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(supName(d.sid)) + " &middot; " + esc(d.ref || d.id) + " <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span>" + readChip(d) + (chg.length ? " <span class='st pricechg'>Price changes: " + chg.length + "</span>" : "") + "</div>" +
         "<div class='m'>" + esc(ukDate(d.date)) + " &middot; " + n + " lines &middot; " + money(docTotal(d)) + " ex VAT &middot; " + esc(d.staff || "") + (d.kind === "return" ? " &middot; supplier return" : "") + (d.source ? " &middot; " + esc(d.source) : "") + "</div>" +
-        (chg.length ? "<div class='note'>Supplier price changes: " + chg.map(function (x) { return esc(x.name) + " " + money(x.a.old) + " → " + money(x.a.neu) + " (" + (x.a.pct >= 0 ? "+" : "") + x.a.pct.toFixed(0) + "%)"; }).join("; ") + "</div>" : "") +
+        (chg.length ? "<div class='note'>" + chg.map(function (x) { return esc(x.name) + ": " + invoiceCostMsg(x.a); }).join(" ") + "</div>" : "") +
         (d.error ? "<div class='flag'>" + esc(d.error) + "</div>" : "") + ((d.issues || []).length && s === "needs_fix" ? "<div class='flag'>" + esc(d.issues.length + " problem(s): " + d.issues[0]) + "</div>" : "") +
         (d.waiting && s === "approved" ? "<div class='note'>" + esc(d.waiting) + "</div>" : "") + (d.till ? "<div class='m'>Till " + (d.kind === "return" ? "StockReturn " : "StockIn ") + esc(d.till.till_id) + (d.reconcile && d.reconcile.ok ? ", reconciled" : d.reconcile ? ", MISMATCH" : "") + "</div>" : "") + "</div>";
     }).join("") + "</div>";
@@ -811,12 +823,9 @@
     h += "<div class='m' style='margin-top:6px'><b>" + money(tt.t) + "</b> ex VAT &middot; " + money(tt.ti) + " inc VAT &middot; " + tt.u + " units</div>";
     var chg = docCostAlerts(d);
     if (chg.length) {
-      h += "<div class='price-alert'><b>Supplier price changes: " + chg.length + " line" + (chg.length === 1 ? "" : "s") + "</b>" +
-        chg.map(function (x) {
-          var a = x.a, sug = a.suggested != null ? "; suggested sell " + money(a.suggested) + (a.sell && Math.abs(a.sell - a.suggested) >= 0.005 ? " (till " + money(a.sell) + ")" : "") : "";
-          return "<div>" + esc(x.name) + ": till cost " + money(a.old) + " → invoice " + money(a.neu) + " (" + (a.pct >= 0 ? "+" : "") + a.pct.toFixed(0) + "%)" + sug + "</div>";
-        }).join("") +
-        "<div class='lm' style='margin-top:4px'>The till cost does not change until this draft is finished on the till. Selling prices still wait for your yes.</div></div>";
+      h += "<div class='price-alert'><b>Invoice costs in this draft: " + chg.length + " line" + (chg.length === 1 ? "" : "s") + "</b>" +
+        chg.map(function (x) { return "<div>" + esc(x.name) + ": " + invoiceCostMsg(x.a) + "</div>"; }).join("") +
+        "<div class='lm' style='margin-top:4px'>The till cost becomes the invoice cost only when this draft is finished on the till. Selling prices still wait for Vijay's yes.</div></div>";
     }
     if (s === "needs_fix") (d.issues || []).forEach(function (x) { h += "<div class='flag'>" + esc(x) + "</div>"; });
     (d.warnings || []).forEach(function (x) { h += "<div class='note'>" + esc(x) + "</div>"; });
@@ -854,7 +863,7 @@
       "<div class='lm'>" + (l.bc ? "Barcode " + esc(l.bc) + (l.bc_src === "till" ? " (from the till product, not on the invoice)" : "") : "No barcode") + (p ? " &middot; till " + p.id + " &middot; stock " + p.q + " &middot; sells " + money(p.p) : "") + "</div>" +
       (l.inv_name && p ? "<div class='lm'>Invoice: " + esc(l.inv_name) + (l.inv_code ? " (" + esc(l.inv_code) + ")" : "") + "</div>" : "") +
       (p && p.ld ? "<div class='lm'>Last buy " + ukDate(p.ld) + " " + esc(p.ls) + ": " + money(p.lcc) + " for " + (p.lupc || "?") + "</div>" : "") +
-      ((l.changes || []).filter(function (c) { return c !== "Not matched to a till product"; }).length ? "<div class='lm' style='color:#b45309;font-weight:700'>" + esc(l.changes.filter(function (c) { return c !== "Not matched to a till product"; }).join(" &middot; ")).replace(/&amp;middot;/g, "&middot;") + "</div>" : "") + "</div></div>";
+      (otherLineChanges(l).length ? "<div class='lm' style='color:#b45309;font-weight:700'>" + esc(otherLineChanges(l).join(" &middot; ")).replace(/&amp;middot;/g, "&middot;") + "</div>" : "") + "</div></div>";
     if (ed) {
       h += "<div class='grid'><div><label>Expected cases</label><input data-f='exp' type='number' inputmode='decimal' value='" + esc(l.exp) + "'></div><div><label>Received cases</label><input data-f='rcv' type='number' inputmode='decimal' value='" + esc(l.rcv) + "'></div><div><label>Case size (units)</label><input data-f='upc' type='number' inputmode='decimal' value='" + esc(l.upc) + "'></div>" +
         "<div><label>Case cost ex VAT</label><input data-f='case_cost' type='number' inputmode='decimal' step='0.01' value='" + esc(l.case_cost) + "'></div><div><label>VAT</label><select data-f='vat'>" + VATS.map(function (v) { return "<option value='" + v[0] + "'" + (String(l.vat == null ? "" : l.vat) === v[0] ? " selected" : "") + ">" + v[1] + "</option>"; }).join("") + "</select></div><div><label>Damaged units</label><input data-f='damaged' type='number' inputmode='numeric' value='" + esc(l.damaged || 0) + "'></div>" +
@@ -865,8 +874,7 @@
     if (num(l.damaged)) h += "<div class='note'>" + l.damaged + " damaged unit(s), not added to stock</div>";
     if (l.cost_src && l.cost_src !== "invoice") h += "<div class='note'>Cost from " + esc(l.cost_src) + "</div>";
     if (ca) {
-      var sug = ca.suggested != null ? " Suggested sell " + money(ca.suggested) + (ca.sell && Math.abs(ca.sell - ca.suggested) >= 0.005 ? " (till sells at " + money(ca.sell) + ")" : "") + "." : "";
-      h += "<div class='price-alert'>Supplier price change: till cost " + money(ca.old) + " → invoice " + money(ca.neu) + " (" + (ca.pct >= 0 ? "+" : "") + ca.pct.toFixed(0) + "%)." + sug + " The till cost does not change until this draft is finished on the till. Selling prices still wait for your yes.</div>";
+      h += "<div class='price-alert'>" + invoiceCostMsg(ca) + "</div>";
     }
     if (l.note) h += "<div class='note'>" + esc(l.note) + "</div>";
     if ((l.flags || []).length && !l.leave_out) h += "<div class='" + (l.checked ? "lm" : "flag") + "'>" + (l.checked ? "Checked after reading problems: " : "Hard to read on the invoice: ") + esc(l.flags.join("; ")) + "</div>";
