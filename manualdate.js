@@ -1,5 +1,5 @@
 /* Date Check app: Manual Date Check + Date Reports (23 Nov 2026, VJ t1383u).
-   Deep links: /date/?mode=manual  /date/?mode=reports  (or ?open=mdcModeManual / mdcModeReports).
+   Deep links: /date/?mode=manual  /date/?mode=reports  /date/?mode=list  /date/?mode=manage  (or ?open=mdcModeManual / mdcModeReports / mdcModeList).
    Recorded stock = latest till snapshot (read-only, about every 30 minutes). Staff confirm or correct it.
    Corrections are separate audit records and become DRAFT stock adjustments for Vijay. Never sent to the till. */
 (function () {
@@ -41,23 +41,34 @@
     css();
     var h1 = document.querySelector("h1"); quick = document.querySelector("body > .card");
     var bar = document.createElement("div"); bar.className = "mdc-bar";
-    bar.innerHTML = "<button type='button' id='mdcModeQuick'>Quick date check</button><button type='button' id='mdcModeManual'>Manual Date Check</button><button type='button' id='mdcModeReports'>Date Reports</button>";
+    bar.innerHTML = "<button type='button' id='mdcModeQuick'>Quick date check</button><button type='button' id='mdcModeList'>Date Check List</button><button type='button' id='mdcModeManual'>Manual Date Check</button><button type='button' id='mdcModeReports'>Date Reports</button>";
     h1.parentNode.insertBefore(bar, h1.nextSibling);
     var dueEl = document.createElement("div"); dueEl.className = "mdc-due hidden"; dueEl.id = "mdcDue"; bar.parentNode.insertBefore(dueEl, bar.nextSibling);
     box = document.createElement("div"); box.className = "mdc hidden"; box.id = "mdcBox"; dueEl.parentNode.insertBefore(box, dueEl.nextSibling);
-    $("mdcModeQuick").onclick = function () { mode("quick"); }; $("mdcModeManual").onclick = function () { mode("manual"); }; $("mdcModeReports").onclick = function () { mode("reports"); };
-    load().then(function () { renderDue(); }).catch(function () {});
-    var m = new URLSearchParams(location.search).get("mode"); mode(m === "manual" || m === "reports" ? m : "quick");
+    $("mdcModeQuick").onclick = function () { mode("quick"); }; $("mdcModeList").onclick = function () { mode("list"); }; $("mdcModeManual").onclick = function () { mode("manual"); }; $("mdcModeReports").onclick = function () { mode("reports"); };
+    load().then(function () { renderDue(); if (window.BirkhillDateList) { BirkhillDateList.setData(DATA); BirkhillDateList.renderDue($("mdcDue")); } }).catch(function () {});
+    var params = new URLSearchParams(location.search); var m = params.get("mode"); if (m === "list" || m === "manage" || m === "manual" || m === "reports") mode(m, { pick: params.get("list") || "" }); else mode("quick");
   }
-  function mode(m) {
+  function mode(m, opts) {
+    opts = opts || {};
     cur.mode = m;
-    ["Quick", "Manual", "Reports"].forEach(function (x) { $("mdcMode" + x).classList.toggle("on", x.toLowerCase() === m); });
+    window.__mdc = window.__mdc || {}; window.__mdc.curMode = m;
+    ["Quick", "List", "Manual", "Reports"].forEach(function (x) {
+      var el = $("mdcMode" + x); if (el) el.classList.toggle("on", (x === "List" ? (m === "list" || m === "manage") : x.toLowerCase() === m));
+    });
     if (quick) quick.classList.toggle("hidden", m !== "quick");
     box.classList.toggle("hidden", m === "quick");
-    try { history.replaceState(null, "", location.pathname + (m === "quick" ? "" : "?mode=" + m)); } catch (e) {}
+    var q = m === "quick" ? "" : (m === "manage" ? "?mode=manage" : (m === "list" ? "?mode=list" + (opts.pick ? "&list=" + encodeURIComponent(opts.pick) : "") : "?mode=" + m));
+    try { history.replaceState(null, "", location.pathname + q); } catch (e) {}
     if (m === "quick") return;
+    if (opts.skipDraw && (m === "list" || m === "manage")) return;
     box.innerHTML = "<div class='card2'>Loading products...</div>";
-    load().then(function () { m === "manual" ? manual() : reports(); }).catch(function () { box.innerHTML = "<div class='msg err'>Product list locked. Open this app once from the full link Vijay sent (it ends in #k=...).</div>"; });
+    load().then(function () {
+      if (window.BirkhillDateList) BirkhillDateList.setData(DATA);
+      if (m === "list") { if (window.BirkhillDateList) BirkhillDateList.open({ pick: opts.pick || "" }); else box.innerHTML = "<div class='msg err'>Date Check List failed to load. Refresh the page.</div>"; return; }
+      if (m === "manage") { if (window.BirkhillDateList) BirkhillDateList.manage(); else box.innerHTML = "<div class='msg err'>Date Check List failed to load. Refresh the page.</div>"; return; }
+      m === "manual" ? manual() : reports();
+    }).catch(function () { box.innerHTML = "<div class='msg err'>Product list locked. Open this app once from the full link Vijay sent (it ends in #k=...).</div>"; });
   }
   function stockNote() { return "Recorded stock is the latest till figure, last updated " + esc(DATA.stock_taken_display || D.ukWhen(DATA.stock_taken_at)) + ". Please check it by hand."; }
   function breadGroup() {
@@ -89,6 +100,9 @@
   }
   function renderDue() {
     var el = $("mdcDue"); if (!el) return;
+    if (window.BirkhillDateList && DATA) {
+      try { BirkhillDateList.setData(DATA); BirkhillDateList.renderDue(el); return; } catch (e) {}
+    }
     var g = liveBread(breadGroup());
     if (!g) { el.classList.add("hidden"); el.innerHTML = ""; return; }
     el.classList.remove("hidden");
@@ -97,10 +111,13 @@
     if (g.due) {
       el.innerHTML = "<h2>Due today</h2><div class='due'>" + esc(g.name) + " date check is due today (" + esc(days) + ").</div>" +
         "<div class='muted' style='margin-top:6px'>" + esc(depts) + ": " + g.checked + " of " + g.total + " in stock checked. " + g.left + " not checked yet.</div>" +
-        "<div class='muted'>Open Manual Date Check and choose Breads or Bread & Cakes, or scan them on Quick date check.</div>";
+        "<button type='button' class='btn' id='mdcDueOpen'>Open Date Check List</button>";
+      if ($("mdcDueOpen")) $("mdcDueOpen").onclick = function () { mode("list", { pick: "bread" }); };
     } else {
       el.innerHTML = "<h2>Breads date check</h2><div class='off'>Not due today. Next due: " + esc(g.next) + ".</div>" +
-        "<div class='muted' style='margin-top:6px'>Breads are checked on " + esc(days) + ". You can still check a bread product today if you need to: choose the department below or scan it.</div>";
+        "<div class='muted' style='margin-top:6px'>Breads are checked on " + esc(days) + ". You can still check a bread product today if you need to: choose the department below or scan it.</div>" +
+        "<button type='button' class='btn sec' id='mdcDueOpen'>Open Date Check List</button>";
+      if ($("mdcDueOpen")) $("mdcDueOpen").onclick = function () { mode("list", { pick: "bread" }); };
     }
   }
   function breadReportHtml() {
@@ -268,8 +285,18 @@
         return "<tr><td>" + (r.urgent ? "<span class='tag u'>URGENT</span> " : "") + esc(r.name) + "<div class='muted'>" + esc(r.bc || "no barcode") + " &middot; " + (r.src === "edn" ? "Eden delivery" : "date check") + " " + esc(D.ukDate(r.at)) + "</div></td><td>" + esc(D.kindTxt(r.kind)) + " " + esc(D.ukDate(r.date)) + "<div class='muted'>" + (r.left < 0 ? (-r.left) + " days ago" : r.left === 0 ? "today" : r.left + " days left") + "</div></td><td>" + r.qty + "</td></tr>";
       }).join("") + "</table>" : "<div class='msg ok'>None.</div>") + "</div>";
     }
-    var h = "<div class='card2'><h2>Date Reports</h2><div class='muted'>From the latest check of each product (manual date checks and Eden deliveries, all phones after the box update, about every 30 minutes, plus this phone now). " + c.checked + " products with a check.</div>" +
-      breadReportHtml() +
+    var extraLists = "";
+    if (window.BirkhillDateList) {
+      try {
+        BirkhillDateList.setData(DATA);
+        extraLists = BirkhillDateList.liveGroups().filter(function (g) { return g.key !== "bread"; }).map(function (g) {
+          if (!g.due) return "<div class='card2'><h2>" + esc(g.name) + "</h2><div class='muted'>Not due today. Next due: " + esc(g.next || "") + " (" + esc((g.days || []).join(", ")) + ").</div></div>";
+          return "<div class='card2'><h2>" + esc(g.name) + " due today (" + g.left + " not checked)</h2><div class='muted'>" + esc((g.days || []).join(", ")) + ". " + g.checked + " of " + g.total + " checked.</div></div>";
+        }).join("");
+      } catch (e) {}
+    }
+    var h = "<div class='card2'><h2>Date Reports</h2><div class='muted'>From the latest check of each product (manual date checks, date check lists and Eden deliveries, all phones after the box update, about every 30 minutes, plus this phone now). " + c.checked + " products with a check.</div>" +
+      breadReportHtml() + extraLists +
       "<div style='margin-top:8px'>Short-dated warning: <b id='mdcWShort'>" + w.short + " days</b>. Urgent: <b id='mdcWUrg'>" + w.urgent + " days</b> or less." + (w.by ? " <span class='muted'>Set by " + esc(w.by) + " " + esc(D.ukWhen(w.at)) + ".</span>" : "") + "</div>" +
       "<button type='button' class='btn o' id='mdcRShare'>Share to Vijay office WhatsApp</button><button type='button' class='btn sec' id='mdcWEdit'>Change warning periods (manager)</button><div id='mdcWBox'></div></div>" +
       sec("mdcExpired", "Expired (use-by passed)", c.expired, "Remove from sale now.") +
@@ -296,5 +323,5 @@
     }).catch(function () { $("mdcWBox").innerHTML = "<div class='msg err'>Could not load the manager list. Open the app from the full link first.</div>"; });
   }
   if (document.readyState !== "loading") setup(); else document.addEventListener("DOMContentLoaded", setup);
-  window.__mdc = { mode: mode, applyCode: applyCode };
+  window.__mdc = { mode: mode, applyCode: applyCode, renderDueNow: renderDue, curMode: cur.mode };
 })();

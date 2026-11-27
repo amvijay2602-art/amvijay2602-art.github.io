@@ -29,7 +29,7 @@
       ".dcl-chip button{border:0;background:none;color:#b71c1c;font-weight:900;font-size:1.1rem;cursor:pointer}" +
       ".dcl-days{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.dcl-days label{display:flex;align-items:center;gap:4px;min-height:44px;font-weight:700}" +
       ".dcl-ed{background:#fff;border-radius:16px;padding:14px;margin:8px 0;box-shadow:0 1px 4px rgba(24,52,42,.1)}" +
-      ".mdc-due .btn{margin-top:8px;min-height:48px}";
+      ".mdc-due .btn{display:block;width:100%;min-height:48px;border:0;border-radius:14px;background:#17643F;color:#fff;font-weight:800;font-size:1.05rem;margin-top:8px;cursor:pointer}.mdc-due .btn.sec{background:#fff;color:#17643F;border:2px solid #17643F}";
     document.head.appendChild(s);
   }
   function img(p) {
@@ -76,7 +76,7 @@
       var at = String(r.at || ""), cur = out[String(pid)];
       if (cur && at < String(cur.at || "")) return;
       var dates = (r.batches || []).map(function (b) { return b.d; }).filter(Boolean).sort();
-      out[String(pid)] = { at: at, staff: r.staff || "", dtype: r.dtype || "", qty: r.qty, date: dates[0] || "", id: r.id || "", batches: r.batches || [] };
+      out[String(pid)] = { at: at, staff: r.staff || "", dtype: r.dtype || "", qty: r.qty, date: dates[0] || "", id: r.id || "", batches: r.batches || [], prevQty: cur ? cur.qty : null, prevDtype: cur ? cur.dtype : "" };
     });
     return out;
   }
@@ -334,8 +334,8 @@
         if (hint) warn = "<div><span class='dcl-tag " + (dateClass(r.last.date) === "urgent" ? "w" : "u") + "'>" + esc(hint) + "</span></div>";
       }
       var corr = "";
-      if (inDone && r.last && r.last.prevQty != null && r.last.prevQty !== r.last.qty) {
-        corr = "<div class='muted'>Corrected to " + r.last.qty + " (was " + r.last.prevQty + ")</div>";
+      if (inDone && r.last && r.last.prevQty != null && (r.last.prevQty !== r.last.qty || r.last.prevDtype !== r.last.dtype)) {
+        corr = "<div class='muted'>Corrected to " + (r.last.dtype === "zero" ? "no stock" : r.last.dtype === "long" ? "all OK" : r.last.qty) + " (was " + (r.last.prevDtype === "zero" ? "no stock" : r.last.prevQty) + ")</div>";
       }
       return "<div class='dcl-item' data-pid='" + p.id + "' id='dclP" + p.id + "'>" + img(p) + "<div><div class='nm'>" + esc(p.n) + "</div>" +
         "<div class='meta'>" + esc(bc) + " &middot; stock " + (p.q == null ? "?" : p.q) + "</div>" +
@@ -423,7 +423,7 @@
       recorded: p.q, recorded_at: DATA.stock_taken_at, qty: rec.qty, dtype: rec.dtype, batches: rec.batches,
       how: isEdit ? "edit" : "list", prev_id: isEdit && lc ? lc.id : ""
     });
-    if (p.q != null && Number(rec.qty) !== Number(p.q) && rec.dtype === "zero") {
+    if (p.q != null && rec.dtype !== "long" && rec.dtype !== "ok" && Number(rec.qty) !== Number(p.q)) {
       D.correction({ pid: p.id, bc: (p.b && p.b[0]) || "", name: p.n, recorded: p.q, snapshotAt: DATA.stock_taken_at, qty: rec.qty, src: "list", staff: staff, ref: cur.pick });
     }
     if ($("dclEd")) $("dclEd").innerHTML = "";

@@ -436,13 +436,15 @@
           if (p20left > 0) parts.push(p20left + " of " + p20.total + " priority checks");
         }
         setBadge("tileChiller", cd.length + gl.length + p20left + wfleft, parts.join(", "));
-        var bread = J.bread_datecheck, breadLeft = 0, dateParts = [];
-        if (bread && bread.due_today) {
-          breadLeft = Math.max(0, bread.left != null ? bread.left : (bread.total || 0) - (bread.checked || 0));
-          if (breadLeft > 0) dateParts.push("Breads date check due (" + breadLeft + " not checked)");
-        }
+        var bread = J.bread_datecheck, dateParts = [], dueN = 0;
+        var dueLists = (J.date_lists && J.date_lists.length) ? J.date_lists : (bread ? [bread] : []);
+        dueLists.forEach(function (L) {
+          if (!L || !L.due_today) return;
+          var left = Math.max(0, L.left != null ? L.left : (L.total || 0) - (L.checked || 0));
+          if (left > 0) { dueN += 1; dateParts.push((L.name || "Date check") + " due (" + left + " not checked)"); }
+        });
         if (dd.length) dateParts.push(dd.length + " date" + (dd.length > 1 ? "s" : "") + " due or past");
-        setBadge("tileDate", (breadLeft > 0 ? 1 : 0) + dd.length, dateParts.join(", "));
+        setBadge("tileDate", dueN + dd.length, dateParts.join(", "));
         // Newspapers: only when the snapshot is fresh enough to know
         var f = londonOf(J.fetched_iso), P = J.paper || {}, pj = [];
         var dl = P.delivery_last ? P.delivery_last.slice(0, 10) : "", rl = P.returns_last ? P.returns_last.slice(0, 10) : "";
