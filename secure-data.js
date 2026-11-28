@@ -25,25 +25,58 @@
     return keyPromise;
   }
   var realFetch = window.fetch.bind(window);
+  // 28 Nov 2026 (Sentry BIRKHILL-STAFF-APPS-2 and -3, "Error: locked"):
+  // Before, ANY failed data fetch (phone asleep or offline, a GitHub Pages hiccup, a deploy in progress) became a fake
+  // 403 "locked" answer, and the apps threw it as an unhandled error. A real "locked" now means only "no key on this phone".
+  // Network faults and 5xx are retried with a short wait, identical requests made at the same moment share one download,
+  // and what is left is an honest 503 "offline" that the apps can handle without losing anything.
+  var RETRY_WAIT = [600, 1800];
+  function wait(ms) { return new Promise(function (res) { setTimeout(res, ms); }); }
+  function fail(code, text) { var e = new Error(text); e.birkhillCode = code; return e; }
+  function fetchEnc(encUrl, n) {
+    return realFetch(encUrl, { cache: "no-cache" }).then(function (res) {
+      if (res.ok) return res;
+      if ((res.status >= 500 || res.status === 408 || res.status === 429) && n < RETRY_WAIT.length) {
+        return wait(RETRY_WAIT[n]).then(function () { return fetchEnc(encUrl, n + 1); });
+      }
+      throw fail(res.status >= 500 || res.status === 408 || res.status === 429 ? 503 : 403, res.status >= 500 ? "offline" : "data " + res.status);
+    }, function () {
+      if (n < RETRY_WAIT.length) return wait(RETRY_WAIT[n]).then(function () { return fetchEnc(encUrl, n + 1); });
+      throw fail(503, "offline");
+    });
+  }
+  function readPlain(encUrl, key, n) {
+    return fetchEnc(encUrl, 0).then(function (res) {
+      return res.arrayBuffer().then(function (buf) {
+        var all = new Uint8Array(buf);
+        return crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12));
+      }, function () { throw fail(503, "offline"); });
+    }).then(function (plain) {
+      var ds = new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"));
+      return new Response(ds).text();
+    }).catch(function (err) {
+      if (err && err.birkhillCode) throw err;
+      // a half-downloaded or half-published file fails to decrypt: try once more before calling it a bad key
+      if (n < 1) return wait(RETRY_WAIT[0]).then(function () { return readPlain(encUrl, key, n + 1); });
+      throw fail(403, "bad key or data");
+    });
+  }
+  var inflight = {};
   window.fetch = function (input, init) {
     var url = typeof input === "string" ? input : (input && input.url) || "";
     if (!DATA.test(url.split("#")[0].replace(location.origin, ""))) return realFetch(input, init);
     var encUrl = url.replace(/\.json(\?.*)?$/, ".json.enc$1");
-    return Promise.all([getKey(), realFetch(encUrl, { cache: "no-cache" })]).then(function (r) {
-      var key = r[0], res = r[1];
-      if (!res.ok) throw new Error("data " + res.status);
-      return res.arrayBuffer().then(function (buf) {
-        var all = new Uint8Array(buf);
-        return crypto.subtle.decrypt({ name: "AES-GCM", iv: all.slice(0, 12) }, key, all.slice(12));
-      });
-    }).then(function (plain) {
-      var ds = new Blob([plain]).stream().pipeThrough(new DecompressionStream("gzip"));
-      return new Response(ds).text();
-    }).then(function (text) {
+    var job = inflight[encUrl];
+    if (!job) {
+      job = inflight[encUrl] = getKey().then(function (key) { return readPlain(encUrl, key, 0); });
+      var done = function () { if (inflight[encUrl] === job) delete inflight[encUrl]; };
+      job.then(done, done);
+    }
+    return job.then(function (text) {
       return new Response(text, { status: 200, headers: { "Content-Type": "application/json" } });
-    }).catch(function (err) {
-      if (!keyText()) showNoKey();
-      return new Response("", { status: 403, statusText: String(err && err.message || err) });
+    }, function (err) {
+      if (!keyText()) { showNoKey(); return new Response("", { status: 403, statusText: "no key" }); }
+      return new Response("", { status: (err && err.birkhillCode) || 403, statusText: String(err && err.message || err) });
     });
   };
   var shown = false;

@@ -310,20 +310,41 @@
   }
 
   // data
-  function load() {
-    return Promise.all([
-      fetch("stockin.json").then(function (r) { if (!r.ok) throw new Error("locked"); return r.json(); }),
-      fetch("stockin_products.json").then(function (r) { if (!r.ok) throw new Error("locked"); return r.json(); })
-    ]).then(function (res) {
-      SI = res[0]; PR = res[1]; BYID = {}; BYBC = {};
-      PR.p.forEach(function (a) {
-        var p = { id: a[0], n: a[1], s: a[2], b: a[3], q: a[4], c: a[5], p: a[6], vat: a[7], upc: a[8], cc: a[9], i: a[10], ld: a[11], ls: a[12], lcc: a[13], lupc: a[14], sup: a[15] };
-        BYID[p.id] = p; p.b.forEach(function (b) { var k = bkey(b); if (k && (!BYBC[k] || BYBC[k].q === 0)) BYBC[k] = p; });
-      });
-      $("dataNote").textContent = "Updated " + SI.generated_display + ". " + (SI.writes_enabled ? "Deliveries save to the till as drafts." : "Till posting is switched off on the box.");
-      sweepLocal();
+  // 28 Nov 2026 (Sentry BIRKHILL-STAFF-APPS-2 and -3 "Error: locked"): a failed download used to throw an unhandled "locked" error,
+  // from the 10 second Sync poll and from the first load. Now one load runs at a time, a bad answer is retried, and once the app
+  // has data it keeps showing the last good data while the phone is offline. Only a missing key says "locked".
+  var _loadP = null, _offline = false;
+  function dataErr(r) { var e = new Error(r.statusText || ("data " + r.status)); e.locked = (r.statusText === "no key"); e.status = r.status; return e; }
+  function getData(name) { return fetch(name).then(function (r) { if (!r.ok) throw dataErr(r); return r.json(); }); }
+  function applyData(res) {
+    SI = res[0]; PR = res[1]; BYID = {}; BYBC = {};
+    PR.p.forEach(function (a) {
+      var p = { id: a[0], n: a[1], s: a[2], b: a[3], q: a[4], c: a[5], p: a[6], vat: a[7], upc: a[8], cc: a[9], i: a[10], ld: a[11], ls: a[12], lcc: a[13], lupc: a[14], sup: a[15] };
+      BYID[p.id] = p; p.b.forEach(function (b) { var k = bkey(b); if (k && (!BYBC[k] || BYBC[k].q === 0)) BYBC[k] = p; });
+    });
+    _offline = false;
+    $("dataNote").textContent = "Updated " + SI.generated_display + ". " + (SI.writes_enabled ? "Deliveries save to the till as drafts." : "Till posting is switched off on the box.");
+    sweepLocal();
+  }
+  function loadTry(n) {
+    return Promise.all([getData("stockin.json"), getData("stockin_products.json")]).then(function (res) { applyData(res); return true; }, function (e) {
+      if (e.locked || n >= 2) throw e;
+      return new Promise(function (ok) { setTimeout(ok, 1500 * (n + 1)); }).then(function () { return loadTry(n + 1); });
     });
   }
+  function load() {
+    if (_loadP) return _loadP;
+    var done = function () { _loadP = null; };
+    _loadP = loadTry(0).then(function (r) { done(); return r; }, function (e) {
+      done();
+      if (!SI) throw e;                       // first load: the start-up code shows the message and keeps retrying
+      _offline = true;                        // later loads: keep the last good data, nothing is lost
+      var note = $("dataNote"); if (note) note.textContent = (e.locked ? "Data key missing on this phone." : "No signal or the update is not ready. Showing the last data (" + SI.generated_display + "). Trying again soon.");
+      return false;
+    });
+    return _loadP;
+  }
+  window.addEventListener("online", function () { if (SI) load(); });
   var DONE_STATUS = { posted: 1, discarded: 1, no_stock: 1, till_draft: 1 };
   function docsById() { var o = {}; (SI ? SI.docs : []).forEach(function (d) { o[d.id] = d; }); return o; }
   function invNos(d) {
@@ -1713,7 +1734,7 @@
       }
       Promise.all([
         loadStockinSync(),
-        typeof load === "function" ? load() : Promise.resolve()
+        typeof load === "function" ? load().catch(function () { return false; }) : Promise.resolve()
       ]).then(function () {
         if (stockinSyncIsFresh(stockinSyncInfo)) {
           stopStockinSyncPoll();
@@ -1768,14 +1789,19 @@
       });
     }).catch(function () { go("scan"); });
   }
-  load().then(function () {
-    mgrBar(); pill(); flush(); loadStockinSync();
-    var qp = new URLSearchParams(location.search), t = qp.get("tab") || "home";
-    if (qp.get("shared") != null) takeShared(qp.get("shared"));
-    else if (qp.get("doc")) openDoc(qp.get("doc")); else go(VIEWS[t] ? t : "home");
-  }).catch(function () {
-    $("view").innerHTML = "<div class='msg err'>Data locked or not loaded. Open this app once from the full link Vijay sent (it ends in #k=...).</div>";
-  });
+  function start() {
+    load().then(function () {
+      mgrBar(); pill(); flush(); loadStockinSync();
+      var qp = new URLSearchParams(location.search), t = qp.get("tab") || "home";
+      if (qp.get("shared") != null) takeShared(qp.get("shared"));
+      else if (qp.get("doc")) openDoc(qp.get("doc")); else go(VIEWS[t] ? t : "home");
+    }).catch(function (e) {
+      if (e && e.locked) { $("view").innerHTML = "<div class='msg err'>Data locked or not loaded. Open this app once from the full link Vijay sent (it ends in #k=...).</div>"; return; }
+      $("view").innerHTML = "<div class='msg warn'>No signal, or the update is not ready yet. Trying again. Anything you already typed is kept on this phone.</div>";
+      setTimeout(start, 8000);
+    });
+  }
+  start();
   window.__si = { lookup: lookup, allDocs: allDocs, clientCheck: clientCheck, parseEDN: parseEDN, go: go, scan: function () { return SCAN; }, filesWaiting: filesWaiting };
 })();
 </script>
