@@ -89,6 +89,17 @@
     .ud .q input { width: 58px; text-align: center; min-height: 42px; padding: 4px; }
     .ud .ret input { width: 58px; text-align: center; min-height: 42px; padding: 4px; border-color: #c4b5fd; }
     .ud .exp { font-size: .78rem; color: #5b6573; }
+    .ud .bcbig { font-size: 1.15rem; font-weight: 900; letter-spacing: .04em; }
+    .ud .stk { display: flex; gap: 10px; align-items: stretch; width: 100%; margin: 6px 0 2px; }
+    .ud .stk .cur { flex: 1 1 0; background: #e8f6ec; border: 2px solid #14532d; border-radius: 12px; padding: 6px 10px; text-align: center; }
+    .ud .stk .cur.bad { background: #fdecec; border-color: #c62828; }
+    .ud .stk .lbl { display: block; font-size: .8rem; font-weight: 800; color: #14532d; text-transform: uppercase; letter-spacing: .03em; }
+    .ud .stk .cur.bad .lbl { color: #c62828; }
+    .ud .stk .num { display: block; font-size: 1.9rem; font-weight: 900; line-height: 1.1; }
+    .ud .stk .edt { flex: 1 1 0; border: 2px solid #b26a00; border-radius: 12px; padding: 6px 10px; background: #fffaf0; text-align: center; }
+    .ud .stk .edt .lbl { color: #8a4b08; }
+    .ud .stk .edt input { width: 100%; box-sizing: border-box; min-height: 48px; font-size: 1.5rem; font-weight: 900; text-align: center; border: 2px solid #b26a00; border-radius: 10px; background: #fff; }
+    .ud .adjnote { width: 100%; font-size: .85rem; font-weight: 800; color: #8a4b08; }
     .empty { color: #5b6573; font-size: .92rem; }
     video { width: 100%; border-radius: 14px; margin-top: 10px; background: #000; max-height: 240px; object-fit: cover; }
     .search-res .item { cursor: pointer; display: flex; gap: 8px; align-items: center; border: 1px solid #e3ebe6; border-radius: 12px; padding: 6px; margin-top: 6px; }
@@ -1038,16 +1049,17 @@
     var todayUd = todayUdDoc(date), already = udAlreadySaved(todayUd);
     var ord = SI.ud_order && SI.ud_order.delivery === date ? SI.ud_order : null;
     function want(it) { return ord && it.order != null ? it.order : it.expected; }
-    var h = "<div class='card'><h2>Unique Dairies delivery entry: milk and bread</h2><div class='m'>Check the delivery against the order list. Type how many came. If the till stock shown is wrong, press Edit stock and type the real number on the shelf before this delivery. Finish entry saves a Stock In DRAFT only. Nothing is posted to the till.</div>";
+    var h = "<div class='card'><h2>Unique Dairies delivery entry: milk and bread</h2><div class='m'>Check the delivery against the order list. Type how many came. Every line shows the Current stock from the till. If it is wrong, type the real number on the shelf (before this delivery) in the orange Edit stock box. Finish entry saves a Stock In DRAFT only. Nothing is posted to the till.</div>";
     if (already) {
       var td = todayUd.till_draft || {};
       h += "<div class='msg ok' id='uAlready'>This delivery is already saved" + (td.review_id ? " as till draft " + td.review_id : "") + " (" + esc(todayUd.id) + (todayUd.ref ? ", " + esc(todayUd.ref) : "") + "). It is a draft only, not posted. This screen will not create another draft.</div>";
     }
     h += (ord ? "<div class='note'>Order list for " + esc(ord.delivery_day) + " " + ukDate(ord.delivery) + " is loaded (made " + esc(ord.made) + "). " + esc(ord.weather_text || "") + "</div>" : "<div class='note'>No order list for " + ukDate(date) + " yet. Delivered starts at the usual quantity.</div>");
+    h += "<div class='m' id='uFresh'>Current stock was read from the till: " + esc(SI.generated_display || "unknown time") + ".</div>";
     h += "<div class='row'><div><label class='f'>Date (reference)</label><input id='uDate' type='date' value='" + esc(date) + "'></div><div><label class='f'>Staff name</label><input id='uStaff' type='text' value='" + esc(saved.staff || (todayUd && todayUd.staff) || staff()) + "'" + (already ? " disabled" : "") + "></div></div>" +
       "<div class='row'><div><label class='f'>Delivery note</label><input id='uRef' type='text' value='" + esc(saved.ref || (todayUd && todayUd.ref) || ("Milk " + ukDate(date))) + "'" + (already ? " disabled" : "") + "></div></div>" +
       (already ? "" : "<button class='btn sec' id='uAll' style='margin-top:10px'>Everything delivered as ordered</button>") + "</div><div class='card'>" +
-      "<div class='ud' style='font-size:.78rem;font-weight:800;color:#5b6573'><div style='flex:1'>Product, barcode, ordered, till stock. Then Delivered and Return</div></div>";
+      "<div class='ud' style='font-size:.78rem;font-weight:800;color:#5b6573'><div style='flex:1'>Product, barcode, ordered, Current stock (edit if wrong). Then Delivered and Return</div></div>";
     items.forEach(function (it, i) {
       var tl = todayUd ? (todayUd.lines || []).filter(function (l) { return l.pid === it.pid; })[0] : null;
       var v = saved.rcv && saved.rcv[it.pid] != null ? saved.rcv[it.pid] : (tl && tl.rcv != null ? tl.rcv : want(it));
@@ -1057,9 +1069,12 @@
       if (cnt === undefined) cnt = null;
       var till = it.stock != null ? it.stock : null, wrong = cnt != null && cnt !== "" && till != null && num(cnt) !== till;
       h += "<div class='ud' style='flex-wrap:wrap'><div class='pic' style='width:48px;height:48px;flex-basis:48px'>" + picHtml(it.pid) + "</div><div style='flex:1 1 calc(100% - 60px);min-width:0'><div class='ln' style='font-size:.95rem;font-weight:800'>" + esc(it.name) + "</div>" +
-        "<div class='bcbig' style='font-size:1.15rem;font-weight:900;letter-spacing:.04em'>" + esc(it.bc) + "</div>" +
-        "<div class='exp'>" + (ord && it.order != null ? "Ordered <b>" + it.order + "</b> &middot; " : "Usual " + it.expected + " &middot; ") + "Till stock <b" + (wrong ? " style='text-decoration:line-through'" : "") + ">" + (till == null ? "?" : till) + "</b>" + (wrong ? " &rarr; counted <b>" + esc(cnt) + "</b>" : "") + " &middot; " + money(it.unit_cost) + " each</div>" +
-        (already ? "" : "<button type='button' class='btn small sec' data-edst='" + i + "' style='margin-top:4px'>" + (cnt != null && cnt !== "" ? "Change stock" : "Edit stock") + "</button> <span data-edbox='" + i + "' style='" + (cnt != null && cnt !== "" ? "" : "display:none") + "'><input data-c='" + i + "' type='number' inputmode='numeric' value='" + esc(cnt == null ? "" : cnt) + "' placeholder='Real stock' style='width:92px;min-height:38px;text-align:center'></span>") + "</div>" +
+        "<div class='bcbig'>" + esc(it.bc) + "</div>" +
+        "<div class='exp'>" + (ord && it.order != null ? "Ordered <b>" + it.order + "</b>" : "Usual <b>" + it.expected + "</b>") + " &middot; " + money(it.unit_cost) + " each</div></div>" +
+        "<div class='stk'><div class='cur" + (till == null ? " bad" : "") + "' data-cur='" + i + "'><span class='lbl'>Current stock</span><span class='num'" + (wrong ? " style='text-decoration:line-through'" : "") + ">" + (till == null ? "not loaded" : esc(String(till))) + "</span></div>" +
+        (already ? (wrong ? "<div class='edt'><span class='lbl'>Counted</span><span class='num'>" + esc(cnt) + "</span></div>" : "")
+          : "<div class='edt'><label class='lbl' for='c" + i + "'>Edit stock: real count</label><input id='c" + i + "' data-c='" + i + "' type='number' inputmode='numeric' value='" + esc(cnt == null ? "" : cnt) + "' placeholder='" + (till == null ? "Type" : "Same") + "'></div>") + "</div>" +
+        "<div class='adjnote' data-adj='" + i + "'>" + (wrong ? "Stock will change from " + till + " to " + esc(cnt) + " (" + (num(cnt) - till > 0 ? "+" : "") + (num(cnt) - till) + "). Waits for Vijay's yes." : "") + "</div>" +
         "<div style='display:flex;gap:14px;align-items:center;justify-content:flex-end;width:100%'><span class='exp' style='margin-right:auto;font-weight:800'>Delivered / Return</span><div class='q'><button type='button' data-m='" + i + "'" + (already ? " disabled" : "") + ">-</button><input data-r='" + i + "' type='number' inputmode='numeric' value='" + esc(v) + "'" + (already ? " disabled" : "") + "><button type='button' data-p='" + i + "'" + (already ? " disabled" : "") + ">+</button></div><div class='ret'><input data-t='" + i + "' type='number' inputmode='numeric' value='" + esc(r) + "' placeholder='0'" + (already ? " disabled" : "") + "></div></div></div>";
     });
     if (!items.length) h += "<div class='empty'>No milk or bread lines found in recent till stock-ins.</div>";
@@ -1081,8 +1096,14 @@
       jset(key, s); return s;
     }
     if ($("uDate")) $("uDate").onchange = function () { var v = $("uDate").value; if (v) { udDate = v; VIEWS.ud(); } };
+    function adjNote(i) {
+      var inp = $("view").querySelector("[data-c='" + i + "']"), note = $("view").querySelector("[data-adj='" + i + "']"), till = items[i].stock;
+      if (!inp || !note) return;
+      var v = inp.value, d = v !== "" && till != null ? num(v) - till : 0;
+      note.textContent = v !== "" && till != null && d !== 0 ? "Stock will change from " + till + " to " + num(v) + " (" + (d > 0 ? "+" : "") + d + "). Waits for Vijay's yes." : (v !== "" && till == null ? "Counted " + num(v) + ". Waits for Vijay's yes." : "");
+    }
     each("[data-r],[data-t],[data-c],#uRef,#uStaff", function (el) { el.onchange = store; });
-    each("[data-edst]", function (b) { b.onclick = function () { var i = b.getAttribute("data-edst"), box = $("view").querySelector("[data-edbox='" + i + "']"); box.style.display = ""; var inp = box.querySelector("input"); if (inp.value === "" && items[i].stock != null) inp.value = items[i].stock; inp.focus(); store(); }; });
+    each("[data-c]", function (el) { var i = el.getAttribute("data-c"); el.oninput = function () { adjNote(i); store(); }; });
     each("[data-m],[data-p]", function (b) { b.onclick = function () { var i = b.getAttribute("data-m") || b.getAttribute("data-p"), inp = $("view").querySelector("[data-r='" + i + "']"); var v = inp.value === "" ? want(items[i]) : num(inp.value); inp.value = Math.max(0, v + (b.hasAttribute("data-p") ? 1 : -1)); store(); }; });
     if ($("uAll")) $("uAll").onclick = function () { items.forEach(function (it, i) { $("view").querySelector("[data-r='" + i + "']").value = want(it); }); store(); };
     if ($("uOpen")) $("uOpen").onclick = function () { openDoc(todayUd.id); };
