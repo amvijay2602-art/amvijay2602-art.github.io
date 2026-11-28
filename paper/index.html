@@ -123,6 +123,27 @@
       color: #fff;
     }
     .mode-btn:active { opacity: 0.85; }
+
+    .paper-sync-bar { margin: -4px 0 16px; }
+    .paper-sync-btn {
+      width: 100%; min-height: 52px; border-radius: 14px;
+      font-weight: 800; font-size: 16px; cursor: pointer;
+      border: 2px solid #17643F; background: #17643F; color: #fff;
+    }
+    .paper-sync-btn:disabled { opacity: 0.65; cursor: default; }
+    .paper-sync-btn:active { opacity: 0.85; }
+    body.returns .paper-sync-btn {
+      border-color: #E86B2A; background: #E86B2A;
+    }
+    .paper-sync-meta {
+      margin: 8px 0 0; font-size: 14px; font-weight: 700;
+      color: #5b6573; line-height: 1.35;
+    }
+    .paper-sync-meta.is-ok { color: #17643F; }
+    .paper-sync-meta.is-wait { color: #8a3b12; }
+    .paper-sync-meta.is-error { color: #9b1c1c; }
+    body.stocktake #paperSyncBar { display: none; }
+
     .kinds {
       display: flex;
       gap: 8px;
@@ -675,6 +696,10 @@
     <button type="button" id="modeDelivery" class="mode-btn delivery-btn active" role="tab" aria-selected="true">Delivery In</button>
     <button type="button" id="modeReturns" class="mode-btn returns-btn" role="tab" aria-selected="false">Returns</button>
     <button type="button" id="modeStockTake" class="mode-btn stocktake-btn" role="tab" aria-selected="false">Stock Take</button>
+  </div>
+  <div id="paperSyncBar" class="paper-sync-bar">
+    <button type="button" id="paperSyncBtn" class="paper-sync-btn">Sync</button>
+    <p id="paperSyncMeta" class="paper-sync-meta">Last synced: not yet</p>
   </div>
   <div class="kinds" id="kindRow" role="tablist" aria-label="Paper type">
     <button type="button" id="kindNews" class="kind-btn active" role="tab" aria-selected="true">Newspapers<span class="kind-n" id="kindNewsN"></span></button>
@@ -4136,8 +4161,158 @@
     })();
 
 
+
+    function formatSyncTime(iso, fallback) {
+      if (fallback) return String(fallback);
+      if (!iso) return "";
+      try {
+        var d = new Date(iso);
+        if (isNaN(d.getTime())) return String(iso);
+        var fmt = new Intl.DateTimeFormat("en-GB", {
+          timeZone: "Europe/London", hour: "numeric", minute: "2-digit",
+          hour12: true, weekday: "short", day: "numeric", month: "short", year: "numeric"
+        });
+        var parts = fmt.formatToParts(d);
+        var get = function (t) {
+          for (var i = 0; i < parts.length; i++) if (parts[i].type === t) return parts[i].value;
+          return "";
+        };
+        var hour = String(parseInt(get("hour"), 10));
+        var min = get("minute");
+        var dayPeriod = (get("dayPeriod") || "").toLowerCase();
+        return hour + ":" + min + dayPeriod + ", " + get("weekday") + " " + get("day") + " " + get("month") + " " + get("year") + " UK time";
+      } catch (e) {
+        return String(iso);
+      }
+    }
+
+    var paperSyncInfo = null;
+    var _paperSyncTimer = null;
+    var _paperSyncUntil = 0;
+    var _paperSyncAskedAt = 0;
+
+    function setPaperSyncMeta(text, cls) {
+      var el = document.getElementById("paperSyncMeta");
+      if (!el) return;
+      el.textContent = text;
+      el.className = "paper-sync-meta" + (cls ? " " + cls : "");
+    }
+
+    function syncLabel(info) {
+      info = info || paperSyncInfo || {};
+      var when = info.last_synced_display || formatSyncTime(info.last_synced_at, "");
+      if (!when) return "Last synced: not yet";
+      return "Last synced: " + when;
+    }
+
+    function applyPaperSync(info) {
+      paperSyncInfo = info || paperSyncInfo;
+      var btn = document.getElementById("paperSyncBtn");
+      var waiting = _paperSyncUntil && Date.now() < _paperSyncUntil;
+      if (btn && !waiting) btn.disabled = false;
+      if (!paperSyncInfo) {
+        setPaperSyncMeta("Last synced: not yet", "");
+        return;
+      }
+      if (paperSyncInfo.status === "running" && waiting) {
+        setPaperSyncMeta("Fetching the latest delivery and returns...", "is-wait");
+        return;
+      }
+      var label = syncLabel(paperSyncInfo);
+      if (paperSyncInfo.status === "needs_sign_in") {
+        setPaperSyncMeta(label + ". Today's note is not on the box yet.", "is-wait");
+        return;
+      }
+      if (paperSyncInfo.status === "error") {
+        setPaperSyncMeta(label + ". " + (paperSyncInfo.note || "Sync did not finish."), "is-error");
+        return;
+      }
+      setPaperSyncMeta(label, "is-ok");
+    }
+
+    function loadPaperSync() {
+      return fetch("paper_sync.json?t=" + Date.now()).then(function (res) {
+        if (!res.ok) throw new Error("sync");
+        return res.json();
+      }).then(function (data) {
+        applyPaperSync(data || null);
+        return data;
+      }).catch(function () {
+        if (!paperSyncInfo) {
+          var del = deliverySheet && deliverySheet.generated_display;
+          if (del) setPaperSyncMeta("Last rebuilt: " + del, "");
+        }
+        return null;
+      });
+    }
+
+    function stopPaperSyncPoll() {
+      _paperSyncUntil = 0;
+      if (_paperSyncTimer) {
+        clearInterval(_paperSyncTimer);
+        _paperSyncTimer = null;
+      }
+      var btn = document.getElementById("paperSyncBtn");
+      if (btn) btn.disabled = false;
+    }
+
+    function paperSyncIsFresh(info) {
+      if (!info || !_paperSyncAskedAt) return false;
+      var at = Date.parse(info.last_synced_at || "") || 0;
+      if (info.status === "running") return false;
+      if (at && at >= _paperSyncAskedAt - 2000) return true;
+      return false;
+    }
+
+    function startPaperSyncPoll() {
+      if (_paperSyncTimer) clearInterval(_paperSyncTimer);
+      _paperSyncUntil = Date.now() + 15 * 60 * 1000;
+      _paperSyncTimer = setInterval(function () {
+        if (Date.now() > _paperSyncUntil) {
+          stopPaperSyncPoll();
+          setPaperSyncMeta((paperSyncInfo ? syncLabel(paperSyncInfo) + ". " : "") +
+            "Still waiting for the box. Leave this page open, or try Sync again in a few minutes.", "is-wait");
+          return;
+        }
+        Promise.all([
+          loadPaperSync(),
+          typeof loadDeliverySheet === "function" ? loadDeliverySheet() : Promise.resolve(),
+          typeof loadReturnSheet === "function" ? loadReturnSheet() : Promise.resolve()
+        ]).then(function () {
+          if (paperSyncIsFresh(paperSyncInfo)) {
+            stopPaperSyncPoll();
+            applyPaperSync(paperSyncInfo);
+          }
+        });
+      }, 10000);
+    }
+
+    function requestPaperSync() {
+      var btn = document.getElementById("paperSyncBtn");
+      var who = String((checkedBy && checkedBy.value) || "").trim() || "staff";
+      if (btn) btn.disabled = true;
+      _paperSyncAskedAt = Date.now();
+      setPaperSyncMeta("Asking the box to fetch the latest delivery and returns...", "is-wait");
+      return postPayload({
+        name: "PAPERSYNC: delivery and returns | " + who,
+        photo: "",
+        lines: [{ date: (deliveryDate && deliveryDate.value) || todayLondon(), qty: "0" }]
+      }).then(function () {
+        startPaperSyncPoll();
+        setPaperSyncMeta("Asked the box to fetch the latest delivery and returns. This page will update when the notes are published.", "is-wait");
+      }).catch(function () {
+        if (btn) btn.disabled = false;
+        setPaperSyncMeta("Could not send the Sync request. Check your connection and try again.", "is-error");
+      });
+    }
+
+    (function hookPaperSync() {
+      var btn = document.getElementById("paperSyncBtn");
+      if (btn) btn.addEventListener("click", function () { requestPaperSync(); });
+    })();
+
     function loadReturnSheet() {
-      fetch("returns_today.json").then(function (res) {
+      return fetch("returns_today.json?t=" + Date.now()).then(function (res) {
         if (!res.ok) throw new Error("returns");
         return res.json();
       }).then(function (data) {
@@ -4208,8 +4383,13 @@
     });
     loadReturnSheet();
     loadDeliverySheet();
+    loadPaperSync();
     document.addEventListener("visibilitychange", function () {
-      if (document.visibilityState === "visible") loadDeliverySheet();
+      if (document.visibilityState === "visible") {
+        loadDeliverySheet();
+        if (typeof loadReturnSheet === "function" && isReturns()) loadReturnSheet();
+        loadPaperSync();
+      }
     });
     setInterval(function () {
       if (!isReturns() && !isStockTake()) loadDeliverySheet();
