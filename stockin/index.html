@@ -89,13 +89,39 @@
     .empty { color: #5b6573; font-size: .92rem; }
     video { width: 100%; border-radius: 14px; margin-top: 10px; background: #000; max-height: 240px; object-fit: cover; }
     .search-res .item { cursor: pointer; display: flex; gap: 8px; align-items: center; border: 1px solid #e3ebe6; border-radius: 12px; padding: 6px; margin-top: 6px; }
-    @media print { body { font-size: 14pt; } .tabs, .bk-nav, .btn, .pill, .mgrbar { display: none !important; } table.t { font-size: 14pt; } }
+
+    .si-sync-bar { margin: 0 0 12px; }
+    .si-sync-btn {
+      width: 100%; min-height: 52px; border-radius: 14px;
+      font-weight: 800; font-size: 16px; cursor: pointer;
+      border: 2px solid #17643F; background: #17643F; color: #fff;
+    }
+    .si-sync-btn:disabled { opacity: 0.65; cursor: default; }
+    .si-sync-btn:active { opacity: 0.85; }
+    .si-sync-meta {
+      margin: 8px 0 0; font-size: 14px; font-weight: 700;
+      color: #5b6573; line-height: 1.35;
+    }
+    .si-sync-meta.is-ok { color: #17643F; }
+    .si-sync-meta.is-wait { color: #8a3b12; }
+    .si-sync-meta.is-error { color: #9b1c1c; }
+    .si-sync-sups { margin: 6px 0 0; padding: 0; list-style: none; font-size: 14px; font-weight: 700; color: #18342A; line-height: 1.4; }
+    .si-sync-sups li { margin: 0; }
+    .si-sync-sups .is-new { color: #17643F; }
+    .si-sync-sups .is-none { color: #5b6573; }
+    .si-sync-sups .is-login { color: #8a3b12; }
+    @media print { body { font-size: 14pt; } .tabs, .bk-nav, .btn, .pill, .mgrbar, .si-sync-bar { display: none !important; } table.t { font-size: 14pt; } }
   </style>
 </head>
 <body>
 <main>
   <h1>Deliveries and Suppliers</h1>
   <div class="sub" id="sub">Stock In drafts, approval and posting to the till</div>
+  <div id="stockinSyncBar" class="si-sync-bar">
+    <button type="button" id="stockinSyncBtn" class="si-sync-btn">Sync</button>
+    <p id="stockinSyncMeta" class="si-sync-meta">Last synced: not yet</p>
+    <ul id="stockinSyncSuppliers" class="si-sync-sups" hidden></ul>
+  </div>
   <div id="pill" class="pill hidden"></div>
   <div id="mgrbar" class="mgrbar hidden"></div>
   <div class="tabs" id="tabs"></div>
@@ -1503,8 +1529,155 @@
     }).catch(function (e) { $("ivBody").textContent = "Pictures are kept encrypted on the box; they show here after the next update (" + e.message + ")."; });
   }
 
+
+  // Deliveries Sync: ask the box to re-read the till and process supplier invoices already on the box.
+  var stockinSyncInfo = null;
+  var _siSyncTimer = null;
+  var _siSyncUntil = 0;
+  var _siSyncAskedAt = 0;
+  function queueRow(name) {
+    var q = jget(K.queue, []);
+    q.push({ name: name, photo: "", lines: [{ date: londonISO(), qty: "0" }] });
+    jset(K.queue, q); pill(); flush();
+  }
+  function formatSyncTime(iso, fallback) {
+    if (fallback) return String(fallback);
+    if (!iso) return "";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return String(iso);
+      var fmt = new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Europe/London", hour: "numeric", minute: "2-digit",
+        hour12: true, weekday: "short", day: "numeric", month: "short", year: "numeric"
+      });
+      var parts = fmt.formatToParts(d);
+      var get = function (ty) {
+        for (var i = 0; i < parts.length; i++) if (parts[i].type === ty) return parts[i].value;
+        return "";
+      };
+      var hour = String(parseInt(get("hour"), 10));
+      var min = get("minute");
+      var dayPeriod = (get("dayPeriod") || "").toLowerCase();
+      return hour + ":" + min + dayPeriod + ", " + get("weekday") + " " + get("day") + " " + get("month") + " " + get("year") + " UK time";
+    } catch (e) {
+      return String(iso);
+    }
+  }
+  function setStockinSyncMeta(text, cls) {
+    var el = $("stockinSyncMeta");
+    if (!el) return;
+    el.textContent = text;
+    el.className = "si-sync-meta" + (cls ? " " + cls : "");
+  }
+  function renderStockinSyncSuppliers(info) {
+    var ul = $("stockinSyncSuppliers");
+    if (!ul) return;
+    var list = (info && info.suppliers) || [];
+    if (!list.length) { ul.innerHTML = ""; ul.hidden = true; return; }
+    ul.hidden = false;
+    ul.innerHTML = list.map(function (s) {
+      var cls = s.result === "new invoices found" ? "is-new" : (s.result === "sign-in needed" ? "is-login" : "is-none");
+      return "<li class='" + cls + "'>" + esc(s.name) + ": " + esc(s.result) + "</li>";
+    }).join("");
+  }
+  function syncLabel(info) {
+    info = info || stockinSyncInfo || {};
+    var when = info.last_synced_display || formatSyncTime(info.last_synced_at, "");
+    if (!when) return "Last synced: not yet";
+    return "Last synced " + when;
+  }
+  function applyStockinSync(info) {
+    stockinSyncInfo = info || stockinSyncInfo;
+    var btn = $("stockinSyncBtn");
+    var waiting = _siSyncUntil && Date.now() < _siSyncUntil;
+    if (btn && !waiting) btn.disabled = false;
+    if (!stockinSyncInfo) {
+      setStockinSyncMeta("Last synced: not yet", "");
+      renderStockinSyncSuppliers(null);
+      return;
+    }
+    if (stockinSyncInfo.status === "running" && waiting) {
+      setStockinSyncMeta("Checking the till and supplier invoices...", "is-wait");
+      return;
+    }
+    var label = syncLabel(stockinSyncInfo);
+    renderStockinSyncSuppliers(stockinSyncInfo);
+    if (stockinSyncInfo.status === "error") {
+      setStockinSyncMeta(label + ". " + (stockinSyncInfo.note || "Sync did not finish."), "is-error");
+      return;
+    }
+    setStockinSyncMeta(label, stockinSyncInfo.ok ? "is-ok" : "is-wait");
+  }
+  function loadStockinSync() {
+    return fetch("stockin_sync.json?t=" + Date.now()).then(function (res) {
+      if (!res.ok) throw new Error("sync");
+      return res.json();
+    }).then(function (data) {
+      applyStockinSync(data || null);
+      return data;
+    }).catch(function () {
+      if (!stockinSyncInfo) setStockinSyncMeta("Last synced: not yet", "");
+      return null;
+    });
+  }
+  function stopStockinSyncPoll() {
+    _siSyncUntil = 0;
+    if (_siSyncTimer) { clearInterval(_siSyncTimer); _siSyncTimer = null; }
+    var btn = $("stockinSyncBtn");
+    if (btn) btn.disabled = false;
+  }
+  function stockinSyncIsFresh(info) {
+    if (!info || !_siSyncAskedAt) return false;
+    if (info.status === "running") return false;
+    var at = Date.parse(info.last_synced_at || "") || 0;
+    if (at && at >= _siSyncAskedAt - 2000) return true;
+    return false;
+  }
+  function startStockinSyncPoll() {
+    if (_siSyncTimer) clearInterval(_siSyncTimer);
+    _siSyncUntil = Date.now() + 35 * 60 * 1000;
+    _siSyncTimer = setInterval(function () {
+      if (Date.now() > _siSyncUntil) {
+        stopStockinSyncPoll();
+        setStockinSyncMeta((stockinSyncInfo ? syncLabel(stockinSyncInfo) + ". " : "") +
+          "Still waiting for the box. Leave this page open, or try Sync again in a few minutes.", "is-wait");
+        return;
+      }
+      Promise.all([
+        loadStockinSync(),
+        typeof load === "function" ? load() : Promise.resolve()
+      ]).then(function () {
+        if (stockinSyncIsFresh(stockinSyncInfo)) {
+          stopStockinSyncPoll();
+          applyStockinSync(stockinSyncInfo);
+          var refreshTabs = { home:1, drafts:1, approval:1, errors:1, posted:1, suppliers:1, reports:1 };
+          if (cur && refreshTabs[cur.tab]) go(cur.tab);
+        }
+      });
+    }, 10000);
+  }
+  function requestStockinSync() {
+    var btn = $("stockinSyncBtn");
+    var who = String(staff() || "").trim() || "staff";
+    if (btn) btn.disabled = true;
+    _siSyncAskedAt = Date.now();
+    setStockinSyncMeta("Asking the box to check the till and supplier invoices...", "is-wait");
+    try {
+      queueRow("STOCKINSYNC: till and supplier | " + who);
+      startStockinSyncPoll();
+      setStockinSyncMeta("Asked the box to check the till and supplier invoices. This page will update when the sync is published.", "is-wait");
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      setStockinSyncMeta("Could not send the Sync request. Check your connection and try again.", "is-error");
+    }
+  }
+  (function hookStockinSync() {
+    var btn = $("stockinSyncBtn");
+    if (btn) btn.addEventListener("click", function () { requestStockinSync(); });
+  })();
+
   load().then(function () {
-    mgrBar(); pill(); flush();
+    mgrBar(); pill(); flush(); loadStockinSync();
     var qp = new URLSearchParams(location.search), t = qp.get("tab") || "home";
     if (qp.get("doc")) openDoc(qp.get("doc")); else go(VIEWS[t] ? t : "home");
   }).catch(function () {
