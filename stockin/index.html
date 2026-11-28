@@ -225,7 +225,7 @@
   }
   window.addEventListener("online", flush); setInterval(flush, 30000);
   function sendDraft(doc) {
-    var s = JSON.stringify({ kind: doc.kind, sid: doc.sid, ref: doc.ref, date: doc.date, staff: doc.staff, notes: doc.notes || "", lines: doc.lines, returns: doc.returns || [], source: doc.source || "app", scan: doc.scan || undefined, delivered_checked: doc.delivered_checked || undefined });
+    var s = JSON.stringify({ kind: doc.kind, sid: doc.sid, ref: doc.ref, date: doc.date, staff: doc.staff, notes: doc.notes || "", lines: doc.lines, returns: doc.returns || [], source: doc.source || "app", scan: doc.scan || undefined, delivered_checked: doc.delivered_checked || undefined, ud_entry: doc.ud_entry || undefined });
     var size = 30000, parts = Math.max(1, Math.ceil(s.length / size));
     for (var i = 0; i < parts; i++) queueEv({ t: "draft", id: doc.id, rev: doc.rev, part: i, parts: parts, by: staff() || doc.staff, d: s.slice(i * size, (i + 1) * size) });
   }
@@ -386,7 +386,7 @@
   VIEWS.home = function () {
     var c = counts(), posted = allDocs().filter(function (d) { return status(d) === "posted"; }).length;
     $("view").innerHTML = "<div class='card'><h2>Start here: choose the supplier</h2><div class='row' style='flex-wrap:wrap;gap:6px'>" + SUPFLOWS.map(function (f) { return "<button type='button' class='btn small " + (f.st === "soon" ? "sec" : "") + "' data-sup='" + f.k + "' style='flex:0 0 auto'>" + esc(f.name) + "</button>"; }).join("") + "</div></div><div class='tiles'>" +
-      tile("scan", "&#129534;", "Invoice Scanner", "Photo or PDF of the invoice makes the draft") + tile("new", "&#128666;", "New delivery", "Choose the supplier, then check the invoice") + tile("ud", "&#129371;", "Milk and bread", "Unique Dairies quick check") +
+      tile("scan", "&#129534;", "Invoice Scanner", "Photo or PDF of the invoice makes the draft") + tile("new", "&#128666;", "New delivery", "Choose the supplier, then check the invoice") + tile("ud", "&#129371;", "Milk and bread delivery", "Unique Dairies order list and delivery entry") +
       tile("drafts", c.drafts, "Drafts", "Saved, not sent to the till") + tile("approval", c.approval, "Pending Approval", "Till drafts waiting to be finished") +
       tile("errors", c.errors, "Posting Errors", "Fix or send again") + tile("posted", posted, "Posted Deliveries", "In the till, stock before and after") +
       tile("suppliers", (SI.suppliers || []).length, "Suppliers", "Profiles and till link") + tile("reports", "&#128202;", "Supplier Reports", "Spend, deliveries, audit log") + "</div>" +
@@ -998,10 +998,13 @@
     b("aRetry", function () { signed("retry", d.id, d.rev).then(function () { d.localStatus = "approved"; saveLocal(d); say("aMsg", "It will be sent again at the next update. It can never post twice.", "ok"); }); });
   }
 
-  // Unique Dairies daily milk and bread
-  function todayUdDoc() {
+  // Unique Dairies daily milk and bread: delivery entry (28 Nov 2026, Vijay t1618u)
+  var udDate = null;
+  function udSelDate() { return udDate || londonISO(); }
+  function todayUdDoc(date) {
+    date = date || udSelDate();
     return allDocs().filter(function (d) {
-      return d.kind === "ud" && d.sid === "SUP-003" && d.date === londonISO() && ["discarded", "rejected"].indexOf(status(d)) < 0;
+      return d.kind === "ud" && d.sid === "SUP-003" && d.date === date && ["discarded", "rejected"].indexOf(status(d)) < 0;
     })[0];
   }
   function udAlreadySaved(d) {
@@ -1010,47 +1013,73 @@
     return st === "till_draft" || st === "approved" || st === "posted" || st === "pending_approval" || !!(d.till_draft);
   }
   VIEWS.ud = function () {
-    var items = SI.ud || [], key = "birkhill-si-ud-" + londonISO(), saved = jget(key, {});
-    var todayUd = todayUdDoc(), already = udAlreadySaved(todayUd);
-    var h = "<div class='card'><h2>Milk and bread: Unique Dairies (North) Ltd</h2><div class='m'>Default supplier for these lines. Check the delivery against the list, no scanning needed. Expected is the usual quantity from recent deliveries. Received starts as the expected number: change a box only if the delivery differs. Returns are kept separate and only take stock off when confirmed.</div>";
+    var items = SI.ud || [], date = udSelDate(), key = "birkhill-si-ud-" + date, saved = jget(key, {});
+    var todayUd = todayUdDoc(date), already = udAlreadySaved(todayUd);
+    var ord = SI.ud_order && SI.ud_order.delivery === date ? SI.ud_order : null;
+    function want(it) { return ord && it.order != null ? it.order : it.expected; }
+    var h = "<div class='card'><h2>Unique Dairies delivery entry: milk and bread</h2><div class='m'>Check the delivery against the order list. Type how many came. If the till stock shown is wrong, press Edit stock and type the real number on the shelf before this delivery. Finish entry saves a Stock In DRAFT only. Nothing is posted to the till.</div>";
     if (already) {
       var td = todayUd.till_draft || {};
-      h += "<div class='msg ok' id='uAlready'>Today's Unique Dairies delivery is already saved" + (td.review_id ? " as till draft " + td.review_id : "") + " (" + esc(todayUd.id) + (todayUd.ref ? ", " + esc(todayUd.ref) : "") + "). It is a draft only, not posted. This screen will not create another draft.</div>";
+      h += "<div class='msg ok' id='uAlready'>This delivery is already saved" + (td.review_id ? " as till draft " + td.review_id : "") + " (" + esc(todayUd.id) + (todayUd.ref ? ", " + esc(todayUd.ref) : "") + "). It is a draft only, not posted. This screen will not create another draft.</div>";
     }
-    h += "<div class='row'><div><label class='f'>Delivery note</label><input id='uRef' type='text' value='" + esc(saved.ref || (todayUd && todayUd.ref) || ("Milk " + ukDate(londonISO()))) + "'" + (already ? " disabled" : "") + "></div><div><label class='f'>Staff</label><input id='uStaff' type='text' value='" + esc(saved.staff || (todayUd && todayUd.staff) || staff()) + "'" + (already ? " disabled" : "") + "></div></div>" +
-      (already ? "" : "<button class='btn sec' id='uAll' style='margin-top:10px'>Everything delivered as expected</button>") + "</div><div class='card'>" +
-      "<div class='ud' style='font-size:.78rem;font-weight:800;color:#5b6573'><div style='flex:1'>Product</div><div style='width:150px;text-align:center'>Received</div><div style='width:62px;text-align:center'>Return</div></div>";
+    h += (ord ? "<div class='note'>Order list for " + esc(ord.delivery_day) + " " + ukDate(ord.delivery) + " is loaded (made " + esc(ord.made) + "). " + esc(ord.weather_text || "") + "</div>" : "<div class='note'>No order list for " + ukDate(date) + " yet. Delivered starts at the usual quantity.</div>");
+    h += "<div class='row'><div><label class='f'>Date (reference)</label><input id='uDate' type='date' value='" + esc(date) + "'></div><div><label class='f'>Staff name</label><input id='uStaff' type='text' value='" + esc(saved.staff || (todayUd && todayUd.staff) || staff()) + "'" + (already ? " disabled" : "") + "></div></div>" +
+      "<div class='row'><div><label class='f'>Delivery note</label><input id='uRef' type='text' value='" + esc(saved.ref || (todayUd && todayUd.ref) || ("Milk " + ukDate(date))) + "'" + (already ? " disabled" : "") + "></div></div>" +
+      (already ? "" : "<button class='btn sec' id='uAll' style='margin-top:10px'>Everything delivered as ordered</button>") + "</div><div class='card'>" +
+      "<div class='ud' style='font-size:.78rem;font-weight:800;color:#5b6573'><div style='flex:1'>Product, barcode, ordered, till stock. Then Delivered and Return</div></div>";
     items.forEach(function (it, i) {
       var tl = todayUd ? (todayUd.lines || []).filter(function (l) { return l.pid === it.pid; })[0] : null;
-      var v = saved.rcv && saved.rcv[it.pid] != null ? saved.rcv[it.pid] : (tl && tl.rcv != null ? tl.rcv : it.expected);
+      var v = saved.rcv && saved.rcv[it.pid] != null ? saved.rcv[it.pid] : (tl && tl.rcv != null ? tl.rcv : want(it));
       var rt = todayUd ? (todayUd.returns || []).filter(function (l) { return l.pid === it.pid; })[0] : null;
       var r = saved.ret && saved.ret[it.pid] != null ? saved.ret[it.pid] : (rt ? rt.ret : "");
-      h += "<div class='ud'><div class='pic' style='width:48px;height:48px;flex-basis:48px'>" + picHtml(it.pid) + "</div><div style='flex:1;min-width:0'><div class='ln' style='font-size:.92rem'>" + esc(it.name) + "</div><div class='exp'>" + esc(it.bc) + " &middot; expected " + it.expected + " &middot; " + money(it.unit_cost) + " each (" + esc(it.cost_src) + ")</div></div>" +
-        "<div class='q'><button type='button' data-m='" + i + "'" + (already ? " disabled" : "") + ">-</button><input data-r='" + i + "' type='number' inputmode='numeric' value='" + esc(v) + "'" + (already ? " disabled" : "") + "><button type='button' data-p='" + i + "'" + (already ? " disabled" : "") + ">+</button></div><div class='ret'><input data-t='" + i + "' type='number' inputmode='numeric' value='" + esc(r) + "' placeholder='0'" + (already ? " disabled" : "") + "></div></div>";
+      var cnt = saved.cnt && saved.cnt[it.pid] != null ? saved.cnt[it.pid] : ((todayUd && todayUd.ud_entry) ? (((todayUd.ud_entry.lines || []).filter(function (l) { return l.pid === it.pid; })[0] || {}).counted) : null);
+      if (cnt === undefined) cnt = null;
+      var till = it.stock != null ? it.stock : null, wrong = cnt != null && cnt !== "" && till != null && num(cnt) !== till;
+      h += "<div class='ud' style='flex-wrap:wrap'><div class='pic' style='width:48px;height:48px;flex-basis:48px'>" + picHtml(it.pid) + "</div><div style='flex:1 1 calc(100% - 60px);min-width:0'><div class='ln' style='font-size:.95rem;font-weight:800'>" + esc(it.name) + "</div>" +
+        "<div class='bcbig' style='font-size:1.15rem;font-weight:900;letter-spacing:.04em'>" + esc(it.bc) + "</div>" +
+        "<div class='exp'>" + (ord && it.order != null ? "Ordered <b>" + it.order + "</b> &middot; " : "Usual " + it.expected + " &middot; ") + "Till stock <b" + (wrong ? " style='text-decoration:line-through'" : "") + ">" + (till == null ? "?" : till) + "</b>" + (wrong ? " &rarr; counted <b>" + esc(cnt) + "</b>" : "") + " &middot; " + money(it.unit_cost) + " each</div>" +
+        (already ? "" : "<button type='button' class='btn small sec' data-edst='" + i + "' style='margin-top:4px'>" + (cnt != null && cnt !== "" ? "Change stock" : "Edit stock") + "</button> <span data-edbox='" + i + "' style='" + (cnt != null && cnt !== "" ? "" : "display:none") + "'><input data-c='" + i + "' type='number' inputmode='numeric' value='" + esc(cnt == null ? "" : cnt) + "' placeholder='Real stock' style='width:92px;min-height:38px;text-align:center'></span>") + "</div>" +
+        "<div style='display:flex;gap:14px;align-items:center;justify-content:flex-end;width:100%'><span class='exp' style='margin-right:auto;font-weight:800'>Delivered / Return</span><div class='q'><button type='button' data-m='" + i + "'" + (already ? " disabled" : "") + ">-</button><input data-r='" + i + "' type='number' inputmode='numeric' value='" + esc(v) + "'" + (already ? " disabled" : "") + "><button type='button' data-p='" + i + "'" + (already ? " disabled" : "") + ">+</button></div><div class='ret'><input data-t='" + i + "' type='number' inputmode='numeric' value='" + esc(r) + "' placeholder='0'" + (already ? " disabled" : "") + "></div></div></div>";
     });
     if (!items.length) h += "<div class='empty'>No milk or bread lines found in recent till stock-ins.</div>";
     if (already) h += "<button class='btn' id='uOpen' style='margin-top:12px'>Open the saved draft</button><div id='uMsg'></div></div>";
-    else h += "<button class='btn' id='uSend' style='margin-top:12px'>Save and send to the till as a draft</button><div id='uMsg'></div></div>";
+    else h += "<button class='btn' id='uSend' style='margin-top:12px'>Finish entry and send to draft Stock In</button><div class='m'>Stock corrections become a list waiting for Vijay's yes. They are not posted to the till.</div><div id='uMsg'></div></div>";
+    var adj = (SI.ud_adjust || []).filter(function (a) { return a.status && a.status.indexOf("waiting") === 0; });
+    h += "<div class='card'><h2>Stock adjustments waiting for Vijay's yes</h2>" + (adj.length ? "<table class='t'><tr><th>Date</th><th>Product</th><th class='n'>Till</th><th class='n'>Counted</th><th class='n'>Change</th></tr>" + adj.map(function (a) { return "<tr><td>" + ukDate(a.date) + "</td><td>" + esc(a.name) + "<br><b>" + esc(a.bc) + "</b></td><td class='n'>" + a.till + "</td><td class='n'>" + a.counted + "</td><td class='n'>" + (a.diff > 0 ? "+" : "") + a.diff + "</td></tr>"; }).join("") + "</table><div class='m'>Not posted. Nothing changes on the till until Vijay says yes.</div>" : "<div class='empty'>None.</div>") + "</div>";
     var rets = allDocs().filter(function (d) { return d.kind === "return" && d.sid === "SUP-003" && ["recorded", "pending_approval", "approved"].indexOf(status(d)) >= 0; });
     h += "<div class='card'><h2>Returns waiting</h2>" + (rets.length ? "<div class='list'>" + rets.map(function (d) { return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(d.ref) + " <span class='st " + status(d) + "'>" + esc(STATUS[status(d)]) + "</span></div><div class='m'>" + d.lines.map(function (l) { return esc(l.name) + " " + l.ret; }).join(", ") + "</div></div>"; }).join("") + "</div>" : "<div class='empty'>None.</div>") + "</div>";
     var hist = SI.ud_history || [];
     h += "<div class='card'><h2>History: net = accepted deliveries minus confirmed returns</h2>" + (hist.length ? "<table class='t'><tr><th>Date</th><th class='n'>Delivered</th><th class='n'>Returned</th><th class='n'>Net</th></tr>" + hist.map(function (e) { return "<tr><td>" + ukDate(e.date) + "</td><td class='n'>" + e.delivered + "</td><td class='n'>" + e.returned + "</td><td class='n'>" + e.net + "</td></tr>"; }).join("") + "</table>" : "<div class='empty'>No posted milk and bread deliveries from this app yet.</div>") + "</div>";
     $("view").innerHTML = h; bindOpen();
-    function store() { var s = jget(key, {}); s.ref = $("uRef").value; s.staff = $("uStaff").value; s.rcv = {}; s.ret = {}; items.forEach(function (it, i) { var a = $("view").querySelector("[data-r='" + i + "']").value, b = $("view").querySelector("[data-t='" + i + "']").value; if (a !== "") s.rcv[it.pid] = num(a); if (b !== "") s.ret[it.pid] = num(b); }); jset(key, s); return s; }
-    each("[data-r],[data-t],#uRef,#uStaff", function (el) { el.onchange = store; });
-    each("[data-m],[data-p]", function (b) { b.onclick = function () { var i = b.getAttribute("data-m") || b.getAttribute("data-p"), inp = $("view").querySelector("[data-r='" + i + "']"); var v = inp.value === "" ? items[i].expected : num(inp.value); inp.value = Math.max(0, v + (b.hasAttribute("data-p") ? 1 : -1)); store(); }; });
-    if ($("uAll")) $("uAll").onclick = function () { items.forEach(function (it, i) { $("view").querySelector("[data-r='" + i + "']").value = it.expected; }); store(); };
+    function store() {
+      var s = jget(key, {}); s.ref = $("uRef").value; s.staff = $("uStaff").value; s.rcv = {}; s.ret = {}; s.cnt = {};
+      items.forEach(function (it, i) {
+        var a = $("view").querySelector("[data-r='" + i + "']").value, b = $("view").querySelector("[data-t='" + i + "']").value, c = $("view").querySelector("[data-c='" + i + "']");
+        if (a !== "") s.rcv[it.pid] = num(a); if (b !== "") s.ret[it.pid] = num(b); if (c && c.value !== "") s.cnt[it.pid] = num(c.value);
+      });
+      jset(key, s); return s;
+    }
+    if ($("uDate")) $("uDate").onchange = function () { var v = $("uDate").value; if (v) { udDate = v; VIEWS.ud(); } };
+    each("[data-r],[data-t],[data-c],#uRef,#uStaff", function (el) { el.onchange = store; });
+    each("[data-edst]", function (b) { b.onclick = function () { var i = b.getAttribute("data-edst"), box = $("view").querySelector("[data-edbox='" + i + "']"); box.style.display = ""; var inp = box.querySelector("input"); if (inp.value === "" && items[i].stock != null) inp.value = items[i].stock; inp.focus(); store(); }; });
+    each("[data-m],[data-p]", function (b) { b.onclick = function () { var i = b.getAttribute("data-m") || b.getAttribute("data-p"), inp = $("view").querySelector("[data-r='" + i + "']"); var v = inp.value === "" ? want(items[i]) : num(inp.value); inp.value = Math.max(0, v + (b.hasAttribute("data-p") ? 1 : -1)); store(); }; });
+    if ($("uAll")) $("uAll").onclick = function () { items.forEach(function (it, i) { $("view").querySelector("[data-r='" + i + "']").value = want(it); }); store(); };
     if ($("uOpen")) $("uOpen").onclick = function () { openDoc(todayUd.id); };
     if ($("uSend")) $("uSend").onclick = function () {
-      if (udAlreadySaved(todayUdDoc())) { say("uMsg", "Today's Unique Dairies delivery is already saved. Another draft was not created.", "ok"); return; }
+      if (udAlreadySaved(todayUdDoc(date))) { say("uMsg", "This delivery is already saved. Another draft was not created.", "ok"); return; }
       var s = store(), who = (s.staff || "").trim(); if (!who) return say("uMsg", "Type your name.", "err");
-      var lines = items.map(function (it) { var r = s.rcv[it.pid] != null ? s.rcv[it.pid] : it.expected; return { pid: it.pid, name: it.name, bc: it.bc, exp: it.expected, rcv: r, upc: 1, case_cost: it.unit_cost, vat: it.vat, damaged: 0, bb: "", match: "list", confirmed: true, cost_src: it.cost_src }; }).filter(function (l) { return l.rcv > 0; });
+      var lines = items.map(function (it) { var r = s.rcv[it.pid] != null ? s.rcv[it.pid] : want(it); return { pid: it.pid, name: it.name, bc: it.bc, exp: ord && it.order != null ? it.order : it.expected, rcv: r, upc: 1, case_cost: it.unit_cost, vat: it.vat, damaged: 0, bb: "", match: "list", confirmed: true, cost_src: it.cost_src }; }).filter(function (l) { return l.rcv > 0; });
       var returns = items.filter(function (it) { return num(s.ret[it.pid]) > 0; }).map(function (it) { return { pid: it.pid, name: it.name, ret: num(s.ret[it.pid]), upc: 1, unit_cost: it.unit_cost, vat: it.vat, reason: "Unsold, returned to Unique Dairies" }; });
-      var doc = { id: s.id || newId("U"), kind: "ud", sid: "SUP-003", ref: (s.ref || "").trim(), date: londonISO(), staff: who, lines: lines, returns: returns, source: "Milk and bread screen" };
+      var entry = { date: date, staff: who, order_for: ord ? ord.delivery : "", weather: ord ? (ord.weather_text || "") : "", lines: items.map(function (it) {
+        var c = s.cnt[it.pid]; return { pid: it.pid, name: it.name, bc: it.bc, order: ord && it.order != null ? it.order : null, delivered: s.rcv[it.pid] != null ? s.rcv[it.pid] : want(it), till: it.stock != null ? it.stock : null, counted: c != null ? c : null };
+      }) };
+      var doc = { id: s.id || newId("U"), kind: "ud", sid: "SUP-003", ref: (s.ref || "").trim(), date: date, staff: who, lines: lines, returns: returns, source: "Milk and bread delivery entry", ud_entry: entry };
       s.id = doc.id; jset(key, s);
       doc.rev = Math.max(((jget(K.docs, {})[doc.id] || {}).rev || 0), ((docsById()[doc.id] || {}).rev || 0)) + 1;
       sendDraft(doc); queueEv({ t: "submit", id: doc.id, rev: doc.rev, by: who }); doc.localStatus = "approved"; saveLocal(doc);
-      say("uMsg", "Saved. It will be saved on the till as a draft at the next update." + (returns.length ? " Returns are recorded; confirm them under Drafts when the driver takes them." : ""), "ok"); renderTabs();
+      try { queueRow("STOCKINSYNC: unique dairies finished entry | " + who); } catch (e) {}
+      var nadj = entry.lines.filter(function (l) { return l.counted != null && l.till != null && l.counted !== l.till; }).length;
+      say("uMsg", "Finished. It will be saved on the till as a draft at the next update, and the delivery report is made on the shop computer." + (nadj ? " " + nadj + " stock correction(s) are waiting for Vijay's yes." : "") + (returns.length ? " Returns are recorded; confirm them under Drafts when the driver takes them." : ""), "ok"); renderTabs();
     };
   };
   // suppliers
