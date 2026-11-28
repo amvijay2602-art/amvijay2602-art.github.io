@@ -74,6 +74,9 @@
     .price-alert { background: #fef3c7; color: #8a4b08; border: 1px solid #f5d48a; border-radius: 12px; padding: 10px 12px; margin-top: 8px; font-size: .92rem; font-weight: 700; }
     .price-alert b { display: block; margin-bottom: 4px; }
     .st.pricechg { background: #fef3c7; color: #8a4b08; }
+    .st.supok { background: #e8f6ec; color: #1b7a3d; } .st.supdiff { background: #fdecec; color: #c62828; } .st.supneed { background: #fef3c7; color: #8a4b08; }
+    .supchk { border: 2px solid #d6e9dc; border-radius: 10px; padding: 10px; margin-top: 8px; font-size: 14px; } .supchk.diff { border-color: #f3b4b4; } .supchk.need { border-color: #f5d27a; }
+    .supchk ul { margin: 6px 0 0 18px; padding: 0; } .supchk li { margin: 3px 0; }
     .line.pricechg { border-color: #e6b35c; background: #fffbeb; }
     .pill { position: fixed; top: 8px; right: 8px; z-index: 9999; background: #fef3c7; color: #8a4b08; border-radius: 999px; padding: 4px 10px; font-size: .8rem; font-weight: 800; }
     .mgrbar { position: fixed; top: 8px; left: 8px; z-index: 9999; background: var(--bk-g); color: #fff; border-radius: 999px; padding: 4px 10px; font-size: .8rem; font-weight: 800; }
@@ -398,7 +401,7 @@
     return "<div class='list'>" + ds.map(function (d) {
       var s = status(d), n = (d.lines || []).filter(function (l) { return !l.leave_out; }).length;
       var chg = docCostAlerts(d);
-      return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(supName(d.sid)) + " &middot; " + esc(d.ref || d.id) + " <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span>" + readChip(d) + (chg.length ? " <span class='st pricechg'>Price changes: " + chg.length + "</span>" : "") + "</div>" +
+      return "<div class='item' data-id='" + esc(d.id) + "'><div class='t'>" + esc(supName(d.sid)) + " &middot; " + esc(d.ref || d.id) + " <span class='st " + s + "'>" + esc(STATUS[s] || s) + "</span>" + readChip(d) + supChip(d) + (chg.length ? " <span class='st pricechg'>Price changes: " + chg.length + "</span>" : "") + "</div>" +
         "<div class='m'>" + esc(ukDate(d.date)) + " &middot; " + n + " lines &middot; " + money(docTotal(d)) + " ex VAT &middot; " + esc(d.staff || "") + (d.kind === "return" ? " &middot; supplier return" : "") + (d.source ? " &middot; " + esc(d.source) : "") + "</div>" +
         (chg.length ? "<div class='note'>" + chg.map(function (x) { return esc(x.name) + ": " + invoiceCostMsg(x.a); }).join(" ") + "</div>" : "") +
         (d.error ? "<div class='flag'>" + esc(d.error) + "</div>" : "") + ((d.issues || []).length && s === "needs_fix" ? "<div class='flag'>" + esc(d.issues.length + " problem(s): " + d.issues[0]) + "</div>" : "") +
@@ -840,6 +843,7 @@
         if (cpc.length) h += "<details><summary class='lm'>Cost changes</summary>" + cpc.map(function (x) { return "<div class='lm'>" + esc(x.name) + (x.match === "suggested" && !x.confirmed ? " (match to confirm)" : "") + ": " + esc(x.what) + "</div>"; }).join("") + "</details>";
         (d.also_from || []).forEach(function (a) { h += "<div class='lm'>Same invoice also received: " + esc(a.source) + (a.agrees ? ", agrees" : ", differs: " + esc((a.diffs || []).slice(0, 3).join("; "))) + "</div>"; });
       }
+      h += supCheckCard(d);
       if (d.box_check && !d.box_check.ok) h += "<div class='note'>Box re-read: " + esc((d.box_check.notes || []).join("; ") || "totals did not agree") + "</div>";
       h += "<div class='m' style='margin-top:6px'>Expected = what the invoice says. Change Received if short or extra, add Damaged units, tick Leave out if an item did not come. Items that came but are not on the invoice: Add a product below.</div>" +
         (ed ? "<label style='display:block;margin-top:8px;font-weight:800'><input type='checkbox' id='dChecked'" + (d.delivered_checked ? " checked" : "") + "> Delivered quantities checked</label>" : (d.delivered_checked ? "<div class='m'>Delivered quantities checked by " + esc(d.delivered_checked.by || "") + "</div>" : ""));
@@ -867,6 +871,7 @@
       "<table class='t'><tr><th>Product</th><th class='n'>Qty</th><th class='n'>Before</th><th class='n'>After</th><th class='n'>Till now</th></tr>" + d.till.lines.map(function (l) { return "<tr><td>" + esc(l.name) + "</td><td class='n'>" + l.units + "</td><td class='n'>" + l.before + "</td><td class='n'>" + l.after + "</td><td class='n'>" + l.now + "</td></tr>"; }).join("") + "</table></div>";
     if ((d.history || []).length) h += "<div class='card'><h2>History</h2>" + d.history.slice().reverse().map(function (x) { return "<div class='m'>" + esc(String(x.at).replace("T", " ").slice(0, 16)) + " &middot; " + esc(x.what) + (x.by ? " &middot; " + esc(x.by) : "") + "</div>"; }).join("") + "</div>";
     $("view").innerHTML = h;
+    each("[data-supgo]", function (b) { b.onclick = function () { go("sup", b.getAttribute("data-supgo")); }; });
     $("dBack").onclick = function () { go(s === "posted" ? "posted" : (s === "pending_approval" || s === "approved" || s === "till_draft") ? "approval" : (s === "error" || s === "needs_fix") ? "errors" : "drafts"); };
     if ($("dRetake")) $("dRetake").onclick = function () { go("scan"); };
     if (ed) {
@@ -1271,6 +1276,39 @@
       return "<tr><td>" + esc((r.sid ? supName(r.sid) + " " : "") + (r.id || "")) + "</td><td>" + esc(r.received ? ukDate(r.received.slice(0, 10)) + " " + r.received.slice(11, 16) : "") + "</td><td>" + st + "</td></tr>";
     }).join("") + "</table>";
   }
+  // 28 Nov 2026 (Vijay t62u): supplier cross-check. Read only; the box compares each draft with the supplier's own copy.
+  var SUPSITE = { "SUP-001": "parfetts", "SUP-002": "dhamecha", "SUP-005": "eden", "SUP-006": "booker", "SUP-008": "tns" };
+  function supChip(d) {
+    var c = d.supplier_check; if (!c) return "";
+    if (c.status === "ok") return " <span class='st supok'>&#10003; Supplier check OK</span>";
+    if (c.status === "differences") return " <span class='st supdiff'>Supplier check: differences</span>";
+    if (c.status === "supplier_copy_needed") return " <span class='st supneed'>Supplier copy needed</span>";
+    if (c.status === "partial" || c.status === "totals_only") return " <span class='st supneed'>Supplier check: part</span>";
+    return "";
+  }
+  function supCheckCard(d) {
+    var c = d.supplier_check; if (!c) return "";
+    var cls = c.status === "ok" ? "" : (c.status === "differences" || c.status === "error") ? " diff" : " need";
+    var h = "<div class='supchk" + cls + "'><b>Checked with " + esc(c.supplier || "the supplier") + "</b> " + supChip(d) + "<div style='margin-top:4px'>" + esc(c.headline || "") + "</div>";
+    if (c.totals_text) h += "<div class='m'>" + esc(c.totals_text) + "</div>";
+    var src = c.source || {};
+    if (src.file) h += "<div class='m'>Supplier record: " + esc(src.kind || "") + " " + esc(src.file) + (src.same_as_draft ? " (this draft was read from the same supplier file)" : "") + "</div>";
+    var bad = (c.lines || []).filter(function (l) { return (l.flags || []).length; });
+    if (bad.length) h += "<div style='margin-top:6px'><b>Lines to look at (" + bad.length + ")</b><ul>" + bad.map(function (l) { return "<li>" + esc((l.code ? l.code + " " : "") + l.name) + (l.left_out ? " (left out of the till draft)" : "") + ": " + esc(l.flags.join("; ")) + "</li>"; }).join("") + "</ul></div>";
+    if ((c.extra || []).length) h += "<div style='margin-top:6px'><b>On the supplier record but not in this draft (" + c.extra.length + ")</b><ul>" + c.extra.map(function (x) { return "<li>" + esc((x.code ? x.code + " " : "") + x.name) + ", qty " + esc(x.qty == null ? "-" : x.qty) + (x.case_cost != null ? ", " + money(x.case_cost) + " a case" : "") + "</li>"; }).join("") + "</ul></div>";
+    var nts = []; (c.lines || []).forEach(function (l) { (l.notes || []).forEach(function (n) { if (!/not listed by the supplier/.test(n) && !/no prices or barcodes/.test(n)) nts.push((l.code ? l.code + " " : "") + l.name + ": " + n); }); });
+    if (nts.length) h += "<details style='margin-top:6px'><summary>Notes (" + nts.length + ")</summary><ul>" + nts.map(function (n) { return "<li>" + esc(n) + "</li>"; }).join("") + "</ul></details>";
+    var b = c.barcodes; if (b && src.file && !src.order_only) h += "<div class='m'>Barcodes: " + (b.verified || 0) + " verified with the supplier, " + ((b.unverified || 0) + (b.missing || 0)) + " not listed by the supplier (till barcode kept, not verified), " + (b.differs || 0) + " different.</div>";
+    if (c.need && c.status !== "ok") {
+      var k = SUPSITE[d.sid];
+      h += "<div class='note' style='margin-top:6px'><b>Supplier copy needed:</b> " + esc(c.need.what || "") + "</div>";
+      if (c.need.url) h += "<a class='btn o small' href='" + esc(c.need.url) + "' target='_blank' rel='noopener noreferrer' style='margin-top:6px;display:inline-block'>Sign in to " + esc(c.need.supplier || "supplier") + " website</a> ";
+      if (k) h += "<button class='btn small sec' data-supgo='" + esc(k) + "' style='margin-top:6px'>Upload the supplier file</button>";
+    }
+    if (c.reply) h += "<div style='margin-top:8px'><a class='btn small' href='https://wa.me/?text=" + encodeURIComponent(c.reply) + "' target='_blank' rel='noopener noreferrer'>Reply on WhatsApp</a> <span class='m'>" + esc(c.reply) + "</span></div>";
+    h += "<div class='m'>Checked " + esc(String(c.at || "").replace("T", " ").slice(0, 16)) + ". Nothing is blocked: the draft stays a draft until a manager finishes it.</div></div>";
+    return h;
+  }
   function readChip(d) {
     var a = d.auto_done || {};
     if (d.universal) return " <span class='st approved'>Read</span>";
@@ -1278,8 +1316,9 @@
     return "";
   }
   function scanSupOpts(sel) { return "<option value=''>Work it out from the invoice</option>" + (SI.suppliers || []).filter(function (s) { return s.active !== false; }).map(function (s) { return "<option value='" + s.id + "'" + (s.id === sel ? " selected" : "") + ">" + esc(s.name) + "</option>"; }).join(""); }
+  var SHARED_NOTE = "";
   function renderScan() {
-    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Any supplier. Take a photo of each page of the invoice, or upload photos, a PDF, or an EDN, CSV, text or XML file. Grok Bot reads it on the box, works out the supplier, checks the sums, matches barcodes and verified supplier codes and saves a Stock In draft. Stock is never posted and selling prices are never changed.</div><div class='note'>" + aiNote() + "</div>" + readingList() +
+    var h = "<div class='card'><h2>&#129534; Invoice Scanner</h2><div class='m'>Any supplier. Take a photo of each page of the invoice, or upload photos, a PDF, or an EDN, CSV, text or XML file. Grok Bot reads it on the box, works out the supplier, checks the sums, matches barcodes and verified supplier codes and saves a Stock In draft. Stock is never posted and selling prices are never changed.</div>" + (SHARED_NOTE ? "<div class='msg ok' style='margin-top:8px'>" + esc(SHARED_NOTE) + "</div>" : "") + "<div class='m' style='margin-top:6px'>From WhatsApp on Android: open the invoice photo, tap Share, then choose <b>Deliveries</b> (add this app to the home screen first).</div><div class='note'>" + aiNote() + "</div>" + readingList() +
       "<label class='f'>Supplier</label><select id='scSup'>" + scanSupOpts(SCAN.sid) + "</select>" +
       "<div class='row' style='margin-top:10px'><label class='btn' style='text-align:center'>&#128247; Photo of a page<input id='scCam' type='file' accept='image/*' capture='environment' class='hidden'></label>" +
       "<label class='btn sec' style='text-align:center'>&#128196; Upload photos, PDF or EDN file<input id='scFile' type='file' accept='" + INV_ACCEPT + "' multiple class='hidden'></label></div>" +
@@ -1676,10 +1715,35 @@
     if (btn) btn.addEventListener("click", function () { requestStockinSync(); });
   })();
 
+  // 28 Nov 2026: photos shared from WhatsApp (Android Share > Deliveries) arrive through sw.js and run the normal scanner upload.
+  function sharedSid(text) {
+    var t = String(text || "").toLowerCase(), hit = "";
+    SUPFLOWS.forEach(function (f) { if (!hit && f.sid && t.indexOf(f.name.toLowerCase().split(" ")[0]) >= 0) hit = f.sid; });
+    return hit;
+  }
+  function takeShared(flag) {
+    try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+    if (flag === "0" || !window.caches) { go("scan"); return; }
+    caches.open("birkhill-share-v1").then(function (cache) {
+      return cache.match("./__shared/meta").then(function (r) { return r ? r.json() : null; }).then(function (meta) {
+        if (!meta || !(meta.files || []).length) { go("scan"); return; }
+        return Promise.all(meta.files.map(function (m) { return cache.match(m.key).then(function (r) { return r ? r.blob() : null; }).then(function (b) { return b ? new File([b], m.name, { type: m.type || b.type }) : null; }); }))
+          .then(function (files) {
+            files = files.filter(Boolean);
+            return Promise.all((meta.files || []).map(function (m) { return cache.delete(m.key); }).concat([cache.delete("./__shared/meta")])).then(function () {
+              SHARED_NOTE = "Shared from WhatsApp: " + files.length + " file(s)" + (meta.text ? " (" + meta.text.slice(0, 80) + ")" : "") + ". Check the supplier, then create the draft as usual.";
+              startUpload(sharedSid(meta.text), files, null);
+              if (!SCAN.pages.length) go("scan");
+            });
+          });
+      });
+    }).catch(function () { go("scan"); });
+  }
   load().then(function () {
     mgrBar(); pill(); flush(); loadStockinSync();
     var qp = new URLSearchParams(location.search), t = qp.get("tab") || "home";
-    if (qp.get("doc")) openDoc(qp.get("doc")); else go(VIEWS[t] ? t : "home");
+    if (qp.get("shared") != null) takeShared(qp.get("shared"));
+    else if (qp.get("doc")) openDoc(qp.get("doc")); else go(VIEWS[t] ? t : "home");
   }).catch(function () {
     $("view").innerHTML = "<div class='msg err'>Data locked or not loaded. Open this app once from the full link Vijay sent (it ends in #k=...).</div>";
   });
