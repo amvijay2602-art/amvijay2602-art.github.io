@@ -14,6 +14,7 @@
   <script src="sentry-init.js"></script>
   <script src="error-report.js"></script>
   <script src="secure-data.js"></script>
+  <script src="login.js"></script>
   <script src="paper-returns-job.js"></script>
   <style>
     :root { --blue:#17643F; --blue2:#1d7a4e; --bg:#F4F7F4; --card:#fff; --ink:#18342A; --muted:#5b6573;
@@ -137,6 +138,7 @@
         <h2>Who is working?</h2>
         <div class="staff-row" id="staffRow"></div>
         <div class="staff-now" id="staffNow"></div>
+        <div class="staff-now"><a href="staff.html" style="color:inherit">Owner: staff sign-ins</a></div>
       </div>
       <div class="card hidden" id="paperReturnsJobCard">
         <h2>Newspaper returns</h2>
@@ -215,6 +217,10 @@
     function renderStaff() {
       var row = $("staffRow"), cur = ls(STAFF) || "";
       row.innerHTML = "";
+      if (window.BirkhillLogin) {   // 28 Nov 2026: names come from the sign-in now (Sign out is in the green bar at the top)
+        $("staffNow").textContent = cur ? ("Signed in as " + cur + ". It fills 'Checked by' in every app. Tap Sign out at the top to change.") : "Sign in to start.";
+        return;
+      }
       staffList().forEach(function (n) {
         var b = el("button", { type: "button", "class": "chip" + (n === cur ? " active" : "") }, n);
         b.addEventListener("click", function () { setStaff(n); });
@@ -232,6 +238,7 @@
       $("staffNow").textContent = cur ? ("Saving as " + cur + " in every app. Tap another name to change.") : "Tap your name. It fills 'Checked by' in every app.";
     }
     renderStaff();
+    window.addEventListener("birkhill-login", renderStaff);
 
     // ---- reports ----
     var R = null, tab = "chiller";
